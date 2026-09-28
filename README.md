@@ -27,7 +27,7 @@ class (project) – C++ class
 
 ## Installation
 
-Requires **Node.js 22.18** or newer.
+Requires **Node.js 24** or newer.
 
 ```sh
 npm install -g @lea.rosema/jen

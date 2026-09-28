@@ -3,7 +3,7 @@
  * jen – the code jen(erator)
  *
  * Zero-dependency scaffolding CLI. Runs directly as TypeScript
- * (Node >= 22.18, type stripping), tsconfig: "erasableSyntaxOnly": true.
+ * (Node >= 24, type stripping), tsconfig: "erasableSyntaxOnly": true.
  *
  *   jen                          list available generators
  *   jen class                    first generator named "class" in the search path
