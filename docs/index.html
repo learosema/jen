@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>jen — the code jen(erator)</title>
+<meta name="description" content="A tiny, zero-dependency scaffolding CLI. Plan first, then act." />
+<style>
+  :root {
+    --bg: #f6f5f2;
+    --fg: #1c1b19;
+    --muted: #5c584f;
+    --accent: #b5461f;
+    --card: #ffffff;
+    --border: #e4e0d8;
+    --term-bg: #1c1b19;
+    --term-fg: #f2ede2;
+    --term-dim: #8a8579;
+    --term-add: #7fae52;
+    --term-mod: #d9a441;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15140f;
+      --fg: #f2ede2;
+      --muted: #a39c8c;
+      --accent: #e08557;
+      --card: #1c1b17;
+      --border: #322f27;
+      --term-bg: #0d0c09;
+      --term-fg: #f2ede2;
+      --term-dim: #7d7768;
+      --term-add: #93c46a;
+      --term-mod: #e0b455;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    line-height: 1.6;
+  }
+
+  main {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 4rem 1.25rem 5rem;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    margin: 0 0 0.25rem;
+    letter-spacing: -0.02em;
+  }
+  h1 span {
+    color: var(--accent);
+  }
+
+  .tagline {
+    color: var(--muted);
+    font-size: 1.05rem;
+    margin: 0 0 2rem;
+  }
+  .tagline strong {
+    color: var(--fg);
+  }
+
+  .terminal {
+    background: var(--term-bg);
+    color: var(--term-fg);
+    border-radius: 10px;
+    padding: 1.1rem 1.25rem 1.3rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    box-shadow: 0 1px 0 var(--border);
+  }
+  .terminal .dots {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 0.85rem;
+  }
+  .terminal .dots span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--term-dim);
+    opacity: 0.5;
+  }
+  .terminal pre {
+    margin: 0;
+    white-space: pre;
+  }
+  .terminal .prompt { color: var(--term-dim); }
+  .terminal .add { color: var(--term-add); }
+  .terminal .mod { color: var(--term-mod); }
+  .terminal .ok { color: var(--term-add); }
+
+  h2 {
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 3rem 0 1rem;
+  }
+
+  ul.features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.6rem;
+  }
+  ul.features li {
+    padding-left: 1.4rem;
+    position: relative;
+  }
+  ul.features li::before {
+    content: "·";
+    color: var(--accent);
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+  }
+  ul.features strong { color: var(--fg); }
+  ul.features { color: var(--muted); }
+
+  .install {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .install code {
+    font-size: 0.95rem;
+  }
+  .install code::before {
+    content: "$ ";
+    color: var(--muted);
+  }
+
+  footer {
+    margin-top: 3.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1rem;
+    justify-content: space-between;
+  }
+  footer a {
+    color: var(--fg);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+  }
+  footer a:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  @media (max-width: 480px) {
+    h1 { font-size: 2rem; }
+    .install { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>jen<span>.</span></h1>
+  <p class="tagline"><strong>the code jen(erator)</strong> — a tiny, zero-dependency scaffolding CLI.</p>
+
+  <div class="terminal">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <pre><span class="prompt">$</span> jen class --name=rigid_body --moveOnly
+class (project) – C++ class
+
+  <span class="add">+ src/RigidBody.h</span>
+  <span class="add">+ src/RigidBody.cpp</span>
+  <span class="mod">~ src/CMakeLists.txt  + RigidBody.cpp</span>
+
+<span class="ok">✓ 3 written</span></pre>
+  </div>
+
+  <h2>Why</h2>
+  <ul class="features">
+    <li><strong>Zero dependencies.</strong> No node_modules tree, no Handlebars, no Inquirer. Just Node.</li>
+    <li><strong>No dialog.</strong> Params come from the command line. Nothing asks you questions.</li>
+    <li><strong>Templates with logic, for free.</strong> Template literals already do conditionals and loops.</li>
+    <li><strong>Plan first, then act.</strong> Every run shows the plan before writing anything.</li>
+    <li><strong>Deterministic.</strong> Same params, same output. Every time.</li>
+    <li><strong>Language-agnostic.</strong> Scaffolds C++, CMake, Rust, shaders, or anything else that's text.</li>
+  </ul>
+
+  <h2>Install</h2>
+  <div class="install">
+    <code>npm install -g @lea.rosema/jen</code>
+  </div>
+
+  <footer>
+    <span>Requires Node.js 22.18+ · MIT License</span>
+    <span>
+      <a href="https://github.com/learosema/jen">GitHub</a>
+      &nbsp;·&nbsp;
+      <a href="https://www.npmjs.com/package/@lea.rosema/jen">npm</a>
+    </span>
+  </footer>
+</main>
+</body>
+</html>
