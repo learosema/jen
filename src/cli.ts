@@ -13,20 +13,30 @@
  *   4. packs             dependencies in package.json named "jen-pack-*" or
  *                        "@scope/pack-*", project package.json then the
  *                        user directory's
- *   5. built-in generators
+ *   5. yeoman generators dependencies named "generator-*" or
+ *                        "@scope/generator-*" (see yeoman.ts)
+ *   6. built-in generators
+ *
+ * --from/-F fetches a single pack or Yeoman generator via npm into a
+ * throwaway directory, runs it once, and removes it again – it replaces the
+ * whole search path above for that one run.
  *
  * Paths in actions are relative to the project root (the directory
  * containing .jen/), or to the current directory if there is no .jen/.
  * --where/-w overrides the project root for a single run.
  */
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
 import { delimiter, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs, styleText } from 'node:util';
 import { apply, dim, fail, helpers, plan, printPlan } from './core.ts';
-import type { Answers, Generator, Pack, Params } from './core.ts';
+import type { Action, Answers, Generator, Pack, Params } from './core.ts';
 import { PROJECT_JEN, ROOT, USER_DIR, setRoot } from './location.ts';
+import type { YeomanGeneratorClass } from './yeoman.ts';
+import { runYeoman } from './yeoman.ts';
 
 // ─── Built-in generators ────────────────────────────────────────────────────
 
@@ -59,20 +69,34 @@ export default {
 
 // ─── Collecting generators ──────────────────────────────────────────────────
 
+/** A jen generator, loaded and ready to plan. */
+interface ActionsGenerator extends Generator {
+  kind: 'actions';
+}
+
+/** A real Yeoman generator, run through the shim in yeoman.ts – see there for what that covers. */
+interface RunnableYeoman {
+  kind: 'yeoman';
+  description?: string;
+  run(given: Record<string, unknown>, positionals: string[]): Promise<Action[]>;
+}
+
+type LoadedGenerator = ActionsGenerator | RunnableYeoman;
+
 interface Entry {
   name: string;
   source: string;
   prefix?: string;
-  load: () => Promise<Generator>;
+  load: () => Promise<LoadedGenerator>;
 }
 
 const GEN_FILE = /\.(m?js|m?ts)$/;
 
-function asGenerator(mod: unknown, where: string): Generator {
+function asGenerator(mod: unknown, where: string): ActionsGenerator {
   const m = mod as { default?: unknown };
   const gen = (m.default ?? m) as Generator;
   if (typeof gen?.actions !== 'function') fail(`${where}: does not export an actions() function`);
-  return gen;
+  return { kind: 'actions', ...gen };
 }
 
 function dirSource(source: string, dir: string | null): Entry[] {
@@ -110,21 +134,20 @@ function readPackageJson(dir: string | null): PackageJson {
   }
 }
 
-/** Dependency names in a package.json that look like jen packs. */
-function discoverPacks(dir: string | null): string[] {
+/** Dependency names in a package.json matching a naming convention (jen packs, Yeoman generators). */
+function discoverDeps(dir: string | null, re: RegExp): string[] {
   const pkg = readPackageJson(dir);
   const names = [
     ...Object.keys(pkg.dependencies ?? {}),
     ...Object.keys(pkg.devDependencies ?? {}),
     ...Object.keys(pkg.peerDependencies ?? {}),
   ];
-  return names.filter((n) => PACK_RE.test(n));
+  return names.filter((n) => re.test(n));
 }
 
-async function packSource(name: string): Promise<Entry[]> {
+async function packSource(name: string, bases = [join(ROOT, 'package.json'), import.meta.filename]): Promise<Entry[]> {
   // Look locally in the project first, then from jen's own location –
   // for a global install, that finds globally installed packs.
-  const bases = [join(ROOT, 'package.json'), import.meta.filename];
   for (const base of bases) {
     let file: string;
     try {
@@ -145,17 +168,114 @@ async function packSource(name: string): Promise<Entry[]> {
   return [];
 }
 
+/** Matches Yeoman generator package names, Yeoman's own convention: "generator-code" or "@scope/generator-code" → "code". */
+const YEOMAN_RE = /^(?:generator-|@[^/]+\/generator-)(.+)$/;
+
+const yeomanShortName = (name: string): string => YEOMAN_RE.exec(name)?.[1] ?? name;
+
+/**
+ * Loads a Yeoman generator package's default export as a single generator –
+ * jen doesn't enumerate a package's sub-generators, just its own default one
+ * (what `yo <name>` itself runs). See yeoman.ts for what running it covers.
+ */
+async function yeomanSource(name: string, bases = [join(ROOT, 'package.json'), import.meta.filename]): Promise<Entry[]> {
+  for (const base of bases) {
+    let file: string;
+    try {
+      file = createRequire(base).resolve(name);
+    } catch {
+      continue;
+    }
+    const mod = (await import(pathToFileURL(file).href)) as { default?: unknown };
+    const GeneratorClass = (mod.default ?? mod) as YeomanGeneratorClass;
+    if (typeof GeneratorClass !== 'function') {
+      console.warn(styleText('yellow', `${name}: default export is not a Yeoman generator class, skipped.`));
+      return [];
+    }
+    const shortName = yeomanShortName(name);
+    return [
+      {
+        name: shortName,
+        source: `yeoman ${name}`,
+        load: async () => ({
+          kind: 'yeoman',
+          description: 'Yeoman generator',
+          run: (given, positionals) =>
+            runYeoman(GeneratorClass, file, { given, positionals, root: ROOT, namespace: `${shortName}:app` }),
+        }),
+      },
+    ];
+  }
+  console.warn(styleText('yellow', `Yeoman generator ${name} not found (install it locally or globally).`));
+  return [];
+}
+
+/** Splits "name@version" into its parts, keeping a scope's own "@" intact: "@scope/name@1.0.0" → ["@scope/name", "1.0.0"]. */
+function splitPkgSpec(spec: string): [name: string, version: string] {
+  const at = spec.startsWith('@') ? spec.indexOf('@', 1) : spec.indexOf('@');
+  return at < 0 ? [spec, 'latest'] : [spec.slice(0, at), spec.slice(at + 1)];
+}
+
+/**
+ * Installs a single pack or Yeoman generator via npm into a throwaway
+ * directory (never the project's own node_modules), and returns its
+ * entries plus a cleanup function that removes that directory again.
+ * jen never fetches anything implicitly – only this, and only for the one
+ * generator name given on the command line.
+ */
+async function fetchFrom(spec: string): Promise<{ entries: Entry[]; cleanup: () => void }> {
+  const [name, version] = splitPkgSpec(spec);
+  if (!PACK_RE.test(name) && !YEOMAN_RE.test(name)) {
+    fail(`"${name}" doesn't look like a jen pack (jen-pack-*, @scope/pack-*) or a Yeoman generator (generator-*, @scope/generator-*).`);
+  }
+
+  const dir = mkdtempSync(join(tmpdir(), 'jen-from-'));
+  const remove = () => rmSync(dir, { recursive: true, force: true });
+
+  // Ctrl+C anywhere before cleanup() runs (including during the blocking
+  // install below) would otherwise kill the process before main()'s own
+  // try/finally gets a chance to, leaving this directory behind.
+  const onSignal = (signal: NodeJS.Signals) => {
+    remove();
+    process.exit(128 + (signal === 'SIGINT' ? 2 : 15));
+  };
+  process.once('SIGINT', onSignal);
+  process.once('SIGTERM', onSignal);
+  const cleanup = () => {
+    process.off('SIGINT', onSignal);
+    process.off('SIGTERM', onSignal);
+    remove();
+  };
+
+  console.log(dim(`Fetching ${name}@${version} …`));
+  const result = spawnSync(
+    'npm',
+    ['install', `${name}@${version}`, '--prefix', dir, '--no-save', '--no-audit', '--no-fund', '--ignore-scripts'],
+    { stdio: 'inherit', shell: process.platform === 'win32' },
+  );
+  if (result.error || result.status !== 0) {
+    cleanup();
+    fail(`npm install ${name}@${version} failed${result.error ? `: ${result.error.message}` : ''}.`);
+  }
+
+  const bases = [join(dir, 'package.json')];
+  const entries = PACK_RE.test(name) ? await packSource(name, bases) : await yeomanSource(name, bases);
+  return { entries, cleanup };
+}
+
 async function collect(): Promise<Entry[]> {
   const extra = (process.env.JEN_PATH ?? '').split(delimiter).filter(Boolean);
-  const packs = [...new Set([...discoverPacks(ROOT), ...discoverPacks(USER_DIR)])];
+  const packs = [...new Set([...discoverDeps(ROOT, PACK_RE), ...discoverDeps(USER_DIR, PACK_RE)])];
+  const yeomanGenerators = [...new Set([...discoverDeps(ROOT, YEOMAN_RE), ...discoverDeps(USER_DIR, YEOMAN_RE)])];
   const entries: Entry[] = [
     ...dirSource('project', PROJECT_JEN),
     ...dirSource('user', USER_DIR),
     ...extra.flatMap((dir) => dirSource(`JEN_PATH ${dir}`, dir)),
   ];
   for (const p of packs) entries.push(...(await packSource(p)));
+  for (const g of yeomanGenerators) entries.push(...(await yeomanSource(g)));
   for (const [name, g] of Object.entries(BUILTINS)) {
-    entries.push({ name, source: 'built-in', load: async () => g });
+    entries.push({ name, source: 'built-in', load: async () => ({ kind: 'actions', ...g }) });
   }
   return entries;
 }
@@ -226,6 +346,7 @@ const HELP = `jen – the code jen(erator)
   --dry-run, -n   only show the plan
   --force,   -f   overwrite existing files
   --where,   -w   generate into this directory instead of the project root
+  --from          fetch a pack or Yeoman generator via npm, run it once, then remove it
   --help,    -h   show this help
 
   CLI answers always use "=": --name=Foo (flags like --moveOnly work without).
@@ -237,6 +358,7 @@ const FLAGS = {
   'dry-run': { type: 'boolean', short: 'n' },
   force: { type: 'boolean', short: 'f' },
   where: { type: 'string', short: 'w' },
+  from: { type: 'string' },
   help: { type: 'boolean', short: 'h' },
 } as const;
 
@@ -245,29 +367,35 @@ export async function main(): Promise<void> {
   if (values.help) return void console.log(HELP);
   if (values.where) setRoot(resolve(process.cwd(), String(values.where)));
 
-  const entries = await collect();
-  if (values.list) return list(entries);
+  const fetched = values.from ? await fetchFrom(String(values.from)) : undefined;
+  try {
+    const entries = fetched ? fetched.entries : await collect();
+    if (values.list) return void (await list(entries));
 
-  const query = positionals[0];
-  if (!query) {
-    await list(entries);
-    process.exitCode = 1;
-    return;
+    const query = positionals[0];
+    if (!query) {
+      await list(entries);
+      process.exitCode = 1;
+      return;
+    }
+    const entry = find(entries, query) ?? fail(`Generator "${query}" not found – jen --list shows all.`);
+    const gen = await entry.load();
+    console.log(dim(`${qualified(entry)} (${entry.source})${gen.description ? ` – ${gen.description}` : ''}`));
+
+    const given = Object.fromEntries(Object.entries(values).filter(([k]) => !(k in FLAGS)));
+    const actions =
+      gen.kind === 'yeoman' ? await gen.run(given, positionals.slice(1)) : gen.actions(resolveParams(gen.params ?? {}, given), helpers);
+
+    const { steps, changes } = await plan(actions, Boolean(values.force));
+    console.log();
+    printPlan(steps);
+    if (changes.size === 0) return void console.log('\nNothing to do.');
+    if (values['dry-run']) return;
+
+    const { written, deleted } = await apply(changes);
+    const summary = [written && `${written} written`, deleted && `${deleted} deleted`].filter(Boolean).join(', ');
+    console.log(styleText('green', `✓ ${summary || 'nothing changed'}`));
+  } finally {
+    fetched?.cleanup();
   }
-  const entry = find(entries, query) ?? fail(`Generator "${query}" not found – jen --list shows all.`);
-  const gen = await entry.load();
-  console.log(dim(`${qualified(entry)} (${entry.source})${gen.description ? ` – ${gen.description}` : ''}`));
-
-  const given = Object.fromEntries(Object.entries(values).filter(([k]) => !(k in FLAGS)));
-  const answers = resolveParams(gen.params ?? {}, given);
-
-  const { steps, changes } = await plan(gen.actions(answers, helpers), Boolean(values.force));
-  console.log();
-  printPlan(steps);
-  if (changes.size === 0) return void console.log('\nNothing to do.');
-  if (values['dry-run']) return;
-
-  const { written, deleted } = await apply(changes);
-  const summary = [written && `${written} written`, deleted && `${deleted} deleted`].filter(Boolean).join(', ');
-  console.log(styleText('green', `✓ ${summary || 'nothing changed'}`));
 }

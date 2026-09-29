@@ -19,7 +19,7 @@
     "node": ">=24"
   },
   "scripts": {
-    "build": "esbuild src/jen.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist/jen.js && tsc -p tsconfig.build.json && chmod +x dist/jen.js",
+    "build": "rm -rf dist && esbuild src/jen.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist/jen.js && tsc -p tsconfig.build.json && chmod +x dist/jen.js",
     "typecheck": "tsc",
     "test": "node --test jen.test.ts",
     "lint": "eslint src jen.test.ts",
@@ -35,7 +35,9 @@
     "esbuild": "^0.27.7",
     "eslint": "^10.11.0",
     "globals": "^17.12.0",
+    "mem-fs": "^6.0.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.71.0"
+    "typescript-eslint": "^8.71.0",
+    "yeoman-generator": "^9.2.0"
   }
 }

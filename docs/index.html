@@ -68,6 +68,9 @@
   .tagline strong {
     color: var(--fg);
   }
+  .tagline a {
+    color: var(--accent);
+  }
 
   .terminal {
     background: var(--term-bg);
@@ -95,9 +98,14 @@
     white-space: pre;
   }
   .terminal .prompt { color: var(--term-dim); }
+  .terminal .dim { color: var(--term-dim); }
   .terminal .add { color: var(--term-add); }
   .terminal .mod { color: var(--term-mod); }
   .terminal .ok { color: var(--term-add); }
+
+  .terminal + .terminal {
+    margin-top: 1rem;
+  }
 
   h2 {
     font-size: 1rem;
@@ -193,12 +201,30 @@ class (project) – C++ class
   <h2>Why</h2>
   <ul class="features">
     <li><strong>Zero dependencies.</strong> No node_modules tree, no Handlebars, no Inquirer. Just Node.</li>
-    <li><strong>No dialog.</strong> Params come from the command line. Nothing asks you questions.</li>
+    <li><strong>Runs real Yeoman generators, too.</strong> No extra dependency for that either – jen borrows yeoman-generator, mem-fs and EJS straight from the generator's own install.</li>
+    <li><strong>No dialog.</strong> Params come from the command line. Nothing asks you questions – Yeoman generators included.</li>
     <li><strong>Templates with logic, for free.</strong> Template literals already do conditionals and loops.</li>
     <li><strong>Plan first, then act.</strong> Every run shows the plan before writing anything.</li>
     <li><strong>Deterministic.</strong> Same params, same output. Every time.</li>
     <li><strong>Language-agnostic.</strong> Scaffolds C++, CMake, Rust, shaders, or anything else that's text.</li>
+    <li><strong>Try before you install.</strong> <code>--from</code> fetches a pack or generator via npm, runs it once, and cleans up after itself.</li>
   </ul>
+
+  <h2>Not just your own generators</h2>
+  <p class="tagline">jen also runs real <a href="https://yeoman.io/">Yeoman</a> generators, and can fetch one on the fly without ever touching your project's own dependencies.</p>
+
+  <div class="terminal">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <pre><span class="prompt">$</span> jen --from generator-code code --extensionType=command-ts --extensionDisplayName="My Extension"
+<span class="dim">Fetching generator-code@latest …</span>
+code (yeoman generator-code) – Yeoman generator
+
+  <span class="add">+ my-extension/package.json</span>
+  <span class="add">+ my-extension/src/extension.ts</span>
+  <span class="dim">…</span>
+
+<span class="ok">✓ 12 written</span></pre>
+  </div>
 
   <h2>Install</h2>
   <div class="install">

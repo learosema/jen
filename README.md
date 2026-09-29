@@ -256,6 +256,48 @@ jen resolves the package itself from the project's `node_modules` first, then fr
 
 The pack prefix is the part after `jen-pack-` or `@scope/pack-`: `@codejen/pack-cpp` and `jen-pack-cpp` both become `cpp`.
 
+## Yeoman generators
+
+jen can also run real [Yeoman](https://yeoman.io/) generators – npm packages named `generator-<name>` or `@scope/generator-<name>` – straight through its own plan/apply engine, without jen itself gaining a single runtime dependency for it. Add one as a dependency, same as a pack:
+
+```json
+{ "devDependencies": { "generator-code": "^1.12.0" } }
+```
+
+```
+$ jen code --extensionType=command-ts --extensionDisplayName="My Extension"
+code (yeoman generator-code) – Yeoman generator
+
+  + my-extension/package.json
+  + my-extension/src/extension.ts
+  …
+
+✓ 12 written
+```
+
+It's exposed under its short name – `code` for `generator-code` – the same generator `yo code` itself would run. jen doesn't enumerate a package's other sub-generators, just its default one.
+
+**How, without a dependency:** a real Yeoman generator's own `package.json` already depends on `yeoman-generator`, `mem-fs` and `mem-fs-editor`. jen resolves and reuses those straight from the generator's own `node_modules` – exactly how it already resolves packs – instead of reimplementing the `Generator` base class or `copyTpl`'s EJS templating itself. What jen fakes is only the small slice of a Yeoman environment that `yeoman-generator` needs to run: a shared in-memory file store and the queue that schedules `initializing`/`prompting`/`configuring`/`default`/`writing`. The files the generator would write become a normal jen plan – same diff, same `--dry-run`, same `--force` conflict handling as a native generator.
+
+This comes with real limits, on purpose:
+
+- **Never interactive**, like the rest of jen. A generator's `this.prompt()` is answered from a `--flag` matching the question's `name`, or its own default – never a real prompt. If a question has neither, jen fails with a clear `Missing: --flag` message and quits, the same as a missing param on a native generator. Since Yeoman generators typically only prompt for what wasn't already given as an option (check the generator's own `--help`/docs for its options), supplying everything upfront avoids this entirely.
+- **No `composeWith`/blueprints.** Generators that compose other generators (JHipster's blueprint system is the big example) aren't supported – jen fails with a clear error if one tries.
+- **The `install` and `end` priorities never run.** That's where generators normally run `npm install`, `git init`, or open an editor – real side effects that assume the files are already on disk, which, in jen's plan-then-apply model, they aren't yet when the generator itself runs. Only the file changes make it into the plan; anything a generator would otherwise do afterwards is up to you.
+
+## Running a pack or generator without installing it
+
+`--from <name>` (optionally `<name>@<version>`) fetches a jen pack or a Yeoman generator via npm into a throwaway directory, runs it once, and removes the directory again – no `package.json` entry, no `node_modules` left behind in your project:
+
+```sh
+jen --from generator-code code --extensionType=command-ts --extensionDisplayName="My Extension"
+jen --from @codejen/pack-cpp cpp:class --name=RigidBody
+```
+
+The generator name after `--from` still has to be given, same as it would be for an installed one (`code`, `cpp:class`) – `--from` only changes where jen gets the package from, not how you address what's inside it.
+
+This is the *only* thing jen ever fetches or installs, and only for that one invocation – nothing else in jen touches the network or writes outside the files it just showed you in the plan. It shells out to your own `npm` (with `--ignore-scripts`, so install/postinstall scripts don't run) rather than adding an installer dependency of its own.
+
 ## Command line
 
 ```
@@ -266,12 +308,13 @@ jen [generator] [--param=value …] [options]
   --dry-run, -n   only show the plan
   --force,   -f   overwrite existing files
   --where,   -w   generate into this directory instead of the project root
+  --from          fetch a pack or Yeoman generator via npm, run it once, then remove it
   --help,    -h   show this help
 ```
 
 Without a generator name, jen lists all available generators and exits with code 1.
 
-Params always use the `=` form (`--name=Foo`). The option names `list`, `dry-run`, `force`, `where` and `help` are reserved, so don't use them as param names.
+Params always use the `=` form (`--name=Foo`). The option names `list`, `dry-run`, `force`, `where`, `from` and `help` are reserved, so don't use them as param names.
 
 By default, all action paths are relative to the project root (the directory containing `.jen/`, or the current directory if there is none). `--where`/`-w` overrides that root for a single run, so you can scaffold into another directory without `cd`-ing there first — generators are still looked up from where you actually are.
 
