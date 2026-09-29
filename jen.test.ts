@@ -519,48 +519,80 @@ describe('search path', () => {
 
 describe('packs', () => {
   const PACK = {
-    'node_modules/@lea.rosema/jen-cpp/package.json': JSON.stringify({
-      name: '@lea.rosema/jen-cpp',
+    'node_modules/@codejen/pack-cpp/package.json': JSON.stringify({
+      name: '@codejen/pack-cpp',
       type: 'module',
       exports: './index.mjs',
     }),
-    'node_modules/@lea.rosema/jen-cpp/index.mjs': `export default {
+    'node_modules/@codejen/pack-cpp/index.mjs': `export default {
       class: { description: 'from the pack', actions: () => [{ add: 'pack.txt', template: 'p' }] },
       example: { description: 'example', actions: () => [] },
     };`,
   };
 
-  it('loads packs from the project config with prefix', () => {
-    const dir = cppProject({ ...PACK, '.jen/config.json': '{ "packs": ["@lea.rosema/jen-cpp"] }' });
+  it('loads packs from the project package.json with prefix', () => {
+    const dir = cppProject({
+      ...PACK,
+      'package.json': JSON.stringify({ devDependencies: { '@codejen/pack-cpp': '^1.0.0' } }),
+    });
     const list = jen(['--list'], { cwd: dir });
-    assert.match(list.stdout, /cpp:class\s+pack @lea\.rosema\/jen-cpp\s+from the pack \(shadowed\)/);
+    assert.match(list.stdout, /cpp:class\s+pack @codejen\/pack-cpp\s+from the pack \(shadowed\)/);
     assert.match(list.stdout, /cpp:example/);
 
     jen(['cpp:class'], { cwd: dir });
     assert.equal(read(dir, 'pack.txt'), 'p');
   });
 
-  it('loads packs from the user config', () => {
-    const userDir = fixture({ 'jen/config.json': '{ "packs": ["@lea.rosema/jen-cpp"] }' });
+  it('loads packs from the user package.json', () => {
+    const userDir = fixture({
+      'jen/package.json': JSON.stringify({ dependencies: { '@codejen/pack-cpp': '^1.0.0' } }),
+    });
     const dir = fixture(PACK);
     const r = jen(['example', '-n'], { cwd: dir, userDir });
     assert.equal(r.code, 0, r.stderr);
-    assert.match(r.stdout, /cpp:example \(pack @lea\.rosema\/jen-cpp\)/);
+    assert.match(r.stdout, /cpp:example \(pack @codejen\/pack-cpp\)/);
+  });
+
+  it('ignores dependencies that are not jen packs', () => {
+    const dir = cppProject({
+      'package.json': JSON.stringify({ dependencies: { typescript: '^5.0.0' } }),
+    });
+    const r = jen(['--list'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.doesNotMatch(r.stdout, /pack typescript/);
+  });
+
+  it('recognizes the unscoped jen-pack- prefix too', () => {
+    const dir = cppProject({
+      'node_modules/jen-pack-brainfuck/package.json': JSON.stringify({
+        name: 'jen-pack-brainfuck',
+        type: 'module',
+        exports: './index.mjs',
+      }),
+      'node_modules/jen-pack-brainfuck/index.mjs': `export default {
+        hello: { description: 'from brainfuck', actions: () => [] },
+      };`,
+      'package.json': JSON.stringify({ dependencies: { 'jen-pack-brainfuck': '^1.0.0' } }),
+    });
+    const list = jen(['--list'], { cwd: dir });
+    assert.match(list.stdout, /brainfuck:hello\s+pack jen-pack-brainfuck/);
   });
 
   it('warns about missing packs and continues', () => {
-    const dir = cppProject({ '.jen/config.json': '{ "packs": ["@nobody/jen-missing"] }' });
+    const dir = cppProject({
+      'package.json': JSON.stringify({ dependencies: { '@nobody/pack-missing': '^1.0.0' } }),
+    });
     const r = jen(['--list'], { cwd: dir });
     assert.equal(r.code, 0);
-    assert.match(r.stderr, /Pack @nobody\/jen-missing not found/);
+    assert.match(r.stderr, /Pack @nobody\/pack-missing not found/);
     assert.match(r.stdout, /class\s+project/);
   });
 
-  it('reports a broken config.json', () => {
-    const dir = fixture({ '.jen/config.json': '{ broken' });
+  it('reports a broken package.json', () => {
+    const dir = fixture({ 'package.json': '{ broken' });
     const r = jen(['--list'], { cwd: dir });
     assert.equal(r.code, 1);
-    assert.match(r.stderr, /config\.json/);
+    assert.match(r.stderr, /package\.json/);
   });
 });
 
