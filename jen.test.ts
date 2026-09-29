@@ -12,9 +12,9 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { after, describe, it } from 'node:test';
-import { helpers } from './jen.ts';
+import { helpers } from './src/jen.ts';
 
-const JEN = join(import.meta.dirname, 'jen.ts');
+const JEN = join(import.meta.dirname, 'src/jen.ts');
 const tempDirs: string[] = [];
 
 after(() => {
@@ -117,7 +117,7 @@ describe('CLI', () => {
   });
 
   it('does not run main() on import', async () => {
-    const mod = await import('./jen.ts');
+    const mod = await import('./src/jen.ts');
     assert.equal(typeof mod.helpers.pascal, 'function');
   });
 });

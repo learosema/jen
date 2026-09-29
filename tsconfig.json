@@ -7,9 +7,7 @@
     "strict": true,
     "erasableSyntaxOnly": true,
     "verbatimModuleSyntax": true,
-    "declaration": true,
-    "outDir": ".",
     "types": ["node"]
   },
-  "files": ["jen.ts", "jen.test.ts"]
+  "include": ["src/**/*.ts", "jen.test.ts"]
 }

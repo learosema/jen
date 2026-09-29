@@ -5,7 +5,7 @@ import tseslint from 'typescript-eslint';
 import globals from 'globals';
 
 export default defineConfig(
-  { ignores: ['docs'] },
+  { ignores: ['docs', 'dist'] },
   eslint.configs.recommended,
   tseslint.configs.recommended,
   {

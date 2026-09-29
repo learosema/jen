@@ -4,8 +4,13 @@
   "description": "",
   "type": "module",
   "bin": {
-    "jen": "./jen.ts"
+    "jen": "./dist/jen.js"
   },
+  "main": "./dist/jen.js",
+  "types": "./dist/jen.d.ts",
+  "files": [
+    "dist"
+  ],
   "repository": "learosema/jen",
   "publishConfig": {
     "access": "public"
@@ -14,9 +19,12 @@
     "node": ">=24"
   },
   "scripts": {
+    "build": "esbuild src/jen.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist/jen.js && tsc -p tsconfig.build.json && chmod +x dist/jen.js",
+    "typecheck": "tsc",
     "test": "node --test jen.test.ts",
-    "lint": "eslint jen.ts jen.test.ts",
-    "lint:fix": "eslint --fix jen.ts jen.test.ts"
+    "lint": "eslint src jen.test.ts",
+    "lint:fix": "eslint --fix src jen.test.ts",
+    "prepublishOnly": "npm test && npm run typecheck && npm run build"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +32,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.3",
+    "esbuild": "^0.27.7",
     "eslint": "^10.11.0",
     "globals": "^17.12.0",
     "typescript": "^6.0.3",
