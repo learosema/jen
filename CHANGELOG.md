@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/learosema/jen/compare/v1.0.1...v1.1.0) (2026-09-29)
+
+
+### Features
+
+* add yeoman support ([bbe5c63](https://github.com/learosema/jen/commit/bbe5c6326e87bf55e6d9d0c590a5e4ca78c644db))
+
+
+### Bug Fixes
+
+* read available packs from the user's package.json instead of from a config ([5923ea9](https://github.com/learosema/jen/commit/5923ea9b5b7993b7eb30da7b4cfa1b36477667ed))
+
 ## [1.0.1](https://github.com/learosema/jen/compare/v1.0.0...v1.0.1) (2026-09-28)
 
 
