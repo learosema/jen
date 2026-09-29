@@ -10,7 +10,9 @@
  *   1. .jen/             in the project (searched upwards from cwd)
  *   2. user directory    $XDG_CONFIG_HOME/jen, ~/.config/jen or %APPDATA%\jen
  *   3. $JEN_PATH         additional directories (separator as in PATH)
- *   4. packs             from .jen/config.json, then from the user config.json
+ *   4. packs             dependencies in package.json named "jen-pack-*" or
+ *                        "@scope/pack-*", project package.json then the
+ *                        user directory's
  *   5. built-in generators
  *
  * Paths in actions are relative to the project root (the directory
@@ -87,22 +89,37 @@ function dirSource(source: string, dir: string | null): Entry[] {
     });
 }
 
-interface Config {
-  packs?: string[];
+/** Matches pack package names, capturing the prefix: "@codejen/pack-cpp" or "jen-pack-cpp" → "cpp". */
+const PACK_RE = /^(?:jen-pack-|@[^/]+\/pack-)(.+)$/;
+
+const packPrefix = (name: string): string => PACK_RE.exec(name)?.[1] ?? name;
+
+interface PackageJson {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
 }
 
-function readConfig(dir: string | null): Config {
-  const file = dir ? join(dir, 'config.json') : null;
+function readPackageJson(dir: string | null): PackageJson {
+  const file = dir ? join(dir, 'package.json') : null;
   if (!file || !existsSync(file)) return {};
   try {
-    return JSON.parse(readFileSync(file, 'utf8')) as Config;
+    return JSON.parse(readFileSync(file, 'utf8')) as PackageJson;
   } catch (e) {
     fail(`${file}: ${(e as Error).message}`);
   }
 }
 
-/** "@lea.rosema/jen-cpp" → "cpp" */
-const packPrefix = (name: string): string => name.replace(/^@[^/]+\//, '').replace(/^jen-/, '');
+/** Dependency names in a package.json that look like jen packs. */
+function discoverPacks(dir: string | null): string[] {
+  const pkg = readPackageJson(dir);
+  const names = [
+    ...Object.keys(pkg.dependencies ?? {}),
+    ...Object.keys(pkg.devDependencies ?? {}),
+    ...Object.keys(pkg.peerDependencies ?? {}),
+  ];
+  return names.filter((n) => PACK_RE.test(n));
+}
 
 async function packSource(name: string): Promise<Entry[]> {
   // Look locally in the project first, then from jen's own location –
@@ -130,9 +147,7 @@ async function packSource(name: string): Promise<Entry[]> {
 
 async function collect(): Promise<Entry[]> {
   const extra = (process.env.JEN_PATH ?? '').split(delimiter).filter(Boolean);
-  const packs = [
-    ...new Set([...(readConfig(PROJECT_JEN).packs ?? []), ...(readConfig(USER_DIR).packs ?? [])]),
-  ];
+  const packs = [...new Set([...discoverPacks(ROOT), ...discoverPacks(USER_DIR)])];
   const entries: Entry[] = [
     ...dirSource('project', PROJECT_JEN),
     ...dirSource('user', USER_DIR),

@@ -199,7 +199,7 @@ jen searches these locations in order. The first match wins, so a project genera
 1. **Project:** `.jen/`, searched upwards from the current directory (just like `.git`).
 2. **User:** `$XDG_CONFIG_HOME/jen`, `~/.config/jen`, or `%APPDATA%\jen` on Windows.
 3. **`$JEN_PATH`:** additional directories, separated like `PATH`.
-4. **Packs:** listed in `.jen/config.json`, then in the user `config.json`.
+4. **Packs:** dependencies in `package.json` named `jen-pack-*` or `@scope/pack-*`, project `package.json` first, then the user directory's.
 5. **Built-ins:** currently just `generator`.
 
 `jen --list` shows every generator, where it comes from, and which ones are shadowed:
@@ -209,7 +209,7 @@ $ jen --list
   class                  project                    C++ class
   destroy                project
   class                  user                       my personal class template (shadowed)
-  cpp:example            pack @lea.rosema/jen-cpp   example project
+  cpp:example            pack @codejen/pack-cpp         example project
   generator              built-in                   create a new generator (project or user-wide)
 ```
 
@@ -231,7 +231,7 @@ export default { class: cls, example };
 
 ```json
 {
-  "name": "@lea.rosema/jen-cpp",
+  "name": "@codejen/pack-cpp",
   "type": "module",
   "exports": "./index.mjs",
   "keywords": ["jen-pack"]
@@ -240,20 +240,21 @@ export default { class: cls, example };
 
 A few things to keep in mind when publishing a pack:
 
+- Name it `jen-pack-<name>` (unscoped) or `@scope/pack-<name>` (any scope), e.g. `jen-pack-brainfuck` or `@codejen/pack-cpp`.
 - Use the plain string form of `exports` shown above. jen resolves packs like `require` does, so an `exports` map with only an `import` condition won't be found.
 - Ship JavaScript. Node doesn't strip types from files inside `node_modules`, so `.ts` generators only work outside of packages.
 - Packs don't need to depend on jen, so no `dependencies` or `peerDependencies` are required.
 - The `jen-pack` keyword makes your pack easy to find on npm.
 
-Enable packs in a `config.json`, either per project in `.jen/config.json` or for all your projects in the user directory:
+jen finds packs automatically: add one as a dependency (of any kind – `dependencies`, `devDependencies`, or `peerDependencies`) in `package.json`, either in the project or in the user directory, and jen picks it up by name – no separate config needed:
 
 ```json
-{ "packs": ["@lea.rosema/jen-cpp"] }
+{ "devDependencies": { "@codejen/pack-cpp": "^1.0.0" } }
 ```
 
-jen looks for packs in the project's `node_modules` first, then next to jen itself. That means packs installed globally with `npm install -g` are found automatically, which is handy for projects that don't have a `package.json` at all, such as C++ repos.
+jen resolves the package itself from the project's `node_modules` first, then from next to jen's own install location – so a globally installed pack (`npm install -g`) is found as long as it's named in a `package.json` jen reads, which is handy for projects that don't have one at all, such as C++ repos: list the pack as a dependency in the user directory's `package.json` instead.
 
-The pack prefix is the package name without its scope and without a leading `jen-`: `@lea.rosema/jen-cpp` becomes `cpp`.
+The pack prefix is the part after `jen-pack-` or `@scope/pack-`: `@codejen/pack-cpp` and `jen-pack-cpp` both become `cpp`.
 
 ## Command line
 
