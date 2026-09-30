@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>jen — cpp pack recipes</title>
+<meta name="description" content="Every jen command in @codejen/pack-cpp: classes, RAII wrappers, shaders, and SDL3 app starters." />
+<style>
+  :root {
+    --bg: #f6f5f2;
+    --fg: #1c1b19;
+    --muted: #5c584f;
+    --accent: #b5461f;
+    --card: #ffffff;
+    --border: #e4e0d8;
+    --term-bg: #1c1b19;
+    --term-fg: #f2ede2;
+    --term-dim: #8a8579;
+    --term-add: #7fae52;
+    --term-mod: #d9a441;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15140f;
+      --fg: #f2ede2;
+      --muted: #a39c8c;
+      --accent: #e08557;
+      --card: #1c1b17;
+      --border: #322f27;
+      --term-bg: #0d0c09;
+      --term-fg: #f2ede2;
+      --term-dim: #7d7768;
+      --term-add: #93c46a;
+      --term-mod: #e0b455;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    line-height: 1.6;
+  }
+
+  main {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 4rem 1.25rem 5rem;
+  }
+
+  .back {
+    display: inline-block;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid transparent;
+  }
+  .back:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  h1 {
+    font-size: 2.2rem;
+    margin: 0 0 0.25rem;
+    letter-spacing: -0.02em;
+  }
+  h1 span {
+    color: var(--accent);
+  }
+
+  .tagline {
+    color: var(--muted);
+    font-size: 1.05rem;
+    margin: 0 0 2rem;
+  }
+  .tagline strong {
+    color: var(--fg);
+  }
+  .tagline a, main > p a {
+    color: var(--accent);
+  }
+
+  .install {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+  }
+  .install code {
+    font-size: 0.95rem;
+  }
+  .install code::before {
+    content: "$ ";
+    color: var(--muted);
+  }
+
+  h2 {
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 3rem 0 1rem;
+  }
+  h2:first-of-type {
+    margin-top: 0;
+  }
+
+  h3 {
+    font-size: 1rem;
+    margin: 1.75rem 0 0.5rem;
+  }
+  h3 code {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 0.1rem 0.4rem;
+    font-size: 0.95rem;
+  }
+
+  p.note {
+    color: var(--muted);
+    margin: 0.4rem 0 0.9rem;
+    font-size: 0.92rem;
+  }
+  p.note code {
+    color: var(--fg);
+  }
+
+  table.params {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    margin: 0.75rem 0 1.25rem;
+  }
+  table.params th, table.params td {
+    text-align: left;
+    padding: 0.35rem 0.6rem;
+    border-bottom: 1px solid var(--border);
+  }
+  table.params th {
+    color: var(--muted);
+    font-weight: normal;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+  }
+  table.params code {
+    color: var(--fg);
+  }
+
+  .terminal {
+    background: var(--term-bg);
+    color: var(--term-fg);
+    border-radius: 10px;
+    padding: 1.1rem 1.25rem 1.3rem;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    box-shadow: 0 1px 0 var(--border);
+    margin: 0 0 0.5rem;
+  }
+  .terminal .dots {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 0.85rem;
+  }
+  .terminal .dots span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--term-dim);
+    opacity: 0.5;
+  }
+  .terminal pre {
+    margin: 0;
+    white-space: pre;
+  }
+  .terminal .prompt { color: var(--term-dim); }
+  .terminal .dim { color: var(--term-dim); }
+  .terminal .add { color: var(--term-add); }
+  .terminal .mod { color: var(--term-mod); }
+  .terminal .ok { color: var(--term-add); }
+
+  footer {
+    margin-top: 3.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1rem;
+    justify-content: space-between;
+  }
+  footer a {
+    color: var(--fg);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+  }
+  footer a:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  @media (max-width: 480px) {
+    h1 { font-size: 1.8rem; }
+    .install { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="index.html">‹ jen</a>
+  <h1>cpp pack<span>.</span></h1>
+  <p class="tagline"><strong>@codejen/pack-cpp</strong> — every generator, with the exact command and the plan it prints. Modern RAII scaffolding following <a href="https://github.com/learosema/my-cpp-snippets">my-cpp-snippets</a>, and SDL3 app starters following <a href="https://github.com/learosema/learn-sdl">learn-sdl</a>.</p>
+
+  <div class="install">
+    <code>npm install --save-dev @codejen/pack-cpp</code>
+  </div>
+
+  <h2>App starters</h2>
+
+  <h3><code>cpp:sdl3</code></h3>
+  <p class="note">An SDL3 <a href="https://wiki.libsdl.org/SDL3/README/main-functions">callbacks</a>-based app: root <code>CMakeLists.txt</code>, a <code>vendor/</code> that <code>FetchContent</code>s SDL3 (a local <code>find_package</code> is tried first, so nothing touches the network if SDL3 is already installed), and <code>src/main.cpp</code> clearing the window to an animated color.</p>
+  <div class="terminal">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <pre><span class="prompt">$</span> jen cpp:sdl3 --name=MyGame
+cpp:sdl3 (pack @codejen/pack-cpp) – create an SDL3 callback-based app starter (CMakeLists.txt + vendor/ FetchContent SDL3 + src/main.cpp)
+
+  <span class="add">+ CMakeLists.txt</span>
+  <span class="add">+ vendor/CMakeLists.txt</span>
+  <span class="add">+ src/CMakeLists.txt</span>
+  <span class="add">+ src/main.cpp</span>
+
+<span class="ok">✓ 4 written</span></pre>
+  </div>
+  <table class="params">
+    <tr><th>Param</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>name</code></td><td>—</td><td>required; project/target name, window title, app metadata id</td></tr>
+    <tr><td><code>width</code></td><td><code>800</code></td><td>initial window width</td></tr>
+    <tr><td><code>height</code></td><td><code>600</code></td><td>initial window height</td></tr>
+    <tr><td><code>bundleId</code></td><td>—</td><td>defaults to <code>com.example.&lt;kebab-name&gt;</code></td></tr>
+    <tr><td><code>sdlTag</code></td><td><code>release-3.4.14</code></td><td>SDL3 git tag to fetch</td></tr>
+  </table>
+
+  <h3><code>cpp:sdl3-opengl</code></h3>
+  <p class="note">The same starter with an OpenGL 4.1 core context instead: vendors a real, checked-in <a href="https://glad.dav1d.de">glad</a> loader under <code>vendor/glad/</code>, adds <code>cmake/embed-glsl.cmake</code>, and scaffolds an app class that compiles a shader pair and draws an animated full-screen quad. Same params as <code>cpp:sdl3</code>.</p>
+  <div class="terminal">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <pre><span class="prompt">$</span> jen cpp:sdl3-opengl --name=MyGame
+cpp:sdl3-opengl (pack @codejen/pack-cpp) – create an SDL3 + OpenGL (4.1 core, glad) app starter with a shader-quad demo; vendors glad and wires up cmake/embed-glsl.cmake
+
+  <span class="add">+ CMakeLists.txt</span>
+  <span class="add">+ vendor/CMakeLists.txt</span>
+  <span class="add">+ cmake/embed-glsl.cmake</span>
+  <span class="add">+ vendor/glad/CMakeLists.txt</span>
+  <span class="add">+ vendor/glad/include/glad/glad.h</span>
+  <span class="add">+ vendor/glad/include/KHR/khrplatform.h</span>
+  <span class="add">+ vendor/glad/src/glad.c</span>
+  <span class="add">+ src/CMakeLists.txt</span>
+  <span class="add">+ src/main.cpp</span>
+  <span class="add">+ src/my-game-app.h</span>
+  <span class="add">+ src/my-game-app.cpp</span>
+  <span class="add">+ src/shader-utils.h</span>
+  <span class="add">+ src/shader-utils.cpp</span>
+  <span class="add">+ src/quad.vert.glsl</span>
+  <span class="add">+ src/quad.frag.glsl</span>
+
+<span class="ok">✓ 15 written</span></pre>
+  </div>
+  <p class="note">This sets up the <code>src/CMakeLists.txt</code> markers <code>class</code> and <code>cpp:shader</code> look for, so scaffolding composes with it — see below.</p>
+
+  <h2>Classes</h2>
+
+  <h3><code>class</code></h3>
+  <p class="note">Plain header/source class in <code>src/</code>, wired into <code>src/CMakeLists.txt</code>'s sources list at a <code># jen:sources</code> marker (that marker comes from the starters above). The insert is idempotent — running it again just reports "already present".</p>
+  <div class="terminal">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <pre><span class="prompt">$</span> jen class --name=rigid_body
+class (pack @codejen/pack-cpp) – create a C++ class in src/ (header + source), wired into src/CMakeLists.txt; --moveOnly for a Rule-of-Five RAII wrapper
+
+  <span class="add">+ src/RigidBody.h</span>
+  <span class="add">+ src/RigidBody.cpp</span>
+  <span class="mod">~ src/CMakeLists.txt  + RigidBody.cpp</span>
+
+<span class="ok">✓ 3 written</span></pre>
+  </div>
+
+  <h3><code>class --moveOnly</code></h3>
+  <p class="note">A move-only RAII wrapper instead (Rule of Five): deleted copy, <code>noexcept</code> move via <code>release()</code>/<code>reset()</code>, <code>[[nodiscard]] get()</code>/<code>release()</code>, and an <code>explicit operator bool()</code>. Use it for C-APIs with a non-trivial destroy call (<code>raii</code> in my-cpp-snippets).</p>
+  <div class="terminal">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <pre><span class="prompt">$</span> jen class --name=Texture --moveOnly --resource=GLuint --nullValue=0 --destroy=glDeleteTextures
+cpp:class (pack @codejen/pack-cpp) – create a C++ class in src/ (header + source), wired into src/CMakeLists.txt; --moveOnly for a Rule-of-Five RAII wrapper
+
+  <span class="add">+ src/Texture.h</span>
+  <span class="add">+ src/Texture.cpp</span>
+  <span class="mod">~ src/CMakeLists.txt  + Texture.cpp</span>
+
+<span class="ok">✓ 3 written</span></pre>
+  </div>
+  <table class="params">
+    <tr><th>Param</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>name</code></td><td>—</td><td>required; the class name</td></tr>
+    <tr><td><code>namespace</code></td><td><code>''</code></td><td>wraps the class in a namespace</td></tr>
+    <tr><td><code>moveOnly</code></td><td><code>false</code></td><td>scaffold a move-only RAII wrapper instead of a plain class</td></tr>
+    <tr><td><code>resource</code></td><td><code>Resource*</code></td><td><code>--moveOnly</code> only: the handle's type</td></tr>
+    <tr><td><code>nullValue</code></td><td><code>nullptr</code></td><td><code>--moveOnly</code> only: the value meaning "no resource"</td></tr>
+    <tr><td><code>destroy</code></td><td><code>destroy</code></td><td><code>--moveOnly</code> only: the function that frees the resource</td></tr>
+  </table>
+
+  <h3><code>cpp:handle</code></h3>
+  <p class="note">A generic, header-only <code>Handle&lt;T, Deleter, Null&gt;</code> template for non-pointer handles (<code>GLuint</code>, a file descriptor, …), constrained with <code>std::regular</code>/<code>std::invocable</code> (<code>raiit</code> in my-cpp-snippets).</p>
+  <div class="terminal">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <pre><span class="prompt">$</span> jen cpp:handle --name=Handle
+cpp:handle (pack @codejen/pack-cpp) – create a generic Handle&lt;T, Deleter, Null&gt; RAII template for non-pointer handles (header-only)
+
+  <span class="add">+ src/Handle.h</span>
+
+<span class="ok">✓ 1 written</span></pre>
+  </div>
+
+  <h3><code>cpp:scopeexit</code></h3>
+  <p class="note">A header-only <code>ScopeExit</code> scope-guard template: runs a <code>noexcept</code>-checked callable on destruction unless <code>release()</code>d first (<code>scopeexit</code> in my-cpp-snippets).</p>
+  <div class="terminal">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <pre><span class="prompt">$</span> jen cpp:scopeexit --name=ScopeExit
+cpp:scopeexit (pack @codejen/pack-cpp) – create a ScopeExit scope-guard template (nothrow-enforced, header-only)
+
+  <span class="add">+ src/ScopeExit.h</span>
+
+<span class="ok">✓ 1 written</span></pre>
+  </div>
+
+  <h3><code>cpp:r0</code></h3>
+  <p class="note">A Rule of Zero class: no special member functions, one constructor generated from <code>--members</code>, private members set from the moved-from constructor params (<code>r0</code> in my-cpp-snippets).</p>
+  <div class="terminal">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <pre><span class="prompt">$</span> jen cpp:r0 --name=Person --members="std::string name, int age"
+cpp:r0 (pack @codejen/pack-cpp) – create a Rule of Zero class: members generated from constructor params, no special member functions (header-only)
+
+  <span class="add">+ src/Person.h</span>
+
+<span class="ok">✓ 1 written</span></pre>
+  </div>
+  <table class="params">
+    <tr><th>Param</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>name</code></td><td>—</td><td>required; the class name</td></tr>
+    <tr><td><code>members</code></td><td>—</td><td>required; comma-separated <code>Type name</code> pairs</td></tr>
+    <tr><td><code>namespace</code></td><td><code>''</code></td><td>wraps the class in a namespace</td></tr>
+  </table>
+
+  <h2>Shaders</h2>
+
+  <h3><code>cpp:shader</code></h3>
+  <p class="note">A GLSL vertex/fragment pair (or a single stage via <code>--stage=vert|frag</code>), embedded into a <code>&lt;name&gt;.&lt;stage&gt;.glsl.h</code> header at CMake-configure time by <code>cmake/embed-glsl.cmake</code> (added if missing). Wires <code>embed_glsl(...)</code> into <code>src/CMakeLists.txt</code> at a <code># jen:shaders</code> marker — nothing jen writes needs regenerating when you edit the <code>.glsl</code> later, just re-run <code>cmake</code>.</p>
+  <div class="terminal">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <pre><span class="prompt">$</span> jen cpp:shader --name=Vignette
+cpp:shader (pack @codejen/pack-cpp) – create a GLSL vertex/fragment shader pair (or one stage via --stage=vert|frag), embedded via cmake/embed-glsl.cmake and wired into src/CMakeLists.txt
+
+  <span class="dim">= cmake/embed-glsl.cmake  exists, skipped</span>
+  <span class="add">+ src/vignette.vert.glsl</span>
+  <span class="add">+ src/vignette.frag.glsl</span>
+  <span class="mod">~ src/CMakeLists.txt  + embed_glsl("vignette.vert.glsl" vignetteVertexShader) (+1 more)</span>
+
+<span class="ok">✓ 3 written</span></pre>
+  </div>
+  <p class="note">Running it inside a fresh project (no <code>cmake/embed-glsl.cmake</code> yet) adds that helper too, instead of skipping it.</p>
+  <table class="params">
+    <tr><th>Param</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>name</code></td><td>—</td><td>required; file names and embedded variable names</td></tr>
+    <tr><td><code>stage</code></td><td><code>both</code></td><td><code>both</code>, <code>vert</code> or <code>frag</code></td></tr>
+  </table>
+
+  <h2>Putting it together</h2>
+  <p class="note">The starters set up the markers <code>class</code> and <code>cpp:shader</code> insert into, so a starter plus scaffolding is just a few commands:</p>
+  <div class="terminal">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <pre><span class="prompt">$</span> jen cpp:sdl3-opengl --name=MyGame
+<span class="dim">…</span>
+<span class="prompt">$</span> jen cpp:shader --name=Vignette
+<span class="dim">…</span>
+<span class="prompt">$</span> jen class --name=Camera
+<span class="dim">…</span>
+<span class="prompt">$</span> cmake -S . -B build &amp;&amp; cmake --build build</pre>
+  </div>
+
+  <footer>
+    <span>Part of <a href="index.html">jen</a></span>
+    <span>
+      <a href="https://github.com/learosema/jen/tree/main/packages/pack-cpp">GitHub</a>
+      &nbsp;·&nbsp;
+      <a href="https://www.npmjs.com/package/@codejen/pack-cpp">npm</a>
+    </span>
+  </footer>
+</main>
+</body>
+</html>

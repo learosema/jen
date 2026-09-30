@@ -8,6 +8,5 @@
     "erasableSyntaxOnly": true,
     "verbatimModuleSyntax": true,
     "types": ["node"]
-  },
-  "include": ["src/**/*.ts", "jen.test.ts"]
+  }
 }

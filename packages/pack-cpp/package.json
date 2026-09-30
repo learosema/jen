@@ -1,0 +1,41 @@
+{
+  "name": "@codejen/pack-cpp",
+  "version": "0.1.0",
+  "description": "jen pack for C++: class/shader scaffolding in src/, plus SDL3 (+ OpenGL) app starters",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "assets"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/learosema/jen.git",
+    "directory": "packages/pack-cpp"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "pretypecheck": "npm run build --prefix ../jen",
+    "prebuild": "npm run build --prefix ../jen",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "typecheck": "tsc",
+    "test": "node --test pack-cpp.test.ts",
+    "prepublishOnly": "npm test && npm run typecheck && npm run build"
+  },
+  "keywords": [
+    "jen-pack"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@codejen/jen": "^1.0.0",
+    "@types/node": "^26.6.3",
+    "typescript": "^6.0.3"
+  }
+}

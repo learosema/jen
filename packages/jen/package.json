@@ -1,0 +1,41 @@
+{
+  "name": "@codejen/jen",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "bin": {
+    "jen": "./dist/jen.js"
+  },
+  "main": "./dist/jen.js",
+  "types": "./dist/jen.d.ts",
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/learosema/jen.git",
+    "directory": "packages/jen"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "rm -rf dist && esbuild src/jen.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist/jen.js && tsc -p tsconfig.build.json && chmod +x dist/jen.js",
+    "typecheck": "tsc",
+    "test": "node --test jen.test.ts",
+    "prepublishOnly": "npm test && npm run typecheck && npm run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "esbuild": "^0.27.7",
+    "mem-fs": "^6.0.0",
+    "typescript": "^6.0.3",
+    "yeoman-generator": "^9.2.0"
+  }
+}

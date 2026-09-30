@@ -30,13 +30,13 @@ class (project) – C++ class
 Requires **Node.js 24** or newer.
 
 ```sh
-npm install -g @lea.rosema/jen
+npm install -g @codejen/jen
 ```
 
 Or run it without installing:
 
 ```sh
-npx @lea.rosema/jen
+npx @codejen/jen
 ```
 
 ## Quick start
@@ -337,7 +337,7 @@ jen ships its types, so JavaScript generators get autocompletion and type checki
 
 ```js
 // @ts-check
-/** @type {import('@lea.rosema/jen').Generator} */
+/** @type {import('@codejen/jen').Generator} */
 export default {
   params: { name: {} },
   actions: ({ name }, { pascal }) => [
@@ -373,15 +373,19 @@ VS Code asks for `${input:className}` and passes it as `--name=…`; any param w
 
 ## Development
 
+This repo is an npm workspaces monorepo: `packages/jen` is jen itself, and each first-party pack (e.g. `packages/pack-cpp`, published as `@codejen/pack-cpp`) lives next to it – same tooling, versioned and released independently.
+
 jen is written in TypeScript using only erasable syntax (`erasableSyntaxOnly`), so it runs directly from source.
 
 ```sh
-npm test            # node:test, no test framework needed
-npm run typecheck   # tsc, including the tests
-npm run build       # jen.js + jen.d.ts for publishing
+npm test            # node:test, no test framework needed, across every package
+npm run typecheck   # tsc, including the tests, across every package
+npm run build       # jen.js + jen.d.ts, and each pack's dist, for publishing
 ```
 
-`prepublishOnly` runs all three, so nothing broken ends up on npm.
+Run any of these for a single package instead with `-w`, e.g. `npm test -w @codejen/jen` or `npm test -w @codejen/pack-cpp`.
+
+Each package's own `prepublishOnly` runs its test/typecheck/build, so nothing broken ends up on npm.
 
 The tests run jen as a real process in temporary directories, each with its own `XDG_CONFIG_HOME`, so your personal generators are never touched.
 

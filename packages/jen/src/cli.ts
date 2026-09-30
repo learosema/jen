@@ -51,7 +51,7 @@ const BUILTINS: Pack = {
       {
         add: join(location === 'user' ? USER_DIR : join(ROOT, '.jen'), `${kebab(name)}.mjs`),
         template: `// @ts-check
-/** @type {import('@lea.rosema/jen').Generator} */
+/** @type {import('@codejen/jen').Generator} */
 export default {
   description: ${JSON.stringify(String(name))},
   params: {

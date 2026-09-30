@@ -1,16 +1,24 @@
 name: Release
 
-# Builds a released tag and stages it on npm via trusted publishing (OIDC).
-# Dispatched automatically by release-please.yml when a release is created;
-# can also be run by hand to re-publish a tag. The staged version only goes
-# live after a maintainer approves it on npmjs.com or with `npm stage approve`.
-# The npm trusted publisher is bound to this file name, so keep it release.yml.
+# Builds a released tag and stages one package on npm via trusted publishing
+# (OIDC). Dispatched automatically by release-please.yml, once per package,
+# when a release is created; can also be run by hand to re-publish a tag.
+# The staged version only goes live after a maintainer approves it on
+# npmjs.com or with `npm stage approve`.
+# The npm trusted publisher is bound to this file name, so keep it release.yml
+# – each published package needs its own trusted publisher entry on npmjs.com
+# pointing at this repo, this workflow file and the "publishing" environment.
 
 on:
   workflow_dispatch:
     inputs:
+      package:
+        description: 'Package directory to publish, e.g. packages/jen or packages/pack-cpp.'
+        required: false
+        type: string
+        default: packages/jen
       tag:
-        description: 'Git tag to publish, e.g. v1.1.0. Defaults to the latest GitHub release.'
+        description: 'Git tag to publish, e.g. jen-v1.1.0. Defaults to the latest GitHub release.'
         required: false
         type: string
 
@@ -55,10 +63,12 @@ jobs:
       - name: Check package version matches tag
         env:
           TAG: ${{ steps.tag.outputs.tag }}
+          PACKAGE: ${{ inputs.package }}
         run: |
-          version="$(node -p "require('./package.json').version")"
-          if [ "v$version" != "$TAG" ]; then
-            echo "package.json version is $version but tag is $TAG" >&2
+          version="$(node -p "require('./${PACKAGE}/package.json').version")"
+          expected="${TAG##*-v}"
+          if [ "$version" != "$expected" ]; then
+            echo "$PACKAGE/package.json version is $version but tag $TAG expects $expected" >&2
             exit 1
           fi
 
@@ -72,4 +82,6 @@ jobs:
         run: npm run build
 
       - name: Stage publish
-        run: npm stage publish
+        env:
+          PACKAGE: ${{ inputs.package }}
+        run: npm stage publish -w "$PACKAGE"

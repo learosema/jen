@@ -7,7 +7,7 @@
  * (Node doesn't strip types from files inside node_modules).
  *
  * The public surface for generators and packs – types and helpers – lives
- * here too, e.g. `@type {import('@lea.rosema/jen').Generator}`. See core.ts,
+ * here too, e.g. `@type {import('@codejen/jen').Generator}`. See core.ts,
  * cli.ts and editorconfig.ts for the implementation.
  */
 import { realpathSync } from 'node:fs';

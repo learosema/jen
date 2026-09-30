@@ -9,12 +9,20 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { after, describe, it } from 'node:test';
 import { helpers } from './src/jen.ts';
 
 const JEN = join(import.meta.dirname, 'src/jen.ts');
+
+/** A dependency's own directory, wherever npm workspaces happened to hoist it to. */
+function packageDir(name: string): string {
+  const resolved = createRequire(import.meta.url).resolve(name);
+  const marker = join('node_modules', name);
+  return resolved.slice(0, resolved.lastIndexOf(marker) + marker.length);
+}
 const tempDirs: string[] = [];
 
 after(() => {
@@ -611,7 +619,7 @@ describe('yeoman generators', () => {
     const nodeModules = join(dir, 'node_modules');
     mkdirSync(nodeModules, { recursive: true });
     for (const pkg of ['yeoman-generator', 'mem-fs']) {
-      symlinkSync(join(import.meta.dirname, 'node_modules', pkg), join(nodeModules, pkg), 'dir');
+      symlinkSync(packageDir(pkg), join(nodeModules, pkg), 'dir');
     }
   }
 

@@ -1,8 +1,9 @@
 name: Release Please
 
-# Opens (and keeps updating) a release pull request with the version bump and
-# CHANGELOG. Merging that PR creates the git tag and the GitHub release, after
-# which this workflow dispatches release.yml to stage the version on npm.
+# Opens (and keeps updating) one release pull request per package (packages/jen,
+# packages/pack-cpp, ...) with that package's own version bump and CHANGELOG.
+# Merging a release PR creates its tag and GitHub release, after which this
+# workflow dispatches release.yml once per released package to stage it on npm.
 #
 # The dispatch is needed because tags and releases created with GITHUB_TOKEN
 # do not trigger other workflows; workflow_dispatch is the exception.
@@ -16,11 +17,11 @@ permissions:
 
 jobs:
   release-please:
-    name: Release pull request
+    name: Release pull requests
     runs-on: ubuntu-latest
     permissions:
       contents: write # create tags and GitHub releases
-      pull-requests: write # open and update the release PR
+      pull-requests: write # open and update the release PRs
       actions: write # dispatch release.yml once a release is created
     steps:
       - id: release
@@ -28,14 +29,20 @@ jobs:
         with:
           # Pull requests opened with the default token don't trigger CI.
           # Set a RELEASE_PLEASE_TOKEN secret (fine-grained PAT with contents +
-          # pull-requests write) if you want checks to run on the release PR.
+          # pull-requests write) if you want checks to run on the release PRs.
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-      - name: Stage publish to npm
-        if: steps.release.outputs.release_created == 'true'
+      - name: Stage publish to npm for each released package
+        if: steps.release.outputs.paths_released != '' && steps.release.outputs.paths_released != '[]'
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.release.outputs.tag_name }}
-        run: gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref main -f "tag=$TAG"
+          PATHS_RELEASED: ${{ steps.release.outputs.paths_released }}
+          RELEASE_OUTPUTS: ${{ toJson(steps.release.outputs) }}
+        run: |
+          for path in $(echo "$PATHS_RELEASED" | jq -r '.[]'); do
+            tag="$(echo "$RELEASE_OUTPUTS" | jq -r --arg k "${path}--tag_name" '.[$k]')"
+            echo "Dispatching release.yml for $path @ $tag"
+            gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref main -f "package=$path" -f "tag=$tag"
+          done
