@@ -2,6 +2,13 @@
 
 > Renamed from `@lea.rosema/jen` to `@codejen/jen` and republished as 1.0.0. The history below (up to 1.1.0) is `@lea.rosema/jen`'s; `@lea.rosema/jen` is deprecated in favor of this package.
 
+## [1.1.0](https://github.com/learosema/jen/compare/jen-v1.0.0...jen-v1.1.0) (2026-09-30)
+
+
+### Features
+
+* improve jen usability/ux, website overhaul ([2f0dc37](https://github.com/learosema/jen/commit/2f0dc37943d39d1cda5dfc1943fac1b84ceb67d9))
+
 ## [1.1.0](https://github.com/learosema/jen/compare/v1.0.1...v1.1.0) (2026-09-29)
 
 
