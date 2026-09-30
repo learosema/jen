@@ -12,10 +12,14 @@
  *   3. $JEN_PATH         additional directories (separator as in PATH)
  *   4. packs             dependencies in package.json named "jen-pack-*" or
  *                        "@scope/pack-*", project package.json then the
- *                        user directory's
+ *                        user directory's, then packs installed globally
+ *                        next to jen itself (npm install -g)
  *   5. yeoman generators dependencies named "generator-*" or
- *                        "@scope/generator-*" (see yeoman.ts)
+ *                        "@scope/generator-*" (see yeoman.ts), same places
  *   6. built-in generators
+ *
+ * A prefixed name whose pack isn't installed ("lua:function") falls back to
+ * fetching @codejen/pack-lua the same way (first-party scope only).
  *
  * --from/-F fetches a single pack or Yeoman generator via npm into a
  * throwaway directory, runs it once, and removes it again – it replaces the
@@ -29,7 +33,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { delimiter, join, resolve } from 'node:path';
+import { delimiter, dirname, join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs, styleText } from 'node:util';
 import { apply, dim, fail, helpers, plan, printPlan } from './core.ts';
@@ -113,6 +117,9 @@ function dirSource(source: string, dir: string | null): Entry[] {
     });
 }
 
+/** npm scope the not-found fallback may fetch from – jen's own. */
+const FIRST_PARTY_SCOPE = '@codejen';
+
 /** Matches pack package names, capturing the prefix: "@codejen/pack-cpp" or "jen-pack-cpp" → "cpp". */
 const PACK_RE = /^(?:jen-pack-|@[^/]+\/pack-)(.+)$/;
 
@@ -134,6 +141,38 @@ function readPackageJson(dir: string | null): PackageJson {
   }
 }
 
+/**
+ * Packages matching a naming convention that are installed next to jen
+ * itself – for a global install (`npm install -g`), that's the global
+ * node_modules, so global packs are found without being listed anywhere.
+ * node_modules directories inside the project are skipped: its package.json
+ * is authoritative there, and hoisted transitive packages don't count.
+ */
+function discoverGlobal(re: RegExp): string[] {
+  const names: string[] = [];
+  for (let dir = dirname(import.meta.filename); dirname(dir) !== dir; dir = dirname(dir)) {
+    if (!dir.endsWith(`${sep}node_modules`) || dir.startsWith(ROOT + sep)) continue;
+    let children: string[];
+    try {
+      children = readdirSync(dir);
+    } catch {
+      continue;
+    }
+    for (const child of children) {
+      if (child.startsWith('@')) {
+        const scoped = readdirSync(join(dir, child)).map((n) => `${child}/${n}`);
+        names.push(...scoped);
+      } else {
+        names.push(child);
+      }
+    }
+  }
+  return names.filter((n) => re.test(n));
+}
+
+/** Where to resolve a package from: the project, the user directory, then jen's own install location (global). */
+const defaultBases = (): string[] => [join(ROOT, 'package.json'), join(USER_DIR, 'package.json'), import.meta.filename];
+
 /** Dependency names in a package.json matching a naming convention (jen packs, Yeoman generators). */
 function discoverDeps(dir: string | null, re: RegExp): string[] {
   const pkg = readPackageJson(dir);
@@ -145,9 +184,9 @@ function discoverDeps(dir: string | null, re: RegExp): string[] {
   return names.filter((n) => re.test(n));
 }
 
-async function packSource(name: string, bases = [join(ROOT, 'package.json'), import.meta.filename]): Promise<Entry[]> {
-  // Look locally in the project first, then from jen's own location –
-  // for a global install, that finds globally installed packs.
+async function packSource(name: string, bases = defaultBases()): Promise<Entry[]> {
+  // Look locally in the project first, then the user directory, then from
+  // jen's own location – for a global install, that finds global packs.
   for (const base of bases) {
     let file: string;
     try {
@@ -178,7 +217,7 @@ const yeomanShortName = (name: string): string => YEOMAN_RE.exec(name)?.[1] ?? n
  * jen doesn't enumerate a package's sub-generators, just its own default one
  * (what `yo <name>` itself runs). See yeoman.ts for what running it covers.
  */
-async function yeomanSource(name: string, bases = [join(ROOT, 'package.json'), import.meta.filename]): Promise<Entry[]> {
+async function yeomanSource(name: string, bases = defaultBases()): Promise<Entry[]> {
   for (const base of bases) {
     let file: string;
     try {
@@ -265,8 +304,9 @@ async function fetchFrom(spec: string): Promise<{ entries: Entry[]; cleanup: () 
 
 async function collect(): Promise<Entry[]> {
   const extra = (process.env.JEN_PATH ?? '').split(delimiter).filter(Boolean);
-  const packs = [...new Set([...discoverDeps(ROOT, PACK_RE), ...discoverDeps(USER_DIR, PACK_RE)])];
-  const yeomanGenerators = [...new Set([...discoverDeps(ROOT, YEOMAN_RE), ...discoverDeps(USER_DIR, YEOMAN_RE)])];
+  const discover = (re: RegExp) => [...new Set([...discoverDeps(ROOT, re), ...discoverDeps(USER_DIR, re), ...discoverGlobal(re)])];
+  const packs = discover(PACK_RE);
+  const yeomanGenerators = discover(YEOMAN_RE);
   const entries: Entry[] = [
     ...dirSource('project', PROJECT_JEN),
     ...dirSource('user', USER_DIR),
@@ -292,6 +332,47 @@ function find(entries: Entry[], query: string): Entry | undefined {
       e.name === name &&
       (prefix === null || e.prefix === prefix || e.source === prefix || e.source.startsWith(`${prefix} `)),
   );
+}
+
+/** The prefix of "lua:function" if it's a plausible pack name that matches nothing we know, e.g. "lua". */
+function unknownPackPrefix(entries: Entry[], query: string): string | null {
+  const colon = query.indexOf(':');
+  if (colon < 0) return null;
+  const prefix = query.slice(0, colon);
+  const known = entries.some((e) => e.prefix === prefix || e.source === prefix || e.source.startsWith(`${prefix} `));
+  return !known && /^[a-z0-9][a-z0-9-]*$/.test(prefix) ? prefix : null;
+}
+
+/** The error for a generator that wasn't found, with the --from command for an uninstalled pack. */
+function notFound(entries: Entry[], query: string): never {
+  const prefix = unknownPackPrefix(entries, query);
+  const lines = [`Generator "${query}" not found – jen --list shows all.`];
+  if (prefix) lines.push(`If "${prefix}" is a pack you haven't installed, try: jen --from ${FIRST_PARTY_SCOPE}/pack-${prefix} ${query}`);
+  return fail(lines.join('\n'));
+}
+
+/**
+ * Not-found fallback: "lua:function" with no known "lua" pack fetches
+ * @codejen/pack-lua, exactly like `--from` would. Deliberately limited to
+ * jen's own npm scope, so a mistyped name can't install someone else's
+ * package – anything else only gets the hint from notFound(). JEN_NO_FETCH
+ * turns it off entirely (offline use, tests).
+ */
+async function fetchFallback(entries: Entry[], query: string): Promise<{ entry: Entry; cleanup: () => void } | undefined> {
+  const prefix = unknownPackPrefix(entries, query);
+  if (!prefix || process.env.JEN_NO_FETCH) return undefined;
+  let fetched;
+  try {
+    fetched = await fetchFrom(`${FIRST_PARTY_SCOPE}/pack-${prefix}`);
+  } catch {
+    return undefined; // no such package (or npm failed) – fall through to the regular not-found error
+  }
+  const entry = find(fetched.entries, query);
+  if (!entry) {
+    fetched.cleanup();
+    return undefined;
+  }
+  return { entry, cleanup: fetched.cleanup };
 }
 
 async function list(entries: Entry[]): Promise<void> {
@@ -367,7 +448,7 @@ export async function main(): Promise<void> {
   if (values.help) return void console.log(HELP);
   if (values.where) setRoot(resolve(process.cwd(), String(values.where)));
 
-  const fetched = values.from ? await fetchFrom(String(values.from)) : undefined;
+  let fetched = values.from ? await fetchFrom(String(values.from)) : undefined;
   try {
     const entries = fetched ? fetched.entries : await collect();
     if (values.list) return void (await list(entries));
@@ -378,7 +459,13 @@ export async function main(): Promise<void> {
       process.exitCode = 1;
       return;
     }
-    const entry = find(entries, query) ?? fail(`Generator "${query}" not found – jen --list shows all.`);
+    let entry = find(entries, query);
+    if (!entry) {
+      const fallback = fetched ? undefined : await fetchFallback(entries, query);
+      if (!fallback) notFound(entries, query);
+      entry = fallback.entry;
+      fetched = { entries: [], cleanup: fallback.cleanup };
+    }
     const gen = await entry.load();
     console.log(dim(`${qualified(entry)} (${entry.source})${gen.description ? ` – ${gen.description}` : ''}`));
 

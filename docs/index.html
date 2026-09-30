@@ -5,190 +5,53 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>jen — the code jen(erator)</title>
 <meta name="description" content="A tiny, zero-dependency scaffolding CLI. Plan first, then act." />
-<style>
-  :root {
-    --bg: #f6f5f2;
-    --fg: #1c1b19;
-    --muted: #5c584f;
-    --accent: #b5461f;
-    --card: #ffffff;
-    --border: #e4e0d8;
-    --term-bg: #1c1b19;
-    --term-fg: #f2ede2;
-    --term-dim: #8a8579;
-    --term-add: #7fae52;
-    --term-mod: #d9a441;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #15140f;
-      --fg: #f2ede2;
-      --muted: #a39c8c;
-      --accent: #e08557;
-      --card: #1c1b17;
-      --border: #322f27;
-      --term-bg: #0d0c09;
-      --term-fg: #f2ede2;
-      --term-dim: #7d7768;
-      --term-add: #93c46a;
-      --term-mod: #e0b455;
-    }
-  }
-
-  * { box-sizing: border-box; }
-
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--fg);
-    font-family: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace;
-    line-height: 1.6;
-  }
-
-  main {
-    max-width: 680px;
-    margin: 0 auto;
-    padding: 4rem 1.25rem 5rem;
-  }
-
-  h1 {
-    font-size: 2.5rem;
-    margin: 0 0 0.25rem;
-    letter-spacing: -0.02em;
-  }
-  h1 span {
-    color: var(--accent);
-  }
-
-  .tagline {
-    color: var(--muted);
-    font-size: 1.05rem;
-    margin: 0 0 2rem;
-  }
-  .tagline strong {
-    color: var(--fg);
-  }
-  .tagline a {
-    color: var(--accent);
-  }
-
-  .terminal {
-    background: var(--term-bg);
-    color: var(--term-fg);
-    border-radius: 10px;
-    padding: 1.1rem 1.25rem 1.3rem;
-    overflow-x: auto;
-    font-size: 0.85rem;
-    box-shadow: 0 1px 0 var(--border);
-  }
-  .terminal .dots {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 0.85rem;
-  }
-  .terminal .dots span {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--term-dim);
-    opacity: 0.5;
-  }
-  .terminal pre {
-    margin: 0;
-    white-space: pre;
-  }
-  .terminal .prompt { color: var(--term-dim); }
-  .terminal .dim { color: var(--term-dim); }
-  .terminal .add { color: var(--term-add); }
-  .terminal .mod { color: var(--term-mod); }
-  .terminal .ok { color: var(--term-add); }
-
-  .terminal + .terminal {
-    margin-top: 1rem;
-  }
-
-  h2 {
-    font-size: 1rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--muted);
-    margin: 3rem 0 1rem;
-  }
-
-  ul.features {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    gap: 0.6rem;
-  }
-  ul.features li {
-    padding-left: 1.4rem;
-    position: relative;
-  }
-  ul.features li::before {
-    content: "·";
-    color: var(--accent);
-    position: absolute;
-    left: 0;
-    font-weight: bold;
-  }
-  ul.features strong { color: var(--fg); }
-  ul.features { color: var(--muted); }
-
-  .install {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 1rem 1.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-  .install code {
-    font-size: 0.95rem;
-  }
-  .install code::before {
-    content: "$ ";
-    color: var(--muted);
-  }
-
-  footer {
-    margin-top: 3.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--border);
-    color: var(--muted);
-    font-size: 0.85rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem 1rem;
-    justify-content: space-between;
-  }
-  footer a {
-    color: var(--fg);
-    text-decoration: none;
-    border-bottom: 1px solid var(--border);
-  }
-  footer a:hover {
-    color: var(--accent);
-    border-color: var(--accent);
-  }
-
-  @media (max-width: 480px) {
-    h1 { font-size: 2rem; }
-    .install { flex-direction: column; align-items: flex-start; }
-  }
-</style>
+<meta name="theme-color" content="#d43a45" />
+<meta property="og:title" content="jen — the code jen(erator)" />
+<meta property="og:description" content="A tiny, zero-dependency scaffolding CLI. Plan first, then act." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23d43a45'/><text x='32' y='47' font-size='46' font-weight='800' font-style='italic' font-family='Georgia,serif' text-anchor='middle' fill='white'>j</text></svg>" />
+<link rel="stylesheet" href="site.css" />
+<script src="site.js" defer></script>
 </head>
 <body>
-<main>
-  <h1>jen<span>.</span></h1>
-  <p class="tagline"><strong>the code jen(erator)</strong> — a tiny, zero-dependency scaffolding CLI.</p>
+<div class="wrap">
+  <header class="bar">
+    <a class="logo" href="./">jen<i>.</i></a>
+    <nav>
+      <a href="#how">how</a>
+      <a href="#write">write your own</a>
+      <a href="recipes.html">cpp recipes</a>
+      <a href="https://github.com/learosema/jen">github</a>
+      <a href="https://www.npmjs.com/package/@codejen/jen">npm</a>
+      <button class="theme" type="button" aria-label="Toggle color theme">☾</button>
+    </nav>
+  </header>
 
-  <div class="terminal">
-    <div class="dots"><span></span><span></span><span></span></div>
-    <pre><span class="prompt">$</span> jen class --name=rigid_body --moveOnly
+  <main>
+    <div class="hero">
+      <p class="eyebrow">Scaffolding, without the small talk</p>
+      <h1 class="mega" aria-label="jen"><span class="ghost" aria-hidden="true">jen.</span>jen<span class="dot">.</span></h1>
+      <p class="lede">The code jen(erator). Shows you the <em>plan</em> before it touches a single file.</p>
+      <p class="sub">A tiny, zero-dependency scaffolding CLI. Generators are plain JavaScript modules, templates are template literals, and nothing ever asks you a question.</p>
+
+      <div class="cta">
+        <button class="copy" type="button" data-copy="npm install -g @codejen/jen">
+          <span><span class="pfx">$ </span>npm install -g @codejen/jen</span>
+          <span class="tag">copy</span>
+        </button>
+        <a class="btn" href="recipes.html">Browse the C++ recipes →</a>
+      </div>
+
+      <div class="demo" aria-label="Interactive demo">
+        <div class="tabs" role="tablist">
+          <button class="tab" role="tab" aria-selected="true" type="button">class</button>
+          <button class="tab" role="tab" aria-selected="false" type="button">cpp:shader</button>
+          <button class="tab" role="tab" aria-selected="false" type="button">cpp:sdl3</button>
+          <span class="spacer"></span>
+          <label class="switch"><input type="checkbox" id="dry" /><span class="knob"></span>--dry-run</label>
+        </div>
+        <div class="terminal">
+          <div class="chrome"><span></span><span></span><span></span><span class="title">~/projects/my-game</span></div>
+          <pre aria-live="polite"><span class="prompt">$ </span>jen class --name=rigid_body --moveOnly
 class (project) – C++ class
 
   <span class="add">+ src/RigidBody.h</span>
@@ -196,26 +59,139 @@ class (project) – C++ class
   <span class="mod">~ src/CMakeLists.txt  + RigidBody.cpp</span>
 
 <span class="ok">✓ 3 written</span></pre>
-  </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
 
-  <h2>Why</h2>
-  <ul class="features">
-    <li><strong>Zero dependencies.</strong> No node_modules tree, no Handlebars, no Inquirer. Just Node.</li>
-    <li><strong>Runs real Yeoman generators, too.</strong> No extra dependency for that either – jen borrows yeoman-generator, mem-fs and EJS straight from the generator's own install.</li>
-    <li><strong>No dialog.</strong> Params come from the command line. Nothing asks you questions – Yeoman generators included.</li>
-    <li><strong>Templates with logic, for free.</strong> Template literals already do conditionals and loops.</li>
-    <li><strong>Plan first, then act.</strong> Every run shows the plan before writing anything.</li>
-    <li><strong>Deterministic.</strong> Same params, same output. Every time.</li>
-    <li><strong>Language-agnostic.</strong> Scaffolds C++, CMake, Rust, shaders, or anything else that's text.</li>
-    <li><strong>Try before you install.</strong> <code>--from</code> fetches a pack or generator via npm, runs it once, and cleans up after itself.</li>
-  </ul>
+<div class="wrap">
+  <section class="langs reveal" aria-label="Languages jen can scaffold">
+    <p class="kicker">Scaffolds anything that's text</p>
+    <ul>
+      <li class="lang hex" style="--i:0;--c:#00599C;--t:#fff"><b>C++</b><span>C++</span></li>
+      <li class="lang" style="--i:1;--c:#064F8C;--t:#fff"><b>▲</b><span>CMake</span></li>
+      <li class="lang" style="--i:2;--c:#46708c;--t:#fff"><b>GL</b><span>GLSL</span></li>
+      <li class="lang soon" style="--i:3;--c:#3178C6;--t:#fff" title="Pack coming soon"><b>TS</b><span>TypeScript<small>soon</small></span></li>
+      <li class="lang soon" style="--i:4;--c:#F7DF1E;--t:#1b1a00" title="Pack coming soon"><b>JS</b><span>JavaScript<small>soon</small></span></li>
+      <li class="lang more" style="--i:5"><b>+</b><span>anything</span></li>
+    </ul>
+  </section>
+</div>
 
-  <h2>Not just your own generators</h2>
-  <p class="tagline">jen also runs real <a href="https://yeoman.io/">Yeoman</a> generators, and can fetch one on the fly without ever touching your project's own dependencies.</p>
+<div class="wrap">
+  <section id="how" class="reveal">
+    <p class="kicker">How it works</p>
+    <h2 class="big">Three steps. <em>Zero</em> surprises.</h2>
+    <ol class="steps reveal">
+      <li>
+        <h3>Params</h3>
+        <p>Answers come from <code>--flags</code> or a param's own default. Something required is missing? jen says so and quits. It never prompts.</p>
+      </li>
+      <li>
+        <h3>Plan</h3>
+        <p>Every change is computed in memory and shown first: <code>+</code> add, <code>~</code> modify, <code>=</code> skip. <code>--dry-run</code> stops right here.</p>
+      </li>
+      <li>
+        <h3>Act</h3>
+        <p>Only then are files written. Same params, same output, every time. Indentation follows your <code>.editorconfig</code>.</p>
+      </li>
+    </ol>
+  </section>
 
-  <div class="terminal">
-    <div class="dots"><span></span><span></span><span></span></div>
-    <pre><span class="prompt">$</span> jen --from generator-code code --extensionType=command-ts --extensionDisplayName="My Extension"
+  <section class="reveal">
+    <p class="kicker">Why</p>
+    <h2 class="big">Small on purpose.</h2>
+    <ul class="why reveal">
+      <li><strong>Zero dependencies.</strong> No node_modules tree, no Handlebars, no Inquirer. Just Node.</li>
+      <li><strong>No dialog.</strong> Params come from the command line. Nothing asks you questions, Yeoman generators included.</li>
+      <li><strong>Templates with logic, for free.</strong> Template literals already do conditionals and loops.</li>
+      <li><strong>Plan first, then act.</strong> Every run shows the plan before writing anything.</li>
+      <li><strong>Deterministic.</strong> Same params, same output. Every time.</li>
+      <li><strong>Language-agnostic.</strong> Scaffolds C++, CMake, Rust, shaders, or anything else that's text.</li>
+      <li><strong>Try before you install.</strong> <code>--from</code> fetches a pack or generator via npm, runs it once, and cleans up after itself. Ask for <code>lua:function</code> without the pack and jen fetches <code>@codejen/pack-lua</code> for you.</li>
+      <li class="wide"><strong>Runs real Yeoman generators, too.</strong> No extra dependency for that either. jen borrows yeoman-generator, mem-fs and EJS straight from the generator's own install.</li>
+    </ul>
+  </section>
+
+  <section id="write" class="reveal">
+    <p class="kicker">Make it yours</p>
+    <h2 class="big">Write your own <em>jen</em>.</h2>
+    <p class="sub" style="margin-bottom:2rem">A generator is one file: the <code>params</code> it accepts and an <code>actions()</code> function that returns what should happen. No template language, no plugin API. Drop it in <code>.jen/</code> and it's a command.</p>
+
+    <div class="split code-split">
+      <div class="terminal">
+        <div class="chrome"><span></span><span></span><span></span><span class="title">.jen/hello.mjs</span></div>
+        <pre><span class="c">// params come from --flags, or their default</span>
+<span class="k">export const</span> params = {
+  name: {},                  <span class="c">// no default = required</span>
+  dir:  { default: <span class="s">"src"</span> },
+};
+
+<span class="k">export const</span> actions = ({ name, dir }, { pascal }) =&gt; [
+  {
+    add: <span class="s">`${dir}/${pascal(name)}.txt`</span>,
+    template: <span class="s">`Hello, ${name}!\n`</span>,
+  },
+];</pre>
+      </div>
+      <div>
+        <ol class="mini">
+          <li><span class="n">1</span><div><b>Create it.</b> <code>jen generator --name=hello --location=project</code> writes the skeleton to <code>.jen/hello.mjs</code>.</div></li>
+          <li><span class="n">2</span><div><b>Run it.</b> Answers are flags. Leave out a required one and jen lists what's missing, then quits. No prompts, ever.</div></li>
+          <li><span class="n">3</span><div><b>Keep it.</b> <code>.mjs</code>, <code>.js</code>, <code>.ts</code>, even <code>.mts</code>. TypeScript runs through Node's type stripping, no build step.</div></li>
+        </ol>
+        <div class="terminal">
+          <div class="chrome"><span></span><span></span><span></span><span class="title">~/projects/my-game</span></div>
+          <pre><span class="prompt">$ </span>jen hello --name=world
+hello (project) – say hello
+
+  <span class="add">+ src/World.txt</span>
+
+<span class="ok">✓ 1 written</span></pre>
+        </div>
+      </div>
+    </div>
+
+    <ul class="actions reveal">
+      <li><span class="glyph add">+</span><h3>add</h3><p>Create a file from a template literal. Existing files are skipped unless <code>--force</code>.</p></li>
+      <li><span class="glyph mod">~</span><h3>insert</h3><p>Put a line before a marker comment like <code># jen:sources</code>, matching its indentation. Idempotent.</p></li>
+      <li><span class="glyph mod">~</span><h3>modify</h3><p>Regex search and replace. Also the way to remove lines.</p></li>
+      <li><span class="glyph del">-</span><h3>delete</h3><p>Remove a file. Stays inside the project root, never touches directories.</p></li>
+    </ul>
+
+    <div class="facts reveal">
+      <div>
+        <h3>Case helpers, built in</h3>
+        <p><code>pascal</code> <code>camel</code> <code>snake</code> <code>kebab</code> <code>constant</code>: <b>rigid body</b> becomes <code>RigidBody</code>, <code>rigidBody</code>, <code>rigid_body</code>, <code>rigid-body</code>, <code>RIGID_BODY</code>.</p>
+      </div>
+      <div>
+        <h3>Logic is just JavaScript</h3>
+        <p>Conditionals and loops are <code>? :</code> and <code>.map()</code>. Want a test file only on request? <code>...(withTest ? [{ add: … }] : [])</code>.</p>
+      </div>
+      <div>
+        <h3>Respects your .editorconfig</h3>
+        <p>New files and inserted blocks come out in the project's own indent style, tabs or spaces.</p>
+      </div>
+      <div>
+        <h3>Share it as a pack</h3>
+        <p>Publish to npm as <code>jen-pack-&lt;name&gt;</code> or <code>@scope/pack-&lt;name&gt;</code>. Anyone with it in <code>package.json</code> gets your generators. Like <a href="recipes.html">@codejen/pack-cpp</a>.</p>
+      </div>
+    </div>
+
+    <p class="sub" style="margin-top:2rem">jen looks in <code>.jen/</code> (searched upwards, like <code>.git</code>), then your user config, <code>$JEN_PATH</code>, installed packs (local or global), and built-ins. First match wins; <code>jen --list</code> shows what shadows what. Full reference in the <a href="https://github.com/learosema/jen#writing-generators">README</a>.</p>
+  </section>
+
+  <section class="reveal">
+    <div class="split">
+      <div>
+        <p class="kicker">Bring your own ecosystem</p>
+        <h2 class="big">Not just your own generators.</h2>
+        <p>jen also runs real <a href="https://yeoman.io/">Yeoman</a> generators, and can fetch one on the fly without ever touching your project's own dependencies.</p>
+      </div>
+      <div class="terminal">
+        <div class="chrome"><span></span><span></span><span></span><span class="title">~/projects</span></div>
+        <pre><span class="prompt">$ </span>jen --from generator-code code --extensionType=command-ts --extensionDisplayName="My Extension"
 <span class="dim">Fetching generator-code@latest …</span>
 code (yeoman generator-code) – Yeoman generator
 
@@ -224,23 +200,31 @@ code (yeoman generator-code) – Yeoman generator
   <span class="dim">…</span>
 
 <span class="ok">✓ 12 written</span></pre>
-  </div>
+      </div>
+    </div>
+  </section>
 
-  <h2>Install</h2>
-  <div class="install">
-    <code>npm install -g @codejen/jen</code>
-  </div>
+  <section class="finale reveal" id="install">
+    <h2>Install it.<br />Scaffold something.</h2>
+    <div class="cta">
+      <button class="copy" type="button" data-copy="npm install -g @codejen/jen">
+        <span><span class="pfx">$ </span>npm install -g @codejen/jen</span>
+        <span class="tag">copy</span>
+      </button>
+      <a class="btn" href="https://github.com/learosema/jen">Star on GitHub</a>
+    </div>
+    <small>Requires Node.js 24+ · MIT License</small>
+  </section>
 
   <footer>
     <span>Requires Node.js 24+ · MIT License</span>
-    <span>
+    <span class="links">
       <a href="recipes.html">cpp pack recipes</a>
-      &nbsp;·&nbsp;
       <a href="https://github.com/learosema/jen">GitHub</a>
-      &nbsp;·&nbsp;
       <a href="https://www.npmjs.com/package/@codejen/jen">npm</a>
     </span>
+    <p class="made">Made with <span aria-hidden="true">💖</span> love by Lea</p>
   </footer>
-</main>
+</div>
 </body>
 </html>

@@ -199,8 +199,10 @@ jen searches these locations in order. The first match wins, so a project genera
 1. **Project:** `.jen/`, searched upwards from the current directory (just like `.git`).
 2. **User:** `$XDG_CONFIG_HOME/jen`, `~/.config/jen`, or `%APPDATA%\jen` on Windows.
 3. **`$JEN_PATH`:** additional directories, separated like `PATH`.
-4. **Packs:** dependencies in `package.json` named `jen-pack-*` or `@scope/pack-*`, project `package.json` first, then the user directory's.
+4. **Packs:** dependencies in `package.json` named `jen-pack-*` or `@scope/pack-*`, project `package.json` first, then the user directory's, then packs installed globally (`npm install -g`).
 5. **Built-ins:** currently just `generator`.
+
+If nothing matches and the name has a pack prefix (`lua:function`), jen falls back to fetching `@codejen/pack-lua` – see [When a generator isn't found](#when-a-generator-isnt-found).
 
 `jen --list` shows every generator, where it comes from, and which ones are shadowed:
 
@@ -252,7 +254,7 @@ jen finds packs automatically: add one as a dependency (of any kind – `depende
 { "devDependencies": { "@codejen/pack-cpp": "^1.0.0" } }
 ```
 
-jen resolves the package itself from the project's `node_modules` first, then from next to jen's own install location – so a globally installed pack (`npm install -g`) is found as long as it's named in a `package.json` jen reads, which is handy for projects that don't have one at all, such as C++ repos: list the pack as a dependency in the user directory's `package.json` instead.
+jen resolves the package from the project's `node_modules` first, then the user directory's, then from next to jen's own install location. Globally installed packs (`npm install -g`) are also found without being listed anywhere: jen scans the `node_modules` it is installed into for `jen-pack-*` / `@scope/pack-*` (and `generator-*`) packages. That makes `npm i -g @codejen/jen @codejen/pack-cpp` enough for projects without a `package.json`, such as C++ repos. `node_modules` inside the project are not scanned – there, its `package.json` decides.
 
 The pack prefix is the part after `jen-pack-` or `@scope/pack-`: `@codejen/pack-cpp` and `jen-pack-cpp` both become `cpp`.
 
@@ -296,7 +298,7 @@ jen --from @codejen/pack-cpp cpp:class --name=RigidBody
 
 The generator name after `--from` still has to be given, same as it would be for an installed one (`code`, `cpp:class`) – `--from` only changes where jen gets the package from, not how you address what's inside it.
 
-This is the *only* thing jen ever fetches or installs, and only for that one invocation – nothing else in jen touches the network or writes outside the files it just showed you in the plan. It shells out to your own `npm` (with `--ignore-scripts`, so install/postinstall scripts don't run) rather than adding an installer dependency of its own.
+Besides the [not-found fallback](#when-a-generator-isnt-found) below, which is limited to the `@codejen` scope, this is the *only* thing jen ever fetches or installs, and only for that one invocation – nothing else in jen touches the network or writes outside the files it just showed you in the plan. It shells out to your own `npm` (with `--ignore-scripts`, so install/postinstall scripts don't run) rather than adding an installer dependency of its own.
 
 ## Command line
 
@@ -392,3 +394,21 @@ The tests run jen as a real process in temporary directories, each with its own 
 ## License
 
 MIT © Lea Rosema
+
+### When a generator isn't found
+
+If you ask for a prefixed generator whose pack isn't installed, jen fetches it from npm the same way `--from` would – but only from jen's own `@codejen` scope:
+
+```
+$ jen lua:function
+Fetching @codejen/pack-lua@latest …
+```
+
+So a mistyped name can never install a third party's package. If that package doesn't exist (or you set `JEN_NO_FETCH=1`, e.g. to stay offline), jen only prints the hint instead:
+
+```
+Generator "lua:function" not found – jen --list shows all.
+If "lua" is a pack you haven't installed, try: jen --from @codejen/pack-lua lua:function
+```
+
+Packs from other scopes, and unprefixed names, are never fetched automatically – use `--from` for those.
