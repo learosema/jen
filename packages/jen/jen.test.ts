@@ -52,7 +52,7 @@ function jen(args: string[], { cwd, userDir }: RunOptions) {
     cwd,
     encoding: 'utf8',
     timeout: 10_000,
-    env: { ...process.env, XDG_CONFIG_HOME: xdg, JEN_PATH: '', NO_COLOR: '1', FORCE_COLOR: '0' },
+    env: { ...process.env, XDG_CONFIG_HOME: xdg, JEN_PATH: '', JEN_NO_FETCH: '1', NO_COLOR: '1', FORCE_COLOR: '0' },
   });
   return { code: result.status, stdout: result.stdout, stderr: result.stderr };
 }
@@ -116,6 +116,18 @@ describe('CLI', () => {
     const r = jen(['nope'], { cwd: fixture() });
     assert.equal(r.code, 1);
     assert.match(r.stderr, /"nope" not found/);
+  });
+
+  it('hints at --from for an unknown pack prefix when fetching is off (JEN_NO_FETCH)', () => {
+    const r = jen(['lua:function'], { cwd: fixture() });
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /jen --from @codejen\/pack-lua lua:function/);
+    assert.doesNotMatch(r.stdout, /Fetching/);
+  });
+
+  it('gives no --from hint for unprefixed names or known sources', () => {
+    assert.doesNotMatch(jen(['nope'], { cwd: fixture() }).stderr, /--from/);
+    assert.doesNotMatch(jen(['project:nope'], { cwd: cppProject() }).stderr, /--from/);
   });
 
   it('lists generators and exits 1 when none is given', () => {
