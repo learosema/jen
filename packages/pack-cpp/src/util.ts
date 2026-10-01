@@ -25,3 +25,26 @@ export function parseMembers(spec: string): Member[] {
     return { type: trimmed.slice(0, i).trim(), ident: trimmed.slice(i + 1).trim() };
   });
 }
+
+/**
+ * Where an app starter lands: a new folder named after the app (kebab-case by
+ * default, or `--folderCase=pascal`). `--dir` overrides it; `--dir=.` writes
+ * into the current directory.
+ */
+export function appFolder(
+  name: string,
+  dir: string,
+  folderCase: string,
+  { kebab, pascal }: { kebab(s: string): string; pascal(s: string): string },
+): string {
+  if (folderCase !== 'kebab' && folderCase !== 'pascal') {
+    fail(`--folderCase: expected "kebab" or "pascal", got "${folderCase}"`);
+  }
+  const folder = dir || (folderCase === 'pascal' ? pascal(name) : kebab(name));
+  return folder.replace(/\/+$/, '');
+}
+
+/** Joins a folder and a relative path; `.` or empty means no prefix. */
+export function inFolder(folder: string, path: string): string {
+  return !folder || folder === '.' ? path : `${folder}/${path}`;
+}

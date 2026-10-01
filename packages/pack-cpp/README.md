@@ -129,7 +129,8 @@ jen cpp:r0 --name=Person --members="std::string name, int age"
 An SDL3 [callbacks](https://wiki.libsdl.org/SDL3/README/main-functions)-based app starter: a root `CMakeLists.txt`, a `vendor/CMakeLists.txt` that `FetchContent`s SDL3 (preferring a local `find_package(SDL3 CONFIG)` first, so it never touches the network if SDL3 is already installed), and `src/CMakeLists.txt` + `src/main.cpp` clearing the window to an animated color. Follows the pattern in [learn-sdl](https://github.com/learosema/learn-sdl).
 
 ```sh
-jen cpp:sdl3 --name=MyGame
+jen cpp:sdl3 --name=MyGame   # creates ./my-game/
+cd my-game
 cmake -S . -B build && cmake --build build
 ```
 
@@ -141,6 +142,8 @@ cmake -S . -B build && cmake --build build
 | `width`     | `'800'`               | initial window width                      |
 | `height`    | `'600'`               | initial window height                     |
 | `bundleId`  | `''`                  | app metadata id; defaults to `com.example.<kebab-name>` |
+| `folderCase` | `'kebab'`            | case of the new project folder: `kebab` (`my-game/`) or `pascal` (`MyGame/`) |
+| `dir`       | `''`                  | explicit folder instead of one derived from `name`; `--dir=.` writes into the current directory |
 | `sdlTag`    | `'release-3.4.14'`    | the SDL3 git tag to fetch                 |
 
 ## `cpp:sdl3-opengl`
@@ -148,7 +151,8 @@ cmake -S . -B build && cmake --build build
 The same starter, but with an OpenGL 4.1 core context instead of the 2D renderer: it vendors a [glad](https://glad.dav1d.de) loader under `vendor/glad/` (checked-in generated source, like any hand-vendored GL loader – jen never fetches or generates it), adds `cmake/embed-glsl.cmake` (turns a `.glsl` file into an inline C string header at CMake configure time), and scaffolds an app class that compiles/links a shader pair and draws an animated full-screen quad. Same params as `cpp:sdl3`.
 
 ```sh
-jen cpp:sdl3-opengl --name=MyGame
+jen cpp:sdl3-opengl --name=MyGame   # creates ./my-game/
+cd my-game
 cmake -S . -B build && cmake --build build
 ```
 
@@ -156,6 +160,7 @@ This sets up both markers `class` and `cpp:shader` look for, so scaffolding comp
 
 ```sh
 jen cpp:sdl3-opengl --name=MyGame
+cd my-game
 jen cpp:shader --name=Vignette   # adds src/vignette.{vert,frag}.glsl + wires embed_glsl() into src/CMakeLists.txt
 jen class --name=Camera          # adds src/Camera.{h,cpp} + wires Camera.cpp into src/CMakeLists.txt
 cmake -S . -B build && cmake --build build
