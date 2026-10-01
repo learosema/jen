@@ -95,10 +95,10 @@
     <pre><span class="prompt">$ </span>jen cpp:sdl3 --name=MyGame
 cpp:sdl3 (pack @codejen/pack-cpp) – create an SDL3 callback-based app starter (CMakeLists.txt + vendor/ FetchContent SDL3 + src/main.cpp)
 
-  <span class="add">+ CMakeLists.txt</span>
-  <span class="add">+ vendor/CMakeLists.txt</span>
-  <span class="add">+ src/CMakeLists.txt</span>
-  <span class="add">+ src/main.cpp</span>
+  <span class="add">+ my-game/CMakeLists.txt</span>
+  <span class="add">+ my-game/vendor/CMakeLists.txt</span>
+  <span class="add">+ my-game/src/CMakeLists.txt</span>
+  <span class="add">+ my-game/src/main.cpp</span>
 
 <span class="ok">✓ 4 written</span></pre>
   </div>
@@ -109,6 +109,8 @@ cpp:sdl3 (pack @codejen/pack-cpp) – create an SDL3 callback-based app starter 
     <tr><td><code>width</code></td><td><code>800</code></td><td>initial window width</td></tr>
     <tr><td><code>height</code></td><td><code>600</code></td><td>initial window height</td></tr>
     <tr><td><code>bundleId</code></td><td>—</td><td>defaults to <code>com.example.&lt;kebab-name&gt;</code></td></tr>
+    <tr><td><code>folderCase</code></td><td><code>kebab</code></td><td><code>kebab</code> (<code>my-game/</code>) or <code>pascal</code> (<code>MyGame/</code>) for the new project folder</td></tr>
+    <tr><td><code>dir</code></td><td>—</td><td>explicit folder instead of one derived from <code>name</code>; <code>--dir=.</code> writes into the current directory</td></tr>
     <tr><td><code>sdlTag</code></td><td><code>release-3.4.14</code></td><td>SDL3 git tag to fetch</td></tr>
   </table>
   </div>
@@ -120,21 +122,21 @@ cpp:sdl3 (pack @codejen/pack-cpp) – create an SDL3 callback-based app starter 
     <pre><span class="prompt">$ </span>jen cpp:sdl3-opengl --name=MyGame
 cpp:sdl3-opengl (pack @codejen/pack-cpp) – create an SDL3 + OpenGL (4.1 core, glad) app starter with a shader-quad demo; vendors glad and wires up cmake/embed-glsl.cmake
 
-  <span class="add">+ CMakeLists.txt</span>
-  <span class="add">+ vendor/CMakeLists.txt</span>
-  <span class="add">+ cmake/embed-glsl.cmake</span>
-  <span class="add">+ vendor/glad/CMakeLists.txt</span>
-  <span class="add">+ vendor/glad/include/glad/glad.h</span>
-  <span class="add">+ vendor/glad/include/KHR/khrplatform.h</span>
-  <span class="add">+ vendor/glad/src/glad.c</span>
-  <span class="add">+ src/CMakeLists.txt</span>
-  <span class="add">+ src/main.cpp</span>
-  <span class="add">+ src/my-game-app.h</span>
-  <span class="add">+ src/my-game-app.cpp</span>
-  <span class="add">+ src/shader-utils.h</span>
-  <span class="add">+ src/shader-utils.cpp</span>
-  <span class="add">+ src/quad.vert.glsl</span>
-  <span class="add">+ src/quad.frag.glsl</span>
+  <span class="add">+ my-game/CMakeLists.txt</span>
+  <span class="add">+ my-game/vendor/CMakeLists.txt</span>
+  <span class="add">+ my-game/cmake/embed-glsl.cmake</span>
+  <span class="add">+ my-game/vendor/glad/CMakeLists.txt</span>
+  <span class="add">+ my-game/vendor/glad/include/glad/glad.h</span>
+  <span class="add">+ my-game/vendor/glad/include/KHR/khrplatform.h</span>
+  <span class="add">+ my-game/vendor/glad/src/glad.c</span>
+  <span class="add">+ my-game/src/CMakeLists.txt</span>
+  <span class="add">+ my-game/src/main.cpp</span>
+  <span class="add">+ my-game/src/my-game-app.h</span>
+  <span class="add">+ my-game/src/my-game-app.cpp</span>
+  <span class="add">+ my-game/src/shader-utils.h</span>
+  <span class="add">+ my-game/src/shader-utils.cpp</span>
+  <span class="add">+ my-game/src/quad.vert.glsl</span>
+  <span class="add">+ my-game/src/quad.frag.glsl</span>
 
 <span class="ok">✓ 15 written</span></pre>
   </div>

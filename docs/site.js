@@ -76,7 +76,7 @@
     {
       cmd: 'jen cpp:sdl3 --name=MyGame',
       head: 'cpp:sdl3 (pack @codejen/pack-cpp) – SDL3 callback-based app starter',
-      rows: [['add', '+ CMakeLists.txt'], ['add', '+ vendor/CMakeLists.txt'], ['add', '+ src/CMakeLists.txt'], ['add', '+ src/main.cpp']],
+      rows: [['add', '+ my-game/CMakeLists.txt'], ['add', '+ my-game/vendor/CMakeLists.txt'], ['add', '+ my-game/src/CMakeLists.txt'], ['add', '+ my-game/src/main.cpp']],
       done: '✓ 4 written',
     },
   ];

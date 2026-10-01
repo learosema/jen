@@ -5,6 +5,7 @@
  * https://github.com/learosema/learn-sdl for the pattern this follows.
  */
 import type { Generator } from '@codejen/jen';
+import { appFolder, inFolder } from './util.ts';
 
 const SDL_TAG_DEFAULT = 'release-3.4.14';
 
@@ -135,18 +136,23 @@ const sdl3Generator: Generator = {
     width: { default: '800' },
     height: { default: '600' },
     bundleId: { default: '' },
+    folderCase: { default: 'kebab' },
+    dir: { default: '' },
     sdlTag: { default: SDL_TAG_DEFAULT },
   },
-  actions: ({ name, width, height, bundleId, sdlTag }, { kebab }) => {
+  actions: ({ name, width, height, bundleId, sdlTag, folderCase, dir }, helpers) => {
+    const { kebab } = helpers;
+    const folder = appFolder(String(name), String(dir), String(folderCase), helpers);
+    const at = (path: string): string => inFolder(folder, path);
     const kebabName = kebab(String(name));
     const title = String(name);
     const bundle = String(bundleId) || `com.example.${kebabName}`;
 
     return [
-      { add: 'CMakeLists.txt', template: rootCMake(kebabName) },
-      { add: 'vendor/CMakeLists.txt', template: vendorCMake(String(sdlTag)) },
-      { add: 'src/CMakeLists.txt', template: srcCMake(kebabName) },
-      { add: 'src/main.cpp', template: mainCpp(title, bundle, String(width), String(height)) },
+      { add: at('CMakeLists.txt'), template: rootCMake(kebabName) },
+      { add: at('vendor/CMakeLists.txt'), template: vendorCMake(String(sdlTag)) },
+      { add: at('src/CMakeLists.txt'), template: srcCMake(kebabName) },
+      { add: at('src/main.cpp'), template: mainCpp(title, bundle, String(width), String(height)) },
     ];
   },
 };

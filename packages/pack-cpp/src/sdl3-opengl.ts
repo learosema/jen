@@ -8,6 +8,7 @@
  */
 import type { Action, Generator } from '@codejen/jen';
 import { readAsset } from './assets.ts';
+import { appFolder, inFolder } from './util.ts';
 
 const SDL_TAG_DEFAULT = 'release-3.4.14';
 
@@ -356,9 +357,14 @@ const sdl3OpenglGenerator: Generator = {
     width: { default: '800' },
     height: { default: '600' },
     bundleId: { default: '' },
+    folderCase: { default: 'kebab' },
+    dir: { default: '' },
     sdlTag: { default: SDL_TAG_DEFAULT },
   },
-  actions: ({ name, width, height, bundleId, sdlTag }, { pascal, kebab, constant }) => {
+  actions: ({ name, width, height, bundleId, sdlTag, folderCase, dir }, helpers) => {
+    const { pascal, kebab, constant } = helpers;
+    const folder = appFolder(String(name), String(dir), String(folderCase), helpers);
+    const at = (path: string): string => inFolder(folder, path);
     const kebabName = kebab(String(name));
     const appFile = `${kebabName}-app`;
     const className = `${pascal(String(name))}App`;
@@ -367,21 +373,21 @@ const sdl3OpenglGenerator: Generator = {
     const bundle = String(bundleId) || `com.example.${kebabName}`;
 
     const actions: Action[] = [
-      { add: 'CMakeLists.txt', template: rootCMake(kebabName) },
-      { add: 'vendor/CMakeLists.txt', template: vendorCMake(String(sdlTag)) },
-      { add: 'cmake/embed-glsl.cmake', template: readAsset('embed-glsl.cmake') },
-      { add: 'vendor/glad/CMakeLists.txt', template: readAsset('glad/CMakeLists.txt') },
-      { add: 'vendor/glad/include/glad/glad.h', template: readAsset('glad/include/glad/glad.h') },
-      { add: 'vendor/glad/include/KHR/khrplatform.h', template: readAsset('glad/include/KHR/khrplatform.h') },
-      { add: 'vendor/glad/src/glad.c', template: readAsset('glad/src/glad.c') },
-      { add: 'src/CMakeLists.txt', template: srcCMake(kebabName, appFile) },
-      { add: 'src/main.cpp', template: mainCpp(appFile, className) },
-      { add: `src/${appFile}.h`, template: appHeader(className, guard, String(width), String(height)) },
-      { add: `src/${appFile}.cpp`, template: appSource(className, appFile, title, bundle) },
-      { add: 'src/shader-utils.h', template: shaderUtilsHeader() },
-      { add: 'src/shader-utils.cpp', template: shaderUtilsSource() },
-      { add: 'src/quad.vert.glsl', template: QUAD_VERT },
-      { add: 'src/quad.frag.glsl', template: QUAD_FRAG },
+      { add: at('CMakeLists.txt'), template: rootCMake(kebabName) },
+      { add: at('vendor/CMakeLists.txt'), template: vendorCMake(String(sdlTag)) },
+      { add: at('cmake/embed-glsl.cmake'), template: readAsset('embed-glsl.cmake') },
+      { add: at('vendor/glad/CMakeLists.txt'), template: readAsset('glad/CMakeLists.txt') },
+      { add: at('vendor/glad/include/glad/glad.h'), template: readAsset('glad/include/glad/glad.h') },
+      { add: at('vendor/glad/include/KHR/khrplatform.h'), template: readAsset('glad/include/KHR/khrplatform.h') },
+      { add: at('vendor/glad/src/glad.c'), template: readAsset('glad/src/glad.c') },
+      { add: at('src/CMakeLists.txt'), template: srcCMake(kebabName, appFile) },
+      { add: at('src/main.cpp'), template: mainCpp(appFile, className) },
+      { add: at(`src/${appFile}.h`), template: appHeader(className, guard, String(width), String(height)) },
+      { add: at(`src/${appFile}.cpp`), template: appSource(className, appFile, title, bundle) },
+      { add: at('src/shader-utils.h'), template: shaderUtilsHeader() },
+      { add: at('src/shader-utils.cpp'), template: shaderUtilsSource() },
+      { add: at('src/quad.vert.glsl'), template: QUAD_VERT },
+      { add: at('src/quad.frag.glsl'), template: QUAD_FRAG },
     ];
     return actions;
   },

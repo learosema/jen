@@ -47,12 +47,12 @@ function planShader(answers: Record<string, string>): Action[] {
 }
 
 function planSdl3(answers: Record<string, string>): Action[] {
-  const defaults = { width: '800', height: '600', bundleId: '', sdlTag: 'release-3.4.14' };
+  const defaults = { width: '800', height: '600', bundleId: '', sdlTag: 'release-3.4.14', folderCase: 'kebab', dir: '.' };
   return pack.sdl3.actions({ ...defaults, ...answers }, helpers);
 }
 
 function planSdl3Opengl(answers: Record<string, string>): Action[] {
-  const defaults = { width: '800', height: '600', bundleId: '', sdlTag: 'release-3.4.14' };
+  const defaults = { width: '800', height: '600', bundleId: '', sdlTag: 'release-3.4.14', folderCase: 'kebab', dir: '.' };
   return pack['sdl3-opengl'].actions({ ...defaults, ...answers }, helpers);
 }
 
@@ -231,6 +231,30 @@ describe('cpp:shader', () => {
   it('fails clearly on an unknown --stage', () => {
     assert.throws(() => planShader({ name: 'Tonemap', stage: 'geom' }), /--stage/);
   });
+});
+
+describe('app starter folder', () => {
+  for (const [id, plan] of [['sdl3', planSdl3], ['sdl3-opengl', planSdl3Opengl]] as const) {
+    it(`${id}: lands in a kebab-case folder named after the app by default`, () => {
+      const actions = plan({ name: 'MyGame', dir: '' });
+      assert.ok(adds(actions).every((p) => p.startsWith('my-game/')));
+      assert.ok(adds(actions).includes('my-game/src/main.cpp'));
+    });
+
+    it(`${id}: --folderCase=pascal gives a PascalCase folder`, () => {
+      const actions = plan({ name: 'my-game', dir: '', folderCase: 'pascal' });
+      assert.ok(adds(actions).every((p) => p.startsWith('MyGame/')));
+    });
+
+    it(`${id}: --dir overrides the folder, --dir=. writes in place`, () => {
+      assert.ok(adds(plan({ name: 'MyGame', dir: 'games/x/' })).every((p) => p.startsWith('games/x/')));
+      assert.ok(adds(plan({ name: 'MyGame', dir: '.' })).includes('CMakeLists.txt'));
+    });
+
+    it(`${id}: rejects an unknown --folderCase`, () => {
+      assert.throws(() => plan({ name: 'MyGame', dir: '', folderCase: 'snake' }), /--folderCase/);
+    });
+  }
 });
 
 describe('sdl3', () => {
