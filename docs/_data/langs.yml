@@ -1,0 +1,8 @@
+# The "Scaffolds anything that's text" row (_includes/langs.html).
+# hex: draw the badge as a hexagon · soon: pack not published yet · more: the trailing "+" tile
+- { badge: "C++", name: "C++", color: "#00599C", text: "#fff", hex: true }
+- { badge: "▲", name: CMake, color: "#064F8C", text: "#fff" }
+- { badge: GL, name: GLSL, color: "#46708c", text: "#fff" }
+- { badge: TS, name: TypeScript, color: "#3178C6", text: "#fff", soon: true }
+- { badge: JS, name: JavaScript, color: "#F7DF1E", text: "#1b1a00", soon: true }
+- { badge: "+", name: anything, more: true }

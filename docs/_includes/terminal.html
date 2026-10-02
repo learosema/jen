@@ -1,0 +1,28 @@
+{%- comment -%}
+  A terminal window. Content lives in _data/terminals.yml (see the format notes there).
+  Params: id (key in terminals.yml), title (optional title bar), live (optional, makes the output an aria-live region).
+{%- endcomment -%}
+{%- capture nl %}
+{% endcapture -%}
+{%- assign lines = site.data.terminals[include.id] -%}
+<div class="terminal">
+<div class="chrome"><span></span><span></span><span></span>{% if include.title %}<span class="title">{{ include.title }}</span>{% endif %}</div>
+<pre{% if include.live %} aria-live="polite"{% endif %}>
+{%- for line in lines -%}
+  {%- assign text = line | lstrip -%}
+  {%- assign indent = line.size | minus: text.size -%}
+  {{- line | slice: 0, indent -}}
+  {%- assign mark = text | slice: 0 -%}
+  {%- case mark -%}
+    {%- when "$" -%}<span class="prompt">$ </span>{{ text | remove_first: "$ " | escape }}
+    {%- when "+" -%}<span class="add">{{ text | escape }}</span>
+    {%- when "~" -%}<span class="mod">{{ text | escape }}</span>
+    {%- when "=" or "…" -%}<span class="dim">{{ text | escape }}</span>
+    {%- when "#" -%}<span class="dim">{{ text | remove_first: "# " | escape }}</span>
+    {%- when "✓" -%}<span class="ok">{{ text | escape }}</span>
+    {%- else -%}{{ text | escape }}
+  {%- endcase -%}
+  {%- unless forloop.last -%}{{ nl }}{%- endunless -%}
+{%- endfor -%}
+</pre>
+</div>

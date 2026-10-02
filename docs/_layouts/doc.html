@@ -1,0 +1,33 @@
+---
+layout: default
+---
+{%- comment -%}
+  A reference page: big title, then a sticky table of contents next to the content.
+  Front matter: eyebrow, mega (the big word), lede (may contain HTML), sub, cta {text, url}, toc (list of {title, links: [{title, id}]}).
+{%- endcomment -%}
+<div class="page-head">
+  <p class="eyebrow">{{ page.eyebrow }}</p>
+  <h1 class="mega" aria-label="{{ page.mega }}"><span class="ghost" aria-hidden="true">{{ page.mega }}.</span>{{ page.mega }}<span class="dot">.</span></h1>
+  <p class="lede">{{ page.lede }}</p>
+  <p class="sub">{{ page.sub }}</p>
+  {%- if page.cta %}
+  <div class="cta">
+    <a class="btn" href="{{ page.cta.url }}">{{ page.cta.text }}</a>
+  </div>
+  {%- endif %}
+</div>
+
+<div class="layout">
+  <aside class="toc" aria-label="On this page">
+    {%- for group in page.toc %}
+    <h4>{{ group.title }}</h4>
+    {%- for link in group.links %}
+    <a href="#{{ link.id }}">{{ link.title }}</a>
+    {%- endfor %}
+    {%- endfor %}
+  </aside>
+
+  <main class="doc">
+{{ content }}
+  </main>
+</div>

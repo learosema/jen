@@ -1,0 +1,13 @@
+# Site-wide navigation, used by _includes/header.html and _includes/footer.html.
+# Paths starting with "/" are site-relative; anything else is used as-is.
+header:
+  - { title: how, url: "/#how" }
+  - { title: write your own, url: "/#write" }
+  - { title: cpp recipes, url: "/recipes.html" }
+  - { title: github, url: "https://github.com/learosema/jen" }
+  - { title: npm, url: "https://www.npmjs.com/package/@codejen/jen" }
+
+footer:
+  - { title: cpp pack recipes, url: "/recipes.html" }
+  - { title: GitHub, url: "https://github.com/learosema/jen" }
+  - { title: npm, url: "https://www.npmjs.com/package/@codejen/jen" }

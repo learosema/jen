@@ -618,10 +618,10 @@ footer .links { display: flex; gap: 1.2rem; flex-wrap: wrap; }
   font-size: 0.95rem;
 }
 .doc h3 a { text-decoration: none; }
-.doc p.note { color: var(--muted); margin: 0 0 1rem; font-size: 0.9rem; max-width: 46rem; }
-.doc p.note code, .doc p.note a { color: var(--fg); }
-.doc p.note a { text-decoration-color: var(--accent); text-underline-offset: 3px; }
-.doc p.note code { background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: 0 0.3rem; font-size: 0.85em; }
+.doc > p { color: var(--muted); margin: 0 0 1rem; font-size: 0.9rem; max-width: 46rem; }
+.doc > p code, .doc > p a { color: var(--fg); }
+.doc > p a { text-decoration-color: var(--accent); text-underline-offset: 3px; }
+.doc > p code { background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: 0 0.3rem; font-size: 0.85em; }
 .doc .terminal { margin: 0 0 0.8rem; }
 .doc .terminal pre { font-size: 0.8rem; }
 
