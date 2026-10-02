@@ -1,0 +1,23 @@
+<div class="hero">
+  <p class="eyebrow">Scaffolding, without the small talk</p>
+  <h1 class="mega" aria-label="jen"><span class="ghost" aria-hidden="true">jen.</span>jen<span class="dot">.</span></h1>
+  <p class="lede">The code jen(erator). Shows you the <em>plan</em> before it touches a single file.</p>
+  <p class="sub">A tiny, zero-dependency scaffolding CLI. Generators are plain JavaScript modules, templates are template literals, and nothing ever asks you a question.</p>
+
+  <div class="cta">
+    {% include copy-button.html cmd="npm install -g @codejen/jen" %}
+    <a class="btn" href="{{ '/recipes.html' | relative_url }}">Browse the C++ recipes →</a>
+  </div>
+
+  {%- comment %} The tabs, the --dry-run switch and the typing animation are driven by SCENES in site.js. {% endcomment %}
+  <div class="demo" aria-label="Interactive demo">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" type="button">class</button>
+      <button class="tab" role="tab" aria-selected="false" type="button">cpp:shader</button>
+      <button class="tab" role="tab" aria-selected="false" type="button">cpp:sdl3</button>
+      <span class="spacer"></span>
+      <label class="switch"><input type="checkbox" id="dry" /><span class="knob"></span>--dry-run</label>
+    </div>
+    {% include terminal.html id="demo" title="~/projects/my-game" live=true %}
+  </div>
+</div>

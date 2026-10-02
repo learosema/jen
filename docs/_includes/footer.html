@@ -1,0 +1,10 @@
+<footer>
+  <span>Requires Node.js 24+ · MIT License</span>
+  <span class="links">
+    {%- for item in site.data.nav.footer %}
+    {%- assign internal = item.url | slice: 0 | eq: "/" %}
+    <a href="{% if internal %}{{ item.url | relative_url }}{% else %}{{ item.url }}{% endif %}">{{ item.title }}</a>
+    {%- endfor %}
+  </span>
+  <p class="made">Made with <span aria-hidden="true">💖</span> love by Lea</p>
+</footer>

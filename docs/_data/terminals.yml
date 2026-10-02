@@ -1,0 +1,147 @@
+# Every terminal block on the site, rendered by _includes/terminal.html:
+#   {% include terminal.html id="class" title="optional title bar text" %}
+#
+# One string per line. What a line starts with decides how it's colored:
+#   "$ "  prompt + command      "+ " added      "~ " modified      "= " skipped
+#   "✓"   done                  "…"  elided     "# "  dim note   anything else: plain
+# Leading spaces are kept (plan rows are indented), "" is a blank line.
+
+demo:
+  - "$ jen class --name=rigid_body --moveOnly"
+  - "class (project) – C++ class"
+  - ""
+  - "  + src/RigidBody.h"
+  - "  + src/RigidBody.cpp"
+  - "  ~ src/CMakeLists.txt  + RigidBody.cpp"
+  - ""
+  - "✓ 3 written"
+
+hello:
+  - "$ jen hello --name=world"
+  - "hello (project) – say hello"
+  - ""
+  - "  + src/World.txt"
+  - ""
+  - "✓ 1 written"
+
+yeoman:
+  - '$ jen --from generator-code code --extensionType=command-ts --extensionDisplayName="My Extension"'
+  - "# Fetching generator-code@latest …"
+  - "code (yeoman generator-code) – Yeoman generator"
+  - ""
+  - "  + my-extension/package.json"
+  - "  + my-extension/src/extension.ts"
+  - "  …"
+  - ""
+  - "✓ 12 written"
+
+install_global:
+  - "$ npm install -g @codejen/jen @codejen/pack-cpp"
+  - "$ jen cpp:sdl3 --name=MyGame"
+
+install_local:
+  - "$ npm install --save-dev @codejen/jen @codejen/pack-cpp"
+  - "$ npx jen cpp:sdl3 --name=MyGame"
+
+install_npx:
+  - "$ npx @codejen/jen cpp:sdl3 --name=MyGame"
+
+install_from:
+  - "$ npx @codejen/jen --from @codejen/pack-cpp cpp:sdl3 --name=MyGame"
+
+sdl3:
+  - "$ jen cpp:sdl3 --name=MyGame"
+  - "cpp:sdl3 (pack @codejen/pack-cpp) – create an SDL3 callback-based app starter (CMakeLists.txt + vendor/ FetchContent SDL3 + src/main.cpp)"
+  - ""
+  - "  + my-game/CMakeLists.txt"
+  - "  + my-game/vendor/CMakeLists.txt"
+  - "  + my-game/src/CMakeLists.txt"
+  - "  + my-game/src/main.cpp"
+  - ""
+  - "✓ 4 written"
+
+sdl3_opengl:
+  - "$ jen cpp:sdl3-opengl --name=MyGame"
+  - "cpp:sdl3-opengl (pack @codejen/pack-cpp) – create an SDL3 + OpenGL (4.1 core, glad) app starter with a shader-quad demo; vendors glad and wires up cmake/embed-glsl.cmake"
+  - ""
+  - "  + my-game/CMakeLists.txt"
+  - "  + my-game/vendor/CMakeLists.txt"
+  - "  + my-game/cmake/embed-glsl.cmake"
+  - "  + my-game/vendor/glad/CMakeLists.txt"
+  - "  + my-game/vendor/glad/include/glad/glad.h"
+  - "  + my-game/vendor/glad/include/KHR/khrplatform.h"
+  - "  + my-game/vendor/glad/src/glad.c"
+  - "  + my-game/src/CMakeLists.txt"
+  - "  + my-game/src/main.cpp"
+  - "  + my-game/src/my-game-app.h"
+  - "  + my-game/src/my-game-app.cpp"
+  - "  + my-game/src/shader-utils.h"
+  - "  + my-game/src/shader-utils.cpp"
+  - "  + my-game/src/quad.vert.glsl"
+  - "  + my-game/src/quad.frag.glsl"
+  - ""
+  - "✓ 15 written"
+
+class:
+  - "$ jen class --name=rigid_body"
+  - "class (pack @codejen/pack-cpp) – create a C++ class in src/ (header + source), wired into src/CMakeLists.txt; --moveOnly for a Rule-of-Five RAII wrapper"
+  - ""
+  - "  + src/RigidBody.h"
+  - "  + src/RigidBody.cpp"
+  - "  ~ src/CMakeLists.txt  + RigidBody.cpp"
+  - ""
+  - "✓ 3 written"
+
+class_moveonly:
+  - "$ jen class --name=Texture --moveOnly --resource=GLuint --nullValue=0 --destroy=glDeleteTextures"
+  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class in src/ (header + source), wired into src/CMakeLists.txt; --moveOnly for a Rule-of-Five RAII wrapper"
+  - ""
+  - "  + src/Texture.h"
+  - "  + src/Texture.cpp"
+  - "  ~ src/CMakeLists.txt  + Texture.cpp"
+  - ""
+  - "✓ 3 written"
+
+handle:
+  - "$ jen cpp:handle --name=Handle"
+  - "cpp:handle (pack @codejen/pack-cpp) – create a generic Handle<T, Deleter, Null> RAII template for non-pointer handles (header-only)"
+  - ""
+  - "  + src/Handle.h"
+  - ""
+  - "✓ 1 written"
+
+scopeexit:
+  - "$ jen cpp:scopeexit --name=ScopeExit"
+  - "cpp:scopeexit (pack @codejen/pack-cpp) – create a ScopeExit scope-guard template (nothrow-enforced, header-only)"
+  - ""
+  - "  + src/ScopeExit.h"
+  - ""
+  - "✓ 1 written"
+
+r0:
+  - '$ jen cpp:r0 --name=Person --members="std::string name, int age"'
+  - "cpp:r0 (pack @codejen/pack-cpp) – create a Rule of Zero class: members generated from constructor params, no special member functions (header-only)"
+  - ""
+  - "  + src/Person.h"
+  - ""
+  - "✓ 1 written"
+
+shader:
+  - "$ jen cpp:shader --name=Vignette"
+  - "cpp:shader (pack @codejen/pack-cpp) – create a GLSL vertex/fragment shader pair (or one stage via --stage=vert|frag), embedded via cmake/embed-glsl.cmake and wired into src/CMakeLists.txt"
+  - ""
+  - "  = cmake/embed-glsl.cmake  exists, skipped"
+  - "  + src/vignette.vert.glsl"
+  - "  + src/vignette.frag.glsl"
+  - '  ~ src/CMakeLists.txt  + embed_glsl("vignette.vert.glsl" vignetteVertexShader) (+1 more)'
+  - ""
+  - "✓ 3 written"
+
+together:
+  - "$ jen cpp:sdl3-opengl --name=MyGame"
+  - "…"
+  - "$ jen cpp:shader --name=Vignette"
+  - "…"
+  - "$ jen class --name=Camera"
+  - "…"
+  - "$ cmake -S . -B build && cmake --build build"

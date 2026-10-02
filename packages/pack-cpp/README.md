@@ -2,7 +2,7 @@
 
 A [jen](https://github.com/learosema/jen) pack for C++: class/shader scaffolding following [my-cpp-snippets](https://github.com/learosema/my-cpp-snippets)' RAII conventions, plus SDL3 app starters following [learn-sdl](https://github.com/learosema/learn-sdl).
 
-Every generator writes into `src/`. `class` wires new sources into `src/CMakeLists.txt`'s sources list at a `# jen:sources` marker, and `cpp:shader` wires new shaders into that file's `embed_glsl()` calls at a `# jen:shaders` marker – both markers are set up by the `sdl3`/`sdl3-opengl` starters below, so scaffolding composes with them (see the walkthrough at the end).
+Every generator except the app starters writes into `src/` of the current directory; the starters (`sdl3`, `sdl3-opengl`) create a new project folder named after the app (`MyGame` → `my-game/`, or `MyGame/` with `--folderCase=pascal`), so `cd` into it before running the other generators. `class` wires new sources into `src/CMakeLists.txt`'s sources list at a `# jen:sources` marker, and `cpp:shader` wires new shaders into that file's `embed_glsl()` calls at a `# jen:shaders` marker – both markers are set up by the `sdl3`/`sdl3-opengl` starters below, so scaffolding composes with them (see the walkthrough at the end).
 
 | Generator          | Produces                                                                    |
 | ------------------- | ---------------------------------------------------------------------------- |
@@ -128,6 +128,8 @@ jen cpp:r0 --name=Person --members="std::string name, int age"
 
 An SDL3 [callbacks](https://wiki.libsdl.org/SDL3/README/main-functions)-based app starter: a root `CMakeLists.txt`, a `vendor/CMakeLists.txt` that `FetchContent`s SDL3 (preferring a local `find_package(SDL3 CONFIG)` first, so it never touches the network if SDL3 is already installed), and `src/CMakeLists.txt` + `src/main.cpp` clearing the window to an animated color. Follows the pattern in [learn-sdl](https://github.com/learosema/learn-sdl).
 
+Everything is written into a new folder named after the app: kebab-case by default (`my-game/`), PascalCase with `--folderCase=pascal` (`MyGame/`). Use `--dir=<folder>` to pick the folder yourself, or `--dir=.` to scaffold into the current directory (e.g. an existing repo).
+
 ```sh
 jen cpp:sdl3 --name=MyGame   # creates ./my-game/
 cd my-game
@@ -148,7 +150,7 @@ cmake -S . -B build && cmake --build build
 
 ## `cpp:sdl3-opengl`
 
-The same starter, but with an OpenGL 4.1 core context instead of the 2D renderer: it vendors a [glad](https://glad.dav1d.de) loader under `vendor/glad/` (checked-in generated source, like any hand-vendored GL loader – jen never fetches or generates it), adds `cmake/embed-glsl.cmake` (turns a `.glsl` file into an inline C string header at CMake configure time), and scaffolds an app class that compiles/links a shader pair and draws an animated full-screen quad. Same params as `cpp:sdl3`.
+The same starter, but with an OpenGL 4.1 core context instead of the 2D renderer: it vendors a [glad](https://glad.dav1d.de) loader under `vendor/glad/` (checked-in generated source, like any hand-vendored GL loader – jen never fetches or generates it), adds `cmake/embed-glsl.cmake` (turns a `.glsl` file into an inline C string header at CMake configure time), and scaffolds an app class that compiles/links a shader pair and draws an animated full-screen quad. Same params as `cpp:sdl3`, including the new project folder (`--folderCase`, `--dir`).
 
 ```sh
 jen cpp:sdl3-opengl --name=MyGame   # creates ./my-game/

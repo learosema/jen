@@ -1,0 +1,12 @@
+title: jen
+description: A tiny, zero-dependency scaffolding CLI. Plan first, then act.
+
+# GitHub Pages builds this folder with its stock Jekyll, so no plugins and no Gemfile.
+markdown: kramdown
+kramdown:
+  smart_quotes: apos,apos,quot,quot   # keep straight quotes, like the hand-written HTML had
+  auto_ids: false      # headings that need an anchor say so: ## Title {#anchor}
+
+exclude:
+  - CLAUDE.md
+  - README.md

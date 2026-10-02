@@ -1,0 +1,25 @@
+<div class="split code-split">
+  <div class="terminal">
+    <div class="chrome"><span></span><span></span><span></span><span class="title">.jen/hello.mjs</span></div>
+    <pre><span class="c">// params come from --flags, or their default</span>
+<span class="k">export const</span> params = {
+  name: {},                  <span class="c">// no default = required</span>
+  dir:  { default: <span class="s">"src"</span> },
+};
+
+<span class="k">export const</span> actions = ({ name, dir }, { pascal }) =&gt; [
+  {
+    add: <span class="s">`${dir}/${pascal(name)}.txt`</span>,
+    template: <span class="s">`Hello, ${name}!\n`</span>,
+  },
+];</pre>
+  </div>
+  <div>
+    <ol class="mini">
+      <li><span class="n">1</span><div><b>Create it.</b> <code>jen generator --name=hello --location=project</code> writes the skeleton to <code>.jen/hello.mjs</code>.</div></li>
+      <li><span class="n">2</span><div><b>Run it.</b> Answers are flags. Leave out a required one and jen lists what's missing, then quits. No prompts, ever.</div></li>
+      <li><span class="n">3</span><div><b>Keep it.</b> <code>.mjs</code>, <code>.js</code>, <code>.ts</code>, even <code>.mts</code>. TypeScript runs through Node's type stripping, no build step.</div></li>
+    </ol>
+    {% include terminal.html id="hello" title="~/projects/my-game" %}
+  </div>
+</div>

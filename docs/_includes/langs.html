@@ -1,0 +1,8 @@
+<section class="langs reveal" aria-label="Languages jen can scaffold">
+  <p class="kicker">Scaffolds anything that's text</p>
+  <ul>
+    {%- for lang in site.data.langs %}
+    <li class="lang{% if lang.hex %} hex{% endif %}{% if lang.soon %} soon{% endif %}{% if lang.more %} more{% endif %}" style="--i:{{ forloop.index0 }}{% if lang.color %};--c:{{ lang.color }};--t:{{ lang.text }}{% endif %}"{% if lang.soon %} title="Pack coming soon"{% endif %}><b>{{ lang.badge }}</b><span>{{ lang.name }}{% if lang.soon %}<small>soon</small>{% endif %}</span></li>
+    {%- endfor %}
+  </ul>
+</section>

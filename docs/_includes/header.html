@@ -1,0 +1,10 @@
+<header class="bar">
+  <a class="logo" href="{{ '/' | relative_url }}">jen<i>.</i></a>
+  <nav>
+    {%- for item in site.data.nav.header %}
+    {%- assign internal = item.url | slice: 0 | eq: "/" %}
+    <a href="{% if internal %}{{ item.url | relative_url }}{% else %}{{ item.url }}{% endif %}"{% if item.url == page.url %} aria-current="page"{% endif %}>{{ item.title }}</a>
+    {%- endfor %}
+    <button class="theme" type="button" aria-label="Toggle color theme">☾</button>
+  </nav>
+</header>
