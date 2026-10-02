@@ -43,7 +43,14 @@ export function appFolder(
     fail(`--folderCase: expected "kebab" or "pascal", got "${folderCase}"`);
   }
   const folder = dir || (folderCase === 'pascal' ? pascal(name) : kebab(name));
-  return folder.replace(/\/+$/, '');
+  return stripTrailingSlashes(folder);
+}
+
+/** Removes trailing slashes in linear time (a `/\/+$/` regex backtracks quadratically). */
+export function stripTrailingSlashes(s: string): string {
+  let end = s.length;
+  while (end > 0 && s[end - 1] === '/') end--;
+  return s.slice(0, end);
 }
 
 /** Joins a folder and a relative path; `.` or empty means no prefix. */

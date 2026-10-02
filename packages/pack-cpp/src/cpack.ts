@@ -4,6 +4,7 @@
  * `include(CPack)` always comes after every install rule).
  */
 import type { Generator } from '@codejen/jen';
+import { stripTrailingSlashes } from './util.ts';
 
 const INFO_PLIST = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -115,7 +116,7 @@ const cpackGenerator: Generator = {
       {
         insert: 'CMakeLists.txt',
         before: '# jen:install',
-        line: installRules(String(assets).replace(/\/+$/, ''), Boolean(staticSdl)).replace('BUNDLE_ID_PLACEHOLDER', bundle),
+        line: installRules(stripTrailingSlashes(String(assets)), Boolean(staticSdl)).replace('BUNDLE_ID_PLACEHOLDER', bundle),
       },
       { insert: 'CMakeLists.txt', before: '# jen:cpack', line: cpackSettings(who) },
     ];
