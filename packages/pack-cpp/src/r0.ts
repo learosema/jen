@@ -1,6 +1,6 @@
 /** `cpp:r0`: a Rule of Zero class with members generated from constructor params (header-only). */
 import type { Generator } from '@codejen/jen';
-import { fail, nsWrap, parseMembers } from './util.ts';
+import { fail, nsWrap, parseMembers, qualified, testActions } from './util.ts';
 
 const r0Generator: Generator = {
   description: 'create a Rule of Zero class: members generated from constructor params, no special member functions (header-only)',
@@ -8,8 +8,10 @@ const r0Generator: Generator = {
     name: {},
     members: {},
     namespace: { default: '' },
+    compare: { default: false },
+    withTest: { default: false },
   },
-  actions: ({ name, members, namespace }, { pascal, constant }) => {
+  actions: ({ name, members, namespace, compare, withTest }, { pascal, constant }) => {
     const className = pascal(String(name));
     const guard = `${constant(String(name))}_H`;
     const fields = parseMembers(String(members));
@@ -23,20 +25,21 @@ const r0Generator: Generator = {
     const header = `#ifndef ${guard}
 #define ${guard}
 
-#include <utility>
+${compare ? '#include <compare>\n' : ''}#include <utility>
 
 ${open}${indent}class ${className} {
 ${indent} public:
 ${indent}  explicit ${className}(${ctorParams})
 ${indent}      : ${initList} {}
-
+${compare ? `\n${indent}  auto operator<=>(const ${className}&) const = default;\n` : ''}
 ${indent} private:
 ${memberDecls}
 ${indent}};${close}
 #endif  // ${guard}
 `;
 
-    return [{ add: `src/${className}.h`, template: header }];
+    const checks = [`CHECK(std::is_move_constructible_v<${qualified(String(namespace), className)}>);`];
+    return [{ add: `src/${className}.h`, template: header }, ...testActions(withTest, className, `${className}.h`, checks, ['type_traits'])];
   },
 };
 

@@ -4,7 +4,7 @@
  * marker (see the app-starter generators for where that marker comes from).
  */
 import type { Generator } from '@codejen/jen';
-import { nsWrap } from './util.ts';
+import { nsWrap, qualified, testActions } from './util.ts';
 
 /** Plain default-constructible class: declared ctor/dtor, defined empty in the source. */
 function plainClass(className: string, guard: string, indent: string, open: string, close: string) {
@@ -85,7 +85,7 @@ ${indent}}${close}`;
 
 const classGenerator: Generator = {
   description:
-    'create a C++ class in src/ (header + source), wired into src/CMakeLists.txt; --moveOnly for a Rule-of-Five RAII wrapper',
+    'create a C++ class in src/ (header + source), wired into src/CMakeLists.txt; --moveOnly for a Rule-of-Five RAII wrapper, --withTest for a doctest case',
   params: {
     name: {},
     namespace: { default: '' },
@@ -93,8 +93,9 @@ const classGenerator: Generator = {
     resource: { default: 'Resource*' },
     nullValue: { default: 'nullptr' },
     destroy: { default: 'destroy' },
+    withTest: { default: false },
   },
-  actions: ({ name, namespace, moveOnly, resource, nullValue, destroy }, { pascal, constant }) => {
+  actions: ({ name, namespace, moveOnly, resource, nullValue, destroy, withTest }, { pascal, constant }) => {
     const className = pascal(String(name));
     const guard = `${constant(String(name))}_H`;
     const { indent, open, close } = nsWrap(String(namespace));
@@ -103,10 +104,16 @@ const classGenerator: Generator = {
       ? moveOnlyClass(className, guard, String(resource), String(nullValue), String(destroy), indent, open, close)
       : plainClass(className, guard, indent, open, close);
 
+    const q = qualified(String(namespace), className);
+    const checks = moveOnly
+      ? [`CHECK(!std::is_copy_constructible_v<${q}>);`, `CHECK(std::is_nothrow_move_constructible_v<${q}>);`]
+      : [`CHECK(std::is_default_constructible_v<${q}>);`];
+
     return [
       { add: `src/${className}.h`, template: header },
       { add: `src/${className}.cpp`, template: source },
       { insert: 'src/CMakeLists.txt', before: '# jen:sources', line: `  ${className}.cpp` },
+      ...testActions(withTest, className, `${className}.h`, checks, ['type_traits']),
     ];
   },
 };

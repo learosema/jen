@@ -51,14 +51,16 @@ install_from:
 
 sdl3:
   - "$ jen cpp:sdl3 --name=MyGame"
-  - "cpp:sdl3 (pack @codejen/pack-cpp) – create an SDL3 callback-based app starter (CMakeLists.txt + vendor/ FetchContent SDL3 + src/main.cpp)"
+  - "cpp:sdl3 (pack @codejen/pack-cpp) – create an SDL3 callback-based app starter (<name>-core library + thin executable, vendor/ FetchContent SDL3)"
   - ""
   - "  + my-game/CMakeLists.txt"
   - "  + my-game/vendor/CMakeLists.txt"
   - "  + my-game/src/CMakeLists.txt"
   - "  + my-game/src/main.cpp"
+  - "  + my-game/src/app.h"
+  - "  + my-game/src/app.cpp"
   - ""
-  - "✓ 4 written"
+  - "✓ 6 written"
 
 sdl3_opengl:
   - "$ jen cpp:sdl3-opengl --name=MyGame"
@@ -73,8 +75,8 @@ sdl3_opengl:
   - "  + my-game/vendor/glad/src/glad.c"
   - "  + my-game/src/CMakeLists.txt"
   - "  + my-game/src/main.cpp"
-  - "  + my-game/src/my-game-app.h"
-  - "  + my-game/src/my-game-app.cpp"
+  - "  + my-game/src/app.h"
+  - "  + my-game/src/app.cpp"
   - "  + my-game/src/shader-utils.h"
   - "  + my-game/src/shader-utils.cpp"
   - "  + my-game/src/quad.vert.glsl"
@@ -137,6 +139,209 @@ shader:
   - ""
   - "✓ 3 written"
 
+app:
+  - "$ jen cpp:app --name=MyTool"
+  - "cpp:app (pack @codejen/pack-cpp) – create a console app starter without SDL (<name>-core library + thin executable, main wraps argv in a span)"
+  - ""
+  - "  + my-tool/CMakeLists.txt"
+  - "  + my-tool/src/CMakeLists.txt"
+  - "  + my-tool/src/main.cpp"
+  - "  + my-tool/src/app.h"
+  - "  + my-tool/src/app.cpp"
+  - ""
+  - "✓ 5 written"
+
+lib:
+  - "$ jen cpp:lib --name=MyLib"
+  - "cpp:lib (pack @codejen/pack-cpp) – create a library starter: include/<name>/, BUILD_INTERFACE/INSTALL_INTERFACE, export header, install + package config"
+  - ""
+  - "  + my-lib/CMakeLists.txt"
+  - "  + my-lib/src/CMakeLists.txt"
+  - "  + my-lib/include/my-lib/my-lib.h"
+  - "  + my-lib/src/my-lib.cpp"
+  - "  + my-lib/cmake/my-libConfig.cmake.in"
+  - ""
+  - "✓ 5 written"
+
+module:
+  - "$ jen cpp:module --name=MyMod"
+  - "cpp:module (pack @codejen/pack-cpp) – (experimental) create a C++20 modules starter: .cppm in a FILE_SET CXX_MODULES, CMake >= 3.28, needs Ninja"
+  - ""
+  - "  + my-mod/CMakeLists.txt"
+  - "  + my-mod/src/CMakeLists.txt"
+  - "  + my-mod/src/my_mod.cppm"
+  - "  + my-mod/src/main.cpp"
+  - ""
+  - "✓ 4 written"
+
+class_withtest:
+  - "$ jen class --name=Camera --withTest"
+  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class in src/ (header + source), wired into src/CMakeLists.txt; --moveOnly for a Rule-of-Five RAII wrapper, --withTest for a doctest case"
+  - ""
+  - "  + src/Camera.h"
+  - "  + src/Camera.cpp"
+  - "  ~ src/CMakeLists.txt  + Camera.cpp"
+  - "  + tests/Camera_test.cpp"
+  - "  ~ tests/CMakeLists.txt  + Camera_test.cpp"
+  - ""
+  - "✓ 5 written"
+
+interface:
+  - "$ jen cpp:interface --name=Drawable --methods=\"void draw(), void resize(int w, int h)\" --impl=SpriteDrawable"
+  - "cpp:interface (pack @codejen/pack-cpp) – create a polymorphic interface class (virtual dtor, protected copy/move, pure virtual --methods); --impl scaffolds a final implementation"
+  - ""
+  - "  + src/Drawable.h"
+  - "  + src/SpriteDrawable.h"
+  - "  + src/SpriteDrawable.cpp"
+  - "  ~ src/CMakeLists.txt  + SpriteDrawable.cpp"
+  - ""
+  - "✓ 4 written"
+
+struct:
+  - "$ jen cpp:struct --name=Config --members=\"int width = 800, int height = 600\" --compare"
+  - "cpp:struct (pack @codejen/pack-cpp) – create an aggregate struct with default member initializers for plain data bundles (header-only)"
+  - ""
+  - "  + src/Config.h"
+  - ""
+  - "✓ 1 written"
+
+strong:
+  - "$ jen cpp:strong --name=Pixels --underlying=int --ops=compare,arith"
+  - "cpp:strong (pack @codejen/pack-cpp) – create a strong typedef: explicit constructor, optional <=> / arithmetic / std::hash (header-only)"
+  - ""
+  - "  + src/Pixels.h"
+  - ""
+  - "✓ 1 written"
+
+enum:
+  - "$ jen cpp:enum --name=GameState --values=\"menu, playing, paused\""
+  - "cpp:enum (pack @codejen/pack-cpp) – create an enum class with to_string() and a std::formatter specialization (header-only)"
+  - ""
+  - "  + src/GameState.h"
+  - ""
+  - "✓ 1 written"
+
+pimpl:
+  - "$ jen cpp:pimpl --name=Renderer"
+  - "cpp:pimpl (pack @codejen/pack-cpp) – create a pimpl class: unique_ptr<Impl>, special members defaulted in the .cpp; wired into src/CMakeLists.txt"
+  - ""
+  - "  + src/Renderer.h"
+  - "  + src/Renderer.cpp"
+  - "  ~ src/CMakeLists.txt  + Renderer.cpp"
+  - ""
+  - "✓ 3 written"
+
+variant:
+  - "$ jen cpp:variant --name=Event --cases=\"KeyDown, KeyUp, Resize\""
+  - "cpp:variant (pack @codejen/pack-cpp) – create a std::variant of case structs plus the overloaded visitor helper (header-only)"
+  - ""
+  - "  + src/overloaded.h"
+  - "  + src/Event.h"
+  - ""
+  - "✓ 2 written"
+
+tidy:
+  - "$ jen cpp:tidy"
+  - "cpp:tidy (pack @codejen/pack-cpp) – add a .clang-tidy enforcing the C++ Core Guidelines, plus an opt-in CLANG_TIDY CMake option (cmake/tidy.cmake)"
+  - ""
+  - "  + .clang-tidy"
+  - "  + cmake/tidy.cmake"
+  - "  ~ CMakeLists.txt  + include(cmake/tidy.cmake)"
+  - ""
+  - "✓ 3 written"
+
+format:
+  - "$ jen cpp:format"
+  - "cpp:format (pack @codejen/pack-cpp) – add a .clang-format matching the generated code style (Google-based), aligned with .editorconfig"
+  - ""
+  - "  + .clang-format"
+  - ""
+  - "✓ 1 written"
+
+presets:
+  - "$ jen cpp:presets"
+  - "cpp:presets (pack @codejen/pack-cpp) – add a CMakePresets.json with debug, release, asan and ubsan presets"
+  - ""
+  - "  + CMakePresets.json"
+  - ""
+  - "✓ 1 written"
+
+warnings:
+  - "$ jen cpp:warnings"
+  - "cpp:warnings (pack @codejen/pack-cpp) – add a project_warnings INTERFACE target (-Wall -Wextra … resp. /W4) and link it into the core library"
+  - ""
+  - "  + cmake/warnings.cmake"
+  - "  ~ CMakeLists.txt  + include(cmake/warnings.cmake)"
+  - "  ~ src/CMakeLists.txt  + target_link_libraries(${PROJECT_NAME}-core PRIVATE project_warnings)"
+  - ""
+  - "✓ 3 written"
+
+compiler:
+  - "$ jen cpp:compiler"
+  - "cpp:compiler (pack @codejen/pack-cpp) – add guideline-oriented compiler settings (project_options: no extensions, guideline warnings, hardening) and link them into the core library"
+  - ""
+  - "  + cmake/compiler.cmake"
+  - "  ~ CMakeLists.txt  + include(cmake/compiler.cmake)"
+  - "  ~ src/CMakeLists.txt  + target_link_libraries(${PROJECT_NAME}-core PRIVATE project_options)"
+  - ""
+  - "✓ 3 written"
+
+doctest:
+  - "$ jen cpp:doctest"
+  - "cpp:doctest (pack @codejen/pack-cpp) – set up doctest: tests/ with a main, a tests target linked against <name>-core, ctest discovery, and the # jen:tests marker for --withTest"
+  - ""
+  - "  + tests/CMakeLists.txt"
+  - "  + tests/main.cpp"
+  - "  ~ CMakeLists.txt  + enable_testing() (+1 more)"
+  - ""
+  - "✓ 3 written"
+
+tracy:
+  - "$ jen cpp:tracy --gpu"
+  - "cpp:tracy (pack @codejen/pack-cpp) – add the Tracy profiler (PROFILING option, FetchContent) and a FrameMark at the app starter's frame end; --gpu for OpenGL GPU zones"
+  - ""
+  - "  + cmake/tracy.cmake"
+  - "  ~ CMakeLists.txt  + include(cmake/tracy.cmake)"
+  - "  ~ src/CMakeLists.txt  + target_link_libraries(${PROJECT_NAME}-core PUBLIC Tracy::TracyClient)"
+  - "  ~ src/app.cpp  + #include <tracy/Tracy.hpp>"
+  - "  ~ src/app.cpp  + #include <tracy/TracyOpenGL.hpp>"
+  - "  ~ src/app.cpp  + TracyGpuContext;"
+  - "  ~ src/app.cpp  + TracyGpuCollect;"
+  - "  ~ src/app.cpp  + FrameMark;"
+  - ""
+  - "✓ 4 written"
+
+embed:
+  - "$ jen cpp:embed --file=assets/tiles.png --name=tilesPng"
+  - "cpp:embed (pack @codejen/pack-cpp) – embed a binary file as a constexpr byte array, generated at build time by cmake/embed.cmake and wired in at # jen:embed"
+  - ""
+  - "  + cmake/embed-file.cmake"
+  - "  + cmake/embed.cmake"
+  - "  ~ src/CMakeLists.txt  + include(${PROJECT_SOURCE_DIR}/cmake/embed.cmake)"
+  - "  ~ src/CMakeLists.txt  + embed_file(${PROJECT_NAME}-core assets/tiles.png tilesPng)"
+  - ""
+  - "✓ 3 written"
+
+cpack:
+  - "$ jen cpp:cpack --staticSdl"
+  - "cpp:cpack (pack @codejen/pack-cpp) – add install rules and CPack packaging (ZIP/NSIS, DragNDrop, TGZ/DEB), SDL3 runtime, RPATH and a macOS bundle"
+  - ""
+  - "  + cmake/Info.plist.in"
+  - "  ~ CMakeLists.txt  + set(SDL_STATIC ON) (+1 more)"
+  - "  ~ CMakeLists.txt  + include(GNUInstallDirs) (+25 more)"
+  - "  ~ CMakeLists.txt  + set(CPACK_PACKAGE_NAME \"${PROJECT_NAME}\") (+10 more)"
+  - ""
+  - "✓ 2 written"
+
+icon:
+  - "$ jen cpp:icon"
+  - "cpp:icon (pack @codejen/pack-cpp) – wire a Windows .rc icon and a macOS .icns bundle icon into the executable (you supply the icon files)"
+  - ""
+  - "  + resources/app.rc"
+  - "  ~ src/CMakeLists.txt  + if(WIN32) (+6 more)"
+  - ""
+  - "✓ 2 written"
+
 together:
   - "$ jen cpp:sdl3-opengl --name=MyGame"
   - "…"
@@ -145,3 +350,14 @@ together:
   - "$ jen class --name=Camera"
   - "…"
   - "$ cmake -S . -B build && cmake --build build"
+
+together_tooling:
+  - "$ jen cpp:doctest && jen cpp:warnings && jen cpp:compiler && jen cpp:tidy"
+  - "…"
+  - "$ jen class --name=Camera --withTest"
+  - "…"
+  - "$ jen cpp:enum --name=GameState --values=\"menu, playing, paused\" --withTest"
+  - "…"
+  - "$ jen cpp:tracy --gpu"
+  - "…"
+  - "$ cmake -S . -B build && cmake --build build && ctest --test-dir build"

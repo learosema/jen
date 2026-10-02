@@ -1,71 +1,49 @@
 /**
  * `sdl3`: an SDL3 callback-based app starter – CMakeLists.txt, a vendor/
  * FetchContent of SDL3 (falling back to a local find_package before
- * fetching), and src/main.cpp using SDL_MAIN_USE_CALLBACKS. See
+ * fetching), and a `<name>-core` library holding the app class, with
+ * src/main.cpp as the only file of the thin executable. See
  * https://github.com/learosema/learn-sdl for the pattern this follows.
  */
 import type { Generator } from '@codejen/jen';
+import { rootCMake, sdlMainCpp, sdlStarterParams, sdlVendorCMake, srcCMake } from './starter.ts';
 import { appFolder, inFolder } from './util.ts';
 
-const SDL_TAG_DEFAULT = 'release-3.4.14';
+function appHeader(className: string, guard: string, width: string, height: string): string {
+  return `#ifndef ${guard}
+#define ${guard}
 
-function vendorCMake(sdlTag: string): string {
-  return `include(FetchContent)
-
-FetchContent_Declare(
-  SDL3
-  GIT_REPOSITORY "https://github.com/libsdl-org/SDL.git"
-  GIT_TAG ${sdlTag}
-  FIND_PACKAGE_ARGS NAMES SDL3 CONFIG GLOBAL
-)
-
-set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-
-FetchContent_MakeAvailable(SDL3)
-`;
-}
-
-function rootCMake(kebabName: string): string {
-  return `cmake_minimum_required(VERSION 3.24)
-project(${kebabName} CXX)
-
-add_subdirectory(vendor)
-add_subdirectory(src)
-`;
-}
-
-function srcCMake(kebabName: string): string {
-  return `add_executable(${kebabName})
-
-target_compile_features(${kebabName} PRIVATE cxx_std_20)
-target_sources(${kebabName} PRIVATE
-  main.cpp
-  # jen:sources
-)
-target_link_libraries(${kebabName} PRIVATE SDL3::SDL3)
-`;
-}
-
-function mainCpp(title: string, bundle: string, width: string, height: string): string {
-  return `#define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL.h>
-#include <SDL3/SDL_main.h>
 
-#include <cstdio>
 #include <memory>
 
-namespace {
+class ${className} {
+ public:
+  SDL_AppResult Init();
+  SDL_AppResult HandleEvent(const SDL_Event* event);
+  SDL_AppResult Iterate();
 
-std::unique_ptr<SDL_Window, decltype(&SDL_DestroyWindow)> window{nullptr, SDL_DestroyWindow};
-std::unique_ptr<SDL_Renderer, decltype(&SDL_DestroyRenderer)> renderer{nullptr, SDL_DestroyRenderer};
+ private:
+  std::unique_ptr<SDL_Window, decltype(&SDL_DestroyWindow)> window_{nullptr, SDL_DestroyWindow};
+  std::unique_ptr<SDL_Renderer, decltype(&SDL_DestroyRenderer)> renderer_{nullptr, SDL_DestroyRenderer};
 
-int windowWidth = ${width};
-int windowHeight = ${height};
-bool sizeChanged = false;
+  int width_ = ${width};
+  int height_ = ${height};
+  bool resized_ = false;
+};
 
-}  // namespace
+#endif  // ${guard}
+`;
+}
 
-SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
+function appSource(className: string, title: string, bundle: string): string {
+  return `#include "app.h"
+
+#include <cstdio>
+
+// jen:includes
+
+SDL_AppResult ${className}::Init() {
   SDL_SetAppMetadata("${title}", "1.0", "${bundle}");
 
   if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -73,86 +51,78 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
     return SDL_APP_FAILURE;
   }
 
-  SDL_Window* windowPtr = nullptr;
-  SDL_Renderer* rendererPtr = nullptr;
-  if (!SDL_CreateWindowAndRenderer("${title}", windowWidth, windowHeight, SDL_WINDOW_RESIZABLE, &windowPtr,
-                                    &rendererPtr)) {
+  SDL_Window* window = nullptr;
+  SDL_Renderer* renderer = nullptr;
+  if (!SDL_CreateWindowAndRenderer("${title}", width_, height_, SDL_WINDOW_RESIZABLE, &window, &renderer)) {
     SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
     return SDL_APP_FAILURE;
   }
-  window.reset(windowPtr);
-  renderer.reset(rendererPtr);
-  SDL_SetRenderLogicalPresentation(renderer.get(), windowWidth, windowHeight, SDL_LOGICAL_PRESENTATION_STRETCH);
+  window_.reset(window);
+  renderer_.reset(renderer);
+  SDL_SetRenderLogicalPresentation(renderer_.get(), width_, height_, SDL_LOGICAL_PRESENTATION_STRETCH);
 
   return SDL_APP_CONTINUE;
 }
 
-SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
+SDL_AppResult ${className}::HandleEvent(const SDL_Event* event) {
   if (event->type == SDL_EVENT_QUIT) {
     return SDL_APP_SUCCESS;
   }
   if (event->type == SDL_EVENT_WINDOW_RESIZED) {
-    windowWidth = event->window.data1;
-    windowHeight = event->window.data2;
-    sizeChanged = true;
+    width_ = event->window.data1;
+    height_ = event->window.data2;
+    resized_ = true;
   }
   return SDL_APP_CONTINUE;
 }
 
-SDL_AppResult SDL_AppIterate(void* appstate) {
-  if (sizeChanged) {
-    SDL_SetRenderLogicalPresentation(renderer.get(), windowWidth, windowHeight, SDL_LOGICAL_PRESENTATION_STRETCH);
-    sizeChanged = false;
+SDL_AppResult ${className}::Iterate() {
+  if (resized_) {
+    SDL_SetRenderLogicalPresentation(renderer_.get(), width_, height_, SDL_LOGICAL_PRESENTATION_STRETCH);
+    resized_ = false;
   }
 
   const double now = static_cast<double>(SDL_GetTicks()) / 1000.0;
   const float red = static_cast<float>(0.5 + 0.5 * SDL_sin(now));
   const float green = static_cast<float>(0.5 + 0.5 * SDL_sin(now + SDL_PI_D * 2 / 3));
   const float blue = static_cast<float>(0.5 + 0.5 * SDL_sin(now + SDL_PI_D * 4 / 3));
-  SDL_SetRenderDrawColorFloat(renderer.get(), red, green, blue, SDL_ALPHA_OPAQUE_FLOAT);
-  SDL_RenderClear(renderer.get());
+  SDL_SetRenderDrawColorFloat(renderer_.get(), red, green, blue, SDL_ALPHA_OPAQUE_FLOAT);
+  SDL_RenderClear(renderer_.get());
 
   char label[32];
-  std::snprintf(label, sizeof(label), "%d x %d", windowWidth, windowHeight);
-  SDL_SetRenderDrawColor(renderer.get(), 255, 255, 255, SDL_ALPHA_OPAQUE);
-  SDL_SetRenderScale(renderer.get(), 4.0f, 4.0f);
-  SDL_RenderDebugText(renderer.get(), windowWidth / 32.0f, windowHeight / 32.0f, label);
+  std::snprintf(label, sizeof(label), "%d x %d", width_, height_);
+  SDL_SetRenderDrawColor(renderer_.get(), 255, 255, 255, SDL_ALPHA_OPAQUE);
+  SDL_SetRenderScale(renderer_.get(), 4.0f, 4.0f);
+  SDL_RenderDebugText(renderer_.get(), width_ / 32.0f, height_ / 32.0f, label);
 
-  SDL_RenderPresent(renderer.get());
+  SDL_RenderPresent(renderer_.get());
+  // jen:frame-end
   return SDL_APP_CONTINUE;
-}
-
-void SDL_AppQuit(void* appstate, SDL_AppResult result) {
-  renderer.reset();
-  window.reset();
 }
 `;
 }
 
 const sdl3Generator: Generator = {
-  description: 'create an SDL3 callback-based app starter (CMakeLists.txt + vendor/ FetchContent SDL3 + src/main.cpp)',
-  params: {
-    name: {},
-    width: { default: '800' },
-    height: { default: '600' },
-    bundleId: { default: '' },
-    folderCase: { default: 'kebab' },
-    dir: { default: '' },
-    sdlTag: { default: SDL_TAG_DEFAULT },
-  },
+  description:
+    'create an SDL3 callback-based app starter (<name>-core library + thin executable, vendor/ FetchContent SDL3)',
+  params: sdlStarterParams,
   actions: ({ name, width, height, bundleId, sdlTag, folderCase, dir }, helpers) => {
-    const { kebab } = helpers;
+    const { kebab, pascal, constant } = helpers;
     const folder = appFolder(String(name), String(dir), String(folderCase), helpers);
     const at = (path: string): string => inFolder(folder, path);
     const kebabName = kebab(String(name));
+    const className = `${pascal(String(name))}App`;
+    const guard = `${constant(String(name))}_APP_H`;
     const title = String(name);
     const bundle = String(bundleId) || `com.example.${kebabName}`;
 
     return [
       { add: at('CMakeLists.txt'), template: rootCMake(kebabName) },
-      { add: at('vendor/CMakeLists.txt'), template: vendorCMake(String(sdlTag)) },
-      { add: at('src/CMakeLists.txt'), template: srcCMake(kebabName) },
-      { add: at('src/main.cpp'), template: mainCpp(title, bundle, String(width), String(height)) },
+      { add: at('vendor/CMakeLists.txt'), template: sdlVendorCMake(String(sdlTag)) },
+      { add: at('src/CMakeLists.txt'), template: srcCMake(kebabName, { sources: ['app.cpp'], libs: 'SDL3::SDL3' }) },
+      { add: at('src/main.cpp'), template: sdlMainCpp(className) },
+      { add: at('src/app.h'), template: appHeader(className, guard, String(width), String(height)) },
+      { add: at('src/app.cpp'), template: appSource(className, title, bundle) },
     ];
   },
 };
