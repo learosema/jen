@@ -57,8 +57,8 @@
 
   const SCENES = [
     {
-      cmd: 'jen class --name=rigid_body --moveOnly',
-      head: 'class (project) – C++ class',
+      cmd: 'jen cpp:class --name=rigid_body --moveOnly',
+      head: 'cpp:class (pack @codejen/pack-cpp) – create a C++ class in src/ (header + source), wired into src/CMakeLists.txt',
       rows: [['add', '+ src/RigidBody.h'], ['add', '+ src/RigidBody.cpp'], ['mod', '~ src/CMakeLists.txt  + RigidBody.cpp']],
       done: '✓ 3 written',
     },

@@ -1,5 +1,5 @@
 title: jen
-description: A tiny, zero-dependency scaffolding CLI. Plan first, then act.
+description: A scaffolding CLI. Extremely lightweight. Blazing fast. Zero extra dependencies.
 
 # GitHub Pages builds this folder with its stock Jekyll, so no plugins and no Gemfile.
 markdown: kramdown
@@ -8,5 +8,8 @@ kramdown:
   auto_ids: false      # headings that need an anchor say so: ## Title {#anchor}
 
 exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor
   - CLAUDE.md
   - README.md

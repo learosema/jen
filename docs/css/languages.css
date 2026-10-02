@@ -1,0 +1,39 @@
+/* ───────── languages ───────── */
+.langs { text-align: center; }
+.langs ul {
+  list-style: none;
+  margin-inline: auto;
+  max-width: 40rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.3rem 1.1rem;
+}
+.lang { display: grid; justify-items: center; gap: 0.5rem; width: 4.6rem; }
+.lang b {
+  width: 3.6rem;
+  height: 3.6rem;
+  display: grid;
+  place-items: center;
+  background: var(--c);
+  color: var(--t);
+  border-radius: 0.875rem;
+  font-size: var(--text-body);
+  letter-spacing: -0.04em;
+  box-shadow: 0 0.0625rem 0 rgba(0, 0, 0, 0.15), inset 0 0 0 0.0625rem rgba(255, 255, 255, 0.22);
+  transition: transform 0.2s;
+}
+.lang.hex b { border-radius: 0; clip-path: polygon(50% 0, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%); }
+.lang:hover b { transform: translateY(-0.25rem) rotate(-4deg); }
+.lang span { font-size: var(--text-label); color: var(--muted); white-space: nowrap; }
+.lang.soon b { filter: grayscale(1); opacity: 0.45; box-shadow: none; }
+.lang.soon span { opacity: 0.7; }
+.lang small { display: block; }
+.lang.more b {
+  background: none;
+  color: var(--accent);
+  border: 0.125rem dashed var(--accent);
+  box-shadow: none;
+  font-size: var(--text-title);
+  font-weight: 400;
+}

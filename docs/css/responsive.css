@@ -1,0 +1,29 @@
+/* ───────── responsive ───────── */
+/* the italic j's tail overhangs to the left: give it room wherever the page gutter is smaller than that */
+@media (max-width: 68.75em) {
+  .mega { margin-left: 0; padding-left: 0.08em; }
+  .mega .ghost { left: 0.08em; }
+}
+
+@media (max-width: 53.75em) {
+  .steps { grid-template-columns: 1fr; }
+  .split { grid-template-columns: 1fr; }
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .toc { position: static; max-height: none; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .toc h4 { width: 100%; --flow-space: var(--space-s); }
+  .toc a { border: thin solid var(--border); border-radius: 100vmax; padding: 0.2rem 0.75rem; }
+  .why li.wide { grid-column: auto; }
+}
+@media (max-width: 32.5em) {
+  .wrap { padding-inline: var(--space-m); }
+  .bar nav { gap: 0.9rem; }
+  .copy { width: 100%; justify-content: space-between; }
+  .terminal { font-size: var(--text-label); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .mega .dot, .caret { opacity: 1; }
+}
+.split p.kicker { color: var(--accent); font-size: var(--text-label); }

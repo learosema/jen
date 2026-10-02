@@ -1,0 +1,56 @@
+{%- comment -%}
+  A responsive grid of cards instead of a table (tables overflow on phones).
+  Usage:
+    {% capture rows %}
+    `name` | `default` | description
+    {% endcapture %}
+    {% include cards.html rows=rows label="default" heading="Params" %}
+  One card per line, cells separated by " | ": the first is the title, the second a small chip
+  labelled `label` (a "—" hides it) that sits at the card's bottom edge, the third the text. Each card gets a decorative pictogram
+  picked from its title (the sprite is in icons.html); `icon="…"` sets the fallback. `heading="…"` puts a small
+  title above the grid, so a bare run of cards says what it is.
+{%- endcomment -%}
+{%- if include.heading %}
+<h4 class="cards-title">{{ include.heading }}</h4>
+{%- endif %}
+<div class="auto-grid cards">
+{%- assign lines = include.rows | strip | split: "
+" -%}
+{%- for line in lines -%}
+{%- assign cells = line | split: " | " -%}
+{%- assign key = cells[0] | strip | remove: "`" -%}
+{%- case key -%}
+{%- when "name", "bundleId", "tracyTag", "maintainer" -%}{%- assign icon = "tag" -%}
+{%- when "namespace" -%}{%- assign icon = "braces" -%}
+{%- when "withTest" -%}{%- assign icon = "check" -%}
+{%- when "width", "height" -%}{%- assign icon = "resize" -%}
+{%- when "dir", "folderCase", "file", "target" -%}{%- assign icon = "folder" -%}
+{%- when "moveOnly", "impl", "gpu", "staticSdl", "compare" -%}{%- assign icon = "toggle" -%}
+{%- when "members", "methods", "values", "cases", "ops", "underlying" -%}{%- assign icon = "list" -%}
+{%- when "# jen:sources" -%}{%- assign icon = "list" -%}
+{%- when "# jen:shaders" -%}{%- assign icon = "image" -%}
+{%- when "# jen:embed", "# jen:install, # jen:cpack" -%}{%- assign icon = "box" -%}
+{%- when "# jen:link" -%}{%- assign icon = "link" -%}
+{%- when "# jen:app" -%}{%- assign icon = "window" -%}
+{%- when "# jen:options" -%}{%- assign icon = "sliders" -%}
+{%- when "# jen:subdirs" -%}{%- assign icon = "folder" -%}
+{%- when "# jen:tests" -%}{%- assign icon = "check" -%}
+{%- when "// jen:includes" -%}{%- assign icon = "hash" -%}
+{%- when "// jen:frame-end" -%}{%- assign icon = "refresh" -%}
+{%- when "// jen:gl-init" -%}{%- assign icon = "flag" -%}
+{%- when "assets" -%}{%- assign icon = "image" -%}
+{%- else -%}{%- assign icon = include.icon | default: "sliders" -%}
+{%- endcase -%}
+<div class="card">
+<div class="head">
+<svg class="pict" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-{{ icon }}"/></svg>
+<h4>{{ cells[0] | strip | markdownify | remove: "<p>" | remove: "</p>" | strip }}</h4>
+</div>
+<p>{{ cells[2] | strip | markdownify | remove: "<p>" | remove: "</p>" | strip }}</p>
+{%- assign meta = cells[1] | strip -%}
+{%- if meta != "—" %}
+<p class="meta"><span>{{ include.label }}</span> {{ meta | markdownify | remove: "<p>" | remove: "</p>" | strip }}</p>
+{%- endif %}
+</div>
+{%- endfor %}
+</div>

@@ -3,3 +3,5 @@ node_modules
 dist
 _site
 .jekyll-cache
+docs/vendor
+docs/Gemfile.lock

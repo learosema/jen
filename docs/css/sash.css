@@ -1,0 +1,17 @@
+/* ───────── trans flag sash, top-right corner of the install block ───────── */
+.finale::before {
+  content: "";
+  position: absolute;
+  top: 2.375rem;
+  right: -5rem;
+  width: 18.125rem;
+  height: 3.5rem;
+  transform: rotate(45deg);
+  background: linear-gradient(#5bcefa 0 20%, #f5a9b8 20% 40%, #ffffff 40% 60%, #f5a9b8 60% 80%, #5bcefa 80% 100%);
+  box-shadow: 0 0.125rem 0.625rem rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  z-index: 2;
+}
+@media (max-width: 32.5em) {
+  .finale::before { top: 1.75rem; right: -5rem; width: 16.25rem; height: 2.75rem; }
+}

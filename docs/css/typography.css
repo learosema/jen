@@ -1,0 +1,37 @@
+/* ───────── typography ─────────
+   Five sizes (--text-label, -small, -body, -title, -heading, defined in base.css) and the
+   few rules below. Nothing else sets a font family, style or tracking: pick a size token,
+   or add the element to one of these groups. The giant jen. wordmarks (.mega) only
+   set their own size, they're lettering. */
+
+/* inline code: one chip style (:where, so a component can restyle it) */
+code { font-size: 0.9em; }
+:where(code) { background: var(--card); border: thin solid var(--border); border-radius: 0.25rem; padding: 0 0.3em; }
+
+/* label: tiny spaced capitals */
+.eyebrow, .kicker, .toc h4, .copy .tag, .doc h3 .badge, .lang small, .cards .meta span {
+  font-size: var(--text-label);
+  font-weight: normal;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* display: heavy tight serif italics */
+.bar .logo, .mega, .finale::after, h2.big, .doc h2, .finale h2, .steps li::before, .mini .n {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+.bar .logo { font-size: var(--text-title); }
+h2.big, .doc h2, .finale h2, .steps li::before { font-size: var(--text-heading); }
+
+/* title: lighter serif for the small headings */
+.steps h3, .why li strong, .actions h3, .facts h3, .lede {
+  font-family: var(--serif);
+  font-size: var(--text-title);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.steps h3, .why li strong, .actions h3, .facts h3 { font-style: italic; }

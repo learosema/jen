@@ -1,5 +1,5 @@
 /**
- * `class`: a plain or move-only RAII (Rule of Five) header/source class, written
+ * `cpp:class`: a plain or move-only RAII (Rule of Five) header/source class, written
  * into src/ and wired into src/CMakeLists.txt's sources list at a `# jen:sources`
  * marker (see the app-starter generators for where that marker comes from).
  */

@@ -3,12 +3,12 @@
  * https://github.com/learosema/my-cpp-snippets) plus SDL3 app starters
  * (following https://github.com/learosema/learn-sdl).
  *
- * All generators write into `src/`. `class` wires new sources into
+ * All generators write into `src/`. `cpp:class` wires new sources into
  * `src/CMakeLists.txt` at a `# jen:sources` marker, and `cpp:shader` wires
  * new shaders into the same file's `embed_glsl()` calls at a `# jen:shaders`
  * marker – both markers come from the `sdl3`/`sdl3-opengl` starters below.
  *
- *   jen class          --name=Foo [--moveOnly] […]        header/source class, plain or move-only RAII (Rule of Five)
+ *   jen cpp:class      --name=Foo [--moveOnly] […]        header/source class, plain or move-only RAII (Rule of Five)
  *   jen cpp:handle     --name=Handle                       generic Handle<T, Deleter, Null> template (header-only)
  *   jen cpp:scopeexit  --name=ScopeExit                     scope-guard template (header-only)
  *   jen cpp:r0         --name=Foo --members="T a, U b"      Rule of Zero class from ctor params

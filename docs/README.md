@@ -9,4 +9,4 @@ Preview locally with `jekyll serve` (or `bundle exec jekyll serve` with the `git
 - `_data/terminals.yml` + `_includes/terminal.html`: every terminal block. Add the lines to the data file, then `{% include terminal.html id="..." %}`.
 - `_data/langs.yml`: the language badges on the landing page.
 - `_includes/`: the landing page's design pieces (`hero`, `langs`, `actions`, `generator-example`, `finale`), `copy-button`, and `head`/`header`/`footer`.
-- `site.css`, `site.js`: styles and progressive enhancement. The hero demo's scenes live in `SCENES` in `site.js`.
+- `css/*.css`, `site.js`: styles (one file per part of the site, linked in order from `_includes/head.html`) and progressive enhancement. The hero demo's scenes live in `SCENES` in `site.js`.

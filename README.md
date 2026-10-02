@@ -1,8 +1,8 @@
 # jen
 
-**the code jen(erator)** – a tiny, zero-dependency scaffolding CLI.
+**the code jen(erator)** – a scaffolding CLI. Extremely lightweight. Blazing fast. Zero extra dependencies.
 
-jen takes parameters from the command line (or their defaults), shows you exactly what it's about to do, and then touches your files. Generators are plain JavaScript or TypeScript modules, templates are template literals, and the whole thing is a single file with no dependencies beyond Node itself.
+jen takes parameters from the command line (or their defaults), prints exactly what it does to your files. Generators are plain JavaScript or TypeScript modules, templates are template literals, and the whole thing is a single file with no dependencies beyond Node itself.
 
 ```
 $ jen class --name=rigid_body --moveOnly
@@ -17,10 +17,10 @@ class (project) – C++ class
 
 ## Why jen?
 
-- **Zero dependencies.** No `node_modules` tree, no Handlebars, no Inquirer. Just Node.
+- **Zero extra dependencies.** No `node_modules` tree, no Handlebars, no Inquirer. Just Node.
 - **No dialog.** Generators declare plain parameters with defaults, answered with `--name=value` on the command line. Nothing asks you questions.
 - **Templates with logic, for free.** Template literals already do conditionals (`? :`) and loops (`.map()`), so there's no template language to learn.
-- **Plan first, then act.** Every run computes all changes in memory and shows them as a plan before writing. `--dry-run` stops right there if you just want to look.
+- **Readable output.** Every run prints what it adds, changes and skips. `--dry-run` shows that without writing anything.
 - **Deterministic.** Same params, same output. Every time.
 - **Language-agnostic.** jen is written in TypeScript, but it happily scaffolds C++, CMake, Rust, shaders or anything else that's text.
 - **Respects your `.editorconfig`.** Generated files and inserted/modified blocks come out in the project's own indent style – no chasing tabs vs. spaces in every generator.
