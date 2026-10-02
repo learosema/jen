@@ -16,7 +16,7 @@ jen picks the pack up automatically; see jen's own README for how pack discovery
 jen cpp:sdl3 --name=MyGame
 cd my-game
 jen cpp:doctest
-jen class --name=Camera --withTest
+jen cpp:class --name=Camera --withTest
 ```
 
 ## License

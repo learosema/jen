@@ -7,8 +7,8 @@
 # Leading spaces are kept (plan rows are indented), "" is a blank line.
 
 demo:
-  - "$ jen class --name=rigid_body --moveOnly"
-  - "class (project) – C++ class"
+  - "$ jen cpp:class --name=rigid_body --moveOnly"
+  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class in src/ (header + source), wired into src/CMakeLists.txt"
   - ""
   - "  + src/RigidBody.h"
   - "  + src/RigidBody.cpp"
@@ -85,8 +85,8 @@ sdl3_opengl:
   - "✓ 15 written"
 
 class:
-  - "$ jen class --name=rigid_body"
-  - "class (pack @codejen/pack-cpp) – create a C++ class in src/ (header + source), wired into src/CMakeLists.txt; --moveOnly for a Rule-of-Five RAII wrapper"
+  - "$ jen cpp:class --name=rigid_body"
+  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class in src/ (header + source), wired into src/CMakeLists.txt; --moveOnly for a Rule-of-Five RAII wrapper"
   - ""
   - "  + src/RigidBody.h"
   - "  + src/RigidBody.cpp"
@@ -95,7 +95,7 @@ class:
   - "✓ 3 written"
 
 class_moveonly:
-  - "$ jen class --name=Texture --moveOnly --resource=GLuint --nullValue=0 --destroy=glDeleteTextures"
+  - "$ jen cpp:class --name=Texture --moveOnly --resource=GLuint --nullValue=0 --destroy=glDeleteTextures"
   - "cpp:class (pack @codejen/pack-cpp) – create a C++ class in src/ (header + source), wired into src/CMakeLists.txt; --moveOnly for a Rule-of-Five RAII wrapper"
   - ""
   - "  + src/Texture.h"
@@ -175,7 +175,7 @@ module:
   - "✓ 4 written"
 
 class_withtest:
-  - "$ jen class --name=Camera --withTest"
+  - "$ jen cpp:class --name=Camera --withTest"
   - "cpp:class (pack @codejen/pack-cpp) – create a C++ class in src/ (header + source), wired into src/CMakeLists.txt; --moveOnly for a Rule-of-Five RAII wrapper, --withTest for a doctest case"
   - ""
   - "  + src/Camera.h"
@@ -347,14 +347,14 @@ together:
   - "…"
   - "$ jen cpp:shader --name=Vignette"
   - "…"
-  - "$ jen class --name=Camera"
+  - "$ jen cpp:class --name=Camera"
   - "…"
   - "$ cmake -S . -B build && cmake --build build"
 
 together_tooling:
   - "$ jen cpp:doctest && jen cpp:warnings && jen cpp:compiler && jen cpp:tidy"
   - "…"
-  - "$ jen class --name=Camera --withTest"
+  - "$ jen cpp:class --name=Camera --withTest"
   - "…"
   - "$ jen cpp:enum --name=GameState --values=\"menu, playing, paused\" --withTest"
   - "…"

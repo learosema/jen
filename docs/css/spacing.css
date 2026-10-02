@@ -1,0 +1,29 @@
+/* ───────── spacing ─────────
+   Elements start without margins. Space between siblings comes from one flow rule: a
+   container sets --flow-space (or an element sets it for the space above itself), the rule
+   below applies it. Space inside boxes and chips comes from the --space-* scale in
+   base.css. Everything here is :where(), so any component rule still wins. */
+
+:where(body, h1, h2, h3, h4, p, ul, ol, pre, figure) { margin: 0; }
+:where(.mini, .steps, .why, .actions, .langs ul) { list-style: none; padding: 0; }
+
+:where(section, .split:not(.code-split) > div, .doc, .toc) > :where(* + *) {
+  margin-block-start: var(--flow-space, 1em);
+}
+section, .split:not(.code-split) > div { --flow-space: var(--space-m); }
+.toc { --flow-space: 0; }
+
+/* the big blocks of a section sit further from what precedes them */
+section > :is(.steps, .why, .actions) { --flow-space: var(--space-xl); }
+section > .sub + *, section > .facts + .sub { --flow-space: var(--space-l); }
+.facts { --flow-space: var(--space-m); }
+.finale { --flow-space: var(--space-l); }
+.finale, footer { margin-block-start: var(--space-xl); }
+
+/* boxes: one padding for the big cards, one for the small ones, one for pills and chips */
+.steps li, .why li, .actions li, .facts > div { padding: var(--space-l); }
+.cards .card, .terminal pre { padding: var(--space-m); }
+.tab, .terminal .cp { padding: 0.5em 1em; }
+
+/* the text inside a card is stacked with a gap, not margins */
+.steps li, .actions li, .facts > div { display: grid; gap: var(--space-s); }

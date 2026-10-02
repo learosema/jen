@@ -23,11 +23,11 @@ How it works
 
 2. ### Plan
 
-   Every change is computed in memory and shown first: `+` add, `~` modify, `=` skip. `--dry-run` stops right here.
+   jen works out every change and prints it: `+` add, `~` modify, `=` skip. Add `--dry-run` to only look.
 
 3. ### Act
 
-   Only then are files written. Same params, same output, every time. Indentation follows your `.editorconfig`.
+   Then the files are written. Same params, same output, every time. Indentation follows your `.editorconfig`.
 {: .steps .reveal}
 
 </section>
@@ -40,10 +40,10 @@ Why
 ## Small on purpose.
 {: .big}
 
-- **Zero dependencies.** No node\_modules tree, no Handlebars, no Inquirer. Just Node.
+- **Zero extra dependencies.** No node\_modules tree, no Handlebars, no Inquirer. Just Node.
 - **No dialog.** Params come from the command line. Nothing asks you questions, Yeoman generators included.
 - **Templates with logic, for free.** Template literals already do conditionals and loops.
-- **Plan first, then act.** Every run shows the plan before writing anything.
+- **Readable output.** Every run prints what it adds, changes and skips. `--dry-run` shows it without writing.
 - **Deterministic.** Same params, same output. Every time.
 - **Language-agnostic.** Scaffolds C++, CMake, Rust, shaders, or anything else that's text.
 - **Try before you install.** `--from` fetches a pack or generator via npm, runs it once, and cleans up after itself. Ask for `lua:function` without the pack and jen fetches `@codejen/pack-lua` for you.
@@ -61,7 +61,7 @@ Make it yours
 {: .big}
 
 A generator is one file: the `params` it accepts and an `actions()` function that returns what should happen. No template language, no plugin API. Drop it in `.jen/` and it's a command.
-{: .sub style="margin-bottom:2rem"}
+{: .sub}
 
 {% include generator-example.html %}
 
@@ -99,7 +99,7 @@ Publish to npm as `jen-pack-<name>` or `@scope/pack-<name>`. Anyone with it in `
 </div>
 
 jen looks in `.jen/` (searched upwards, like `.git`), then your user config, `$JEN_PATH`, installed packs (local or global), and built-ins. First match wins; `jen --list` shows what shadows what. Full reference in the [README](https://github.com/learosema/jen#writing-generators).
-{: .sub style="margin-top:2rem"}
+{: .sub}
 
 </section>
 

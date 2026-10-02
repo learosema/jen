@@ -1,0 +1,94 @@
+/* ───────── hero ───────── */
+.hero { position: relative; padding: clamp(2rem, 6vw, 4.5rem) 0 clamp(2.5rem, 6vw, 4rem); }
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--muted);
+  margin: 0 0 1.2rem;
+}
+.eyebrow::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent); }
+  50% { box-shadow: 0 0 0 0.4375rem transparent; }
+}
+
+.mega {
+  font-size: clamp(6.5rem, 26vw, 17rem);
+  line-height: 0.8;
+  letter-spacing: -0.06em;
+  margin: 0 0 0.3em -0.04em;
+  position: relative;
+}
+.mega .dot {
+  color: var(--accent);
+  font-style: normal;
+  display: inline-block;
+}
+@keyframes blink { 50% { opacity: 0; } }
+.mega .ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: transparent;
+  -webkit-text-stroke: 0.09375rem var(--fg);
+  opacity: 0.12;
+  transform: translate(0.05em, 0.05em);
+  pointer-events: none;
+  user-select: none;
+}
+
+.lede {
+  max-width: 22em;
+  margin: 1.5rem 0 0;
+}
+.lede em { color: var(--accent); font-style: italic; }
+.sub {
+  color: var(--muted);
+  max-width: 38rem;
+  margin-top: var(--flow-space, 1.1rem);
+}
+.sub a { color: var(--fg); text-decoration-color: var(--accent); text-underline-offset: 0.1875rem; }
+
+.cta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: var(--flow-space, 2rem); align-items: stretch; }
+
+.copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  background: var(--fg);
+  color: var(--bg);
+  border-radius: 100vmax;
+  padding: 0.85rem 1.35rem;
+  font-size: var(--text-small);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.copy:hover { transform: translateY(-0.125rem); box-shadow: 0 0.375rem 0 var(--accent); }
+.copy:active { transform: translateY(0); box-shadow: 0 0.125rem 0 var(--accent); }
+.copy .pfx { opacity: 0.5; }
+.copy .tag {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-radius: 100vmax;
+  padding: 0.15rem 0.6rem;
+  min-width: 4.4rem;
+  text-align: center;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  border: thin solid var(--fg);
+  border-radius: 100vmax;
+  padding: 0.85rem 1.35rem;
+  font-size: var(--text-small);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+.btn:hover { background: var(--fg); color: var(--bg); }

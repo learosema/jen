@@ -1,0 +1,6 @@
+# Only for previewing the site locally (npm run docs). GitHub Pages ignores this file and builds with
+# actions/jekyll-build-pages, which ships the same github-pages gem set.
+source "https://rubygems.org"
+
+gem "github-pages", group: :jekyll_plugins
+gem "webrick" # no longer bundled with Ruby 3+, `jekyll serve` needs it

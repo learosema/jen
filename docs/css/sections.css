@@ -1,0 +1,117 @@
+/* ───────── sections ───────── */
+section { padding: clamp(2.5rem, 6vw, 5rem) 0 0; }
+.kicker {
+  color: var(--accent);
+}
+h2.big {
+  max-width: 13em;
+}
+h2.big em { color: var(--accent); }
+
+/* how it works */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.0625rem;
+  background: var(--fg);
+  border: thin solid var(--fg);
+  border-radius: 1rem;
+  overflow: hidden;
+  counter-reset: s;
+}
+.steps li {
+  background: var(--bg);
+  position: relative;
+  counter-increment: s;
+  transition: background 0.2s;
+}
+.steps li:hover { background: var(--bg-2); }
+.steps li::before {
+  content: "0" counter(s);
+  color: var(--accent);
+  display: block;
+}
+.steps p { color: var(--muted); font-size: var(--text-small); }
+.steps code { color: var(--fg); }
+
+/* why grid */
+.why {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 1rem;
+}
+.why li {
+  background: var(--card);
+  border: thin solid var(--border);
+  border-radius: 1rem;
+  color: var(--muted);
+  font-size: var(--text-small);
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.why li:hover {
+  transform: translate(-0.1875rem, -0.1875rem);
+  border-color: var(--fg);
+  box-shadow: 0.3125rem 0.3125rem 0 var(--accent);
+}
+.why li strong {
+  display: block;
+  color: var(--fg);
+  margin-block-end: var(--space-s);
+}
+.why li.wide { grid-column: span 2; }
+.why code { color: var(--fg); }
+
+/* yeoman split */
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  align-items: center;
+}
+.split p { color: var(--muted); font-size: var(--text-body); }
+.split p a { color: var(--fg); text-decoration-color: var(--accent); text-underline-offset: 0.1875rem; }
+
+/* big install */
+.finale {
+  background: var(--fg);
+  color: var(--bg);
+  border-radius: 1.75rem;
+  padding: clamp(2rem, 6vw, 4.5rem);
+  position: relative;
+  overflow: hidden;
+}
+.finale::after {
+  content: "jen.";
+  position: absolute;
+  right: -0.05em;
+  bottom: -0.27em;
+  font-size: clamp(9rem, 30vw, 22rem);
+  letter-spacing: -0.06em;
+  color: var(--accent);
+  opacity: 0.9;
+  pointer-events: none;
+}
+.finale h2 {
+  position: relative;
+  z-index: 1;
+}
+.finale .cta { position: relative; z-index: 1; }
+.finale .copy { background: var(--bg); color: var(--fg); }
+.finale .btn { border-color: var(--bg); }
+.finale .btn:hover { background: var(--bg); color: var(--fg); }
+.finale small { display: block; opacity: 0.65; position: relative; z-index: 1; }
+
+footer {
+  padding-block: var(--space-l) var(--space-xl);
+  border-top: thin solid var(--border);
+  color: var(--muted);
+  font-size: var(--text-small);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-s) var(--space-l);
+  justify-content: space-between;
+}
+footer a { color: var(--fg); text-decoration: none; border-bottom: thin solid var(--border); transition: color 0.15s, border-color 0.15s; }
+footer a:hover { color: var(--accent); border-color: var(--accent); }
+footer .made { flex-basis: 100%; }
+footer .links { display: flex; gap: 1.2rem; flex-wrap: wrap; }
