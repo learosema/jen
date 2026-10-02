@@ -7,9 +7,9 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 1.3rem 1.1rem;
+  gap: var(--space-m);
 }
-.lang { display: grid; justify-items: center; gap: 0.5rem; width: 4.6rem; }
+.lang { display: grid; justify-items: center; gap: var(--space-s); width: 4.6rem; }
 .lang b {
   width: 3.6rem;
   height: 3.6rem;
@@ -17,11 +17,10 @@
   place-items: center;
   background: var(--c);
   color: var(--t);
-  border-radius: 0.875rem;
+  border-radius: var(--radius-m);
   font-size: var(--text-body);
   letter-spacing: -0.04em;
   box-shadow: 0 0.0625rem 0 rgba(0, 0, 0, 0.15), inset 0 0 0 0.0625rem rgba(255, 255, 255, 0.22);
-  transition: transform 0.2s;
 }
 .lang.hex b { border-radius: 0; clip-path: polygon(50% 0, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%); }
 .lang:hover b { transform: translateY(-0.25rem) rotate(-4deg); }

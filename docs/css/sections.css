@@ -10,20 +10,12 @@ h2.big em { color: var(--accent); }
 
 /* how it works */
 .steps {
-  display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.0625rem;
-  background: var(--fg);
-  border: thin solid var(--fg);
-  border-radius: 1rem;
-  overflow: hidden;
   counter-reset: s;
 }
 .steps li {
-  background: var(--bg);
   position: relative;
   counter-increment: s;
-  transition: background 0.2s;
 }
 .steps li:hover { background: var(--bg-2); }
 .steps li::before {
@@ -38,15 +30,11 @@ h2.big em { color: var(--accent); }
 .why {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
-  gap: 1rem;
+  gap: var(--space-m);
 }
 .why li {
-  background: var(--card);
-  border: thin solid var(--border);
-  border-radius: 1rem;
   color: var(--muted);
   font-size: var(--text-small);
-  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 .why li:hover {
   transform: translate(-0.1875rem, -0.1875rem);
@@ -75,7 +63,7 @@ h2.big em { color: var(--accent); }
 .finale {
   background: var(--fg);
   color: var(--bg);
-  border-radius: 1.75rem;
+  border-radius: var(--radius-l);
   padding: clamp(2rem, 6vw, 4.5rem);
   position: relative;
   overflow: hidden;
@@ -111,7 +99,7 @@ footer {
   gap: var(--space-s) var(--space-l);
   justify-content: space-between;
 }
-footer a { color: var(--fg); text-decoration: none; border-bottom: thin solid var(--border); transition: color 0.15s, border-color 0.15s; }
+footer a { color: var(--fg); text-decoration: none; border-bottom: thin solid var(--border); }
 footer a:hover { color: var(--accent); border-color: var(--accent); }
 footer .made { flex-basis: 100%; }
-footer .links { display: flex; gap: 1.2rem; flex-wrap: wrap; }
+footer .links { display: flex; gap: var(--space-l); flex-wrap: wrap; }

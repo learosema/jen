@@ -6,7 +6,7 @@
 
 /* inline code: one chip style (:where, so a component can restyle it) */
 code { font-size: 0.9em; }
-:where(code) { background: var(--card); border: thin solid var(--border); border-radius: 0.25rem; padding: 0 0.3em; }
+:where(code) { background: var(--card); border: thin solid var(--border); border-radius: var(--radius-s); padding: 0 0.3em; }
 
 /* label: tiny spaced capitals */
 .eyebrow, .kicker, .toc h4, .copy .tag, .doc h3 .badge, .lang small, .cards .meta span {

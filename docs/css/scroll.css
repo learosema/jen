@@ -37,7 +37,6 @@
 .doc h3 .badge {
   background: var(--accent);
   color: var(--accent-ink);
-  border-radius: 100vmax;
   padding: 0.75em;
   vertical-align: 0.12em;
 }

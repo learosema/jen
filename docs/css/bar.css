@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-m);
   padding-block: var(--space-m);
   font-size: var(--text-small);
 }
@@ -11,21 +11,18 @@
   text-decoration: none;
 }
 .bar .logo i { color: var(--accent); font-style: normal; }
-.bar nav { display: flex; align-items: center; gap: 1.4rem; flex-wrap: wrap; }
+.bar nav { display: flex; align-items: center; gap: var(--space-l); flex-wrap: wrap; }
 .bar nav a {
   text-decoration: none;
   color: var(--muted);
-  transition: color 0.15s;
 }
 .bar nav a:hover, .bar nav a[aria-current] { color: var(--fg); }
 .bar nav a[aria-current] { box-shadow: 0 0.125rem 0 var(--accent); }
 .theme {
   border: thin solid var(--border);
-  border-radius: 100vmax;
   width: 2.1rem;
   height: 2.1rem;
   display: grid;
   place-items: center;
-  transition: border-color 0.15s, transform 0.3s;
 }
 .theme:hover { border-color: var(--accent); transform: rotate(25deg); }

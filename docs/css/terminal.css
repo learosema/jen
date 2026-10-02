@@ -2,7 +2,7 @@
 .terminal {
   background: var(--term-bg);
   color: var(--term-fg);
-  border-radius: 0.875rem;
+  border-radius: var(--radius-m);
   font-size: var(--text-small);
   box-shadow: 0 0.0625rem 0 var(--border), 0 1.875rem 3.75rem -1.875rem rgba(0, 0, 0, 0.45);
   overflow: hidden;
@@ -54,10 +54,9 @@
   right: 0.7rem;
   background: rgba(255, 255, 255, 0.07);
   color: var(--term-dim);
-  border-radius: 0.375rem;
+  border-radius: var(--radius-s);
   font-size: var(--text-label);
   opacity: 0;
-  transition: opacity 0.15s, color 0.15s;
 }
 .terminal:hover .cp, .terminal .cp:focus-visible { opacity: 1; }
 .terminal .cp:hover { color: var(--term-fg); }
@@ -68,16 +67,14 @@
 .tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-s);
   margin: 0 0 0.9rem;
   align-items: center;
 }
 .tab {
   border: thin solid var(--border);
   color: var(--muted);
-  border-radius: 100vmax;
   font-size: var(--text-small);
-  transition: all 0.15s;
 }
 .tab:hover { color: var(--fg); border-color: var(--fg); }
 .tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
@@ -85,7 +82,7 @@
 .switch {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: var(--space-s);
   font-size: var(--text-small);
   color: var(--muted);
   cursor: pointer;
@@ -95,10 +92,8 @@
 .switch .knob {
   width: 2.2rem;
   height: 1.2rem;
-  border-radius: 100vmax;
   border: thin solid var(--border);
   position: relative;
-  transition: background 0.15s, border-color 0.15s;
 }
 .switch .knob::after {
   content: "";
@@ -107,9 +102,7 @@
   left: 0.125rem;
   width: calc(1.2rem - 0.375rem);
   height: calc(1.2rem - 0.375rem);
-  border-radius: 50%;
   background: var(--muted);
-  transition: transform 0.15s, background 0.15s;
 }
 .switch input:checked + .knob { background: var(--accent); border-color: var(--accent); }
 .switch input:checked + .knob::after { transform: translateX(1rem); background: var(--accent-ink); }
