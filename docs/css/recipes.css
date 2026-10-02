@@ -38,6 +38,7 @@
 }
 .doc h3 code {
   display: inline-block;  /* so the padding counts towards the heading's height */
+  font-size: inherit;
   background: var(--fg);
   color: var(--bg-2);
   border-color: transparent;
