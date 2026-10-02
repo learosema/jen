@@ -4,87 +4,14 @@
  * https://github.com/learosema/learn-sdl's 06_opengl example: SDL3 owns the
  * window/context, glad loads the GL function pointers, and
  * cmake/embed-glsl.cmake turns the .glsl sources into inline C strings at
- * configure time (see `cpp:shader` for adding more later).
+ * configure time (see `cpp:shader` for adding more later). The code lives in
+ * a `<name>-core` library, with src/main.cpp as the only file of the thin
+ * executable (see starter.ts for the markers this leaves behind).
  */
 import type { Action, Generator } from '@codejen/jen';
 import { readAsset } from './assets.ts';
+import { rootCMake, sdlMainCpp, sdlStarterParams, sdlVendorCMake, srcCMake } from './starter.ts';
 import { appFolder, inFolder } from './util.ts';
-
-const SDL_TAG_DEFAULT = 'release-3.4.14';
-
-function vendorCMake(sdlTag: string): string {
-  return `include(FetchContent)
-
-FetchContent_Declare(
-  SDL3
-  GIT_REPOSITORY "https://github.com/libsdl-org/SDL.git"
-  GIT_TAG ${sdlTag}
-  FIND_PACKAGE_ARGS NAMES SDL3 CONFIG GLOBAL
-)
-
-set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-
-FetchContent_MakeAvailable(SDL3)
-
-add_subdirectory(glad)
-`;
-}
-
-function rootCMake(kebabName: string): string {
-  return `cmake_minimum_required(VERSION 3.24)
-include(cmake/embed-glsl.cmake)
-
-project(${kebabName} CXX)
-
-add_subdirectory(vendor)
-add_subdirectory(src)
-`;
-}
-
-function srcCMake(kebabName: string, appFile: string): string {
-  return `add_executable(${kebabName})
-
-embed_glsl("quad.vert.glsl" quadVertexShader)
-embed_glsl("quad.frag.glsl" quadFragmentShader)
-# jen:shaders
-
-target_compile_features(${kebabName} PRIVATE cxx_std_20)
-target_sources(${kebabName} PRIVATE
-  shader-utils.cpp
-  ${appFile}.cpp
-  main.cpp
-  # jen:sources
-)
-target_link_libraries(${kebabName} PRIVATE SDL3::SDL3 glad)
-`;
-}
-
-function mainCpp(appFile: string, className: string): string {
-  return `#define SDL_MAIN_USE_CALLBACKS 1
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_main.h>
-
-#include "${appFile}.h"
-
-SDL_AppResult SDL_AppInit(void** appstate, int argc, char* argv[]) {
-  auto* app = new ${className}();
-  *appstate = app;
-  return app->Init();
-}
-
-SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
-  return static_cast<${className}*>(appstate)->HandleEvent(event);
-}
-
-SDL_AppResult SDL_AppIterate(void* appstate) {
-  return static_cast<${className}*>(appstate)->Iterate();
-}
-
-void SDL_AppQuit(void* appstate, SDL_AppResult result) {
-  delete static_cast<${className}*>(appstate);
-}
-`;
-}
 
 function appHeader(className: string, guard: string, width: string, height: string): string {
   return `#ifndef ${guard}
@@ -124,12 +51,14 @@ class ${className} {
 `;
 }
 
-function appSource(className: string, appFile: string, title: string, bundle: string): string {
-  return `#include "${appFile}.h"
+function appSource(className: string, title: string, bundle: string): string {
+  return `#include "app.h"
 
 #include "quad.frag.glsl.h"
 #include "quad.vert.glsl.h"
 #include "shader-utils.h"
+
+// jen:includes
 
 namespace {
 
@@ -185,6 +114,7 @@ SDL_AppResult ${className}::Init() {
     SDL_Log("gladLoadGLLoader failed");
     return SDL_APP_FAILURE;
   }
+  // jen:gl-init
 
   SDL_GL_SetSwapInterval(1);
 
@@ -234,6 +164,7 @@ SDL_AppResult ${className}::Iterate() {
   glDrawArrays(GL_TRIANGLES, 0, 6);
 
   SDL_GL_SwapWindow(window_.get());
+  // jen:frame-end
   return SDL_APP_CONTINUE;
 }
 
@@ -352,38 +283,36 @@ void main() {
 const sdl3OpenglGenerator: Generator = {
   description:
     'create an SDL3 + OpenGL (4.1 core, glad) app starter with a shader-quad demo; vendors glad and wires up cmake/embed-glsl.cmake',
-  params: {
-    name: {},
-    width: { default: '800' },
-    height: { default: '600' },
-    bundleId: { default: '' },
-    folderCase: { default: 'kebab' },
-    dir: { default: '' },
-    sdlTag: { default: SDL_TAG_DEFAULT },
-  },
+  params: sdlStarterParams,
   actions: ({ name, width, height, bundleId, sdlTag, folderCase, dir }, helpers) => {
     const { pascal, kebab, constant } = helpers;
     const folder = appFolder(String(name), String(dir), String(folderCase), helpers);
     const at = (path: string): string => inFolder(folder, path);
     const kebabName = kebab(String(name));
-    const appFile = `${kebabName}-app`;
     const className = `${pascal(String(name))}App`;
     const guard = `${constant(String(name))}_APP_H`;
     const title = String(name);
     const bundle = String(bundleId) || `com.example.${kebabName}`;
 
     const actions: Action[] = [
-      { add: at('CMakeLists.txt'), template: rootCMake(kebabName) },
-      { add: at('vendor/CMakeLists.txt'), template: vendorCMake(String(sdlTag)) },
+      { add: at('CMakeLists.txt'), template: rootCMake(kebabName, { preamble: 'include(cmake/embed-glsl.cmake)\n' }) },
+      { add: at('vendor/CMakeLists.txt'), template: sdlVendorCMake(String(sdlTag), '\nadd_subdirectory(glad)\n') },
       { add: at('cmake/embed-glsl.cmake'), template: readAsset('embed-glsl.cmake') },
       { add: at('vendor/glad/CMakeLists.txt'), template: readAsset('glad/CMakeLists.txt') },
       { add: at('vendor/glad/include/glad/glad.h'), template: readAsset('glad/include/glad/glad.h') },
       { add: at('vendor/glad/include/KHR/khrplatform.h'), template: readAsset('glad/include/KHR/khrplatform.h') },
       { add: at('vendor/glad/src/glad.c'), template: readAsset('glad/src/glad.c') },
-      { add: at('src/CMakeLists.txt'), template: srcCMake(kebabName, appFile) },
-      { add: at('src/main.cpp'), template: mainCpp(appFile, className) },
-      { add: at(`src/${appFile}.h`), template: appHeader(className, guard, String(width), String(height)) },
-      { add: at(`src/${appFile}.cpp`), template: appSource(className, appFile, title, bundle) },
+      {
+        add: at('src/CMakeLists.txt'),
+        template: srcCMake(kebabName, {
+          sources: ['shader-utils.cpp', 'app.cpp'],
+          libs: 'SDL3::SDL3 glad',
+          preamble: 'embed_glsl("quad.vert.glsl" quadVertexShader)\nembed_glsl("quad.frag.glsl" quadFragmentShader)\n# jen:shaders\n',
+        }),
+      },
+      { add: at('src/main.cpp'), template: sdlMainCpp(className) },
+      { add: at('src/app.h'), template: appHeader(className, guard, String(width), String(height)) },
+      { add: at('src/app.cpp'), template: appSource(className, title, bundle) },
       { add: at('src/shader-utils.h'), template: shaderUtilsHeader() },
       { add: at('src/shader-utils.cpp'), template: shaderUtilsSource() },
       { add: at('src/quad.vert.glsl'), template: QUAD_VERT },
