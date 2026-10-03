@@ -1,0 +1,26 @@
+/* ───────── layout primitives ─────────
+   Every Layout-style helpers: a class in the markup, tuned by custom properties a
+   component sets on the same element. The properties don't inherit, so a nested
+   primitive never picks up its parent's settings. */
+@property --gap { syntax: "*"; inherits: false; }
+@property --min { syntax: "*"; inherits: false; }
+@property --justify { syntax: "*"; inherits: false; }
+@property --align { syntax: "*"; inherits: false; }
+
+.wrap { max-width: 70rem; margin-inline: auto; padding-inline: var(--space-l); }
+
+/* a wrapping row: pills, links, buttons. --gap, --justify, --align */
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap, var(--space-s));
+  justify-content: var(--justify, flex-start);
+  align-items: var(--align, center);
+}
+
+/* as many columns of at least --min as fit; min() with 100% prevents overflow in extra narrow spaces. --min, --gap */
+.auto-grid {
+  display: grid;
+  gap: var(--gap, var(--space-m));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--min, 15rem)), 1fr));
+}

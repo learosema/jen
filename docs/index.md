@@ -48,7 +48,7 @@ Why
 - **Language-agnostic.** Scaffolds C++, CMake, Rust, shaders, or anything else that's text.
 - **Try before you install.** `--from` fetches a pack or generator via npm, runs it once, and cleans up after itself. Ask for `lua:function` without the pack and jen fetches `@codejen/pack-lua` for you.
 - {: .wide} **Runs real Yeoman generators, too.** No extra dependency for that either. jen borrows yeoman-generator, mem-fs and EJS straight from the generator's own install.
-{: .why .reveal}
+{: .why .auto-grid .reveal}
 
 </section>
 
@@ -67,7 +67,7 @@ A generator is one file: the `params` it accepts and an `actions()` function tha
 
 {% include actions.html %}
 
-<div class="facts reveal" markdown="1">
+<div class="facts auto-grid reveal" markdown="1">
 <div markdown="1">
 
 ### Case helpers, built in

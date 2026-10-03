@@ -1,35 +1,18 @@
 /* ───────── write your own ───────── */
-.terminal .k { color: #ff8a65; }
-.terminal .s { color: var(--term-add); }
-.terminal .c { color: var(--term-dim); font-style: italic; }
 .code-split { align-items: start; }
 .code-split > div { display: grid; gap: var(--space-m); }
 .mini { display: grid; gap: var(--space-m); }
-.mini li { display: grid; grid-template-columns: 2rem 1fr; gap: var(--space-m); color: var(--muted); font-size: var(--text-small); }
+.mini li { display: grid; grid-template-columns: 2rem 1fr; gap: var(--space-m); }
 .mini b { color: var(--fg); }
-.mini code, .actions code, .facts code, .sub code { color: var(--fg); }
 .mini .n {
   width: 2rem; height: 2rem; border-radius: 50%;
   background: var(--accent); color: var(--accent-ink);
   display: grid; place-items: center;
   font-size: var(--text-body);
 }
-.actions {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: var(--space-m);
-}
-.actions li {
-  background: var(--term-bg); color: var(--term-fg);
-  border-radius: var(--radius-m);
-  font-size: var(--text-small); position: relative;
-}
+.actions { --min: 13rem; }
 .actions li:hover { transform: translateY(-0.25rem) rotate(-0.6deg); }
 .actions p { color: var(--term-dim); }
-.actions code { background: rgba(255,255,255,0.08); border-color: transparent; color: var(--term-fg); }
+.actions code { background: var(--term-line); border-color: transparent; color: var(--term-fg); }
 .glyph { font-size: var(--text-title); line-height: 1; font-weight: 700; display: block; }
-.glyph.add { color: var(--term-add); }
-.glyph.mod { color: var(--term-mod); }
-.glyph.del { color: #ff6b5e; }
-.facts { grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
-.facts p { color: var(--muted); font-size: var(--text-small); }
-.facts a { color: var(--fg); text-decoration-color: var(--accent); text-underline-offset: 0.1875rem; }
 .facts b { color: var(--fg); font-weight: normal; }

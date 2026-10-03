@@ -27,11 +27,7 @@
   margin: 0 0 0.3em -0.04em;
   position: relative;
 }
-.mega .dot {
-  color: var(--accent);
-  font-style: normal;
-  display: inline-block;
-}
+.mega .dot { display: inline-block; }
 @keyframes blink { 50% { opacity: 0; } }
 .mega .ghost {
   position: absolute;
@@ -55,35 +51,23 @@
   max-width: 38rem;
   margin-top: var(--flow-space, 1.1rem);
 }
-.sub a { color: var(--fg); text-decoration-color: var(--accent); text-underline-offset: 0.1875rem; }
 
-.cta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: var(--flow-space, 2rem); align-items: stretch; }
-
+/* the call-to-action buttons: --ink and --paper, so a dark section (.finale) only swaps the two */
+.cta {
+  --gap: 0.75rem;
+  --align: stretch;
+  --ink: var(--fg);
+  --paper: var(--bg);
+  margin-top: var(--flow-space, 2rem);
+}
 .copy {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.9rem;
-  background: var(--fg);
-  color: var(--bg);
-  padding: 0.85rem 1.35rem;
-  font-size: var(--text-small);
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
 }
 .copy:hover { transform: translateY(-0.125rem); box-shadow: 0 0.375rem 0 var(--accent); }
 .copy:active { transform: translateY(0); box-shadow: 0 0.125rem 0 var(--accent); }
 .copy .pfx { opacity: 0.5; }
-.copy .tag {
-  background: var(--accent);
-  color: var(--accent-ink);
-  padding: 0.15rem 0.6rem;
-  min-width: 4.4rem;
-  text-align: center;
-}
-.btn {
-  display: inline-flex;
-  align-items: center;
-  border: thin solid var(--fg);
-  padding: 0.85rem 1.35rem;
-  font-size: var(--text-small);
-  text-decoration: none;
-}
-.btn:hover { background: var(--fg); color: var(--bg); }
+.copy .tag { min-width: 4.4rem; }  /* so "copied ✓" doesn't resize the button */
+.btn { border-color: var(--ink); }
+.btn:hover { background: var(--ink); color: var(--paper); }

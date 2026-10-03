@@ -72,7 +72,7 @@ One install, every project. jen finds globally installed packs next to itself, w
 
 {% include terminal.html id="install_global" %}
 
-### Locally <span class="badge">best for monorepos</span> {#install-local}
+### Locally <span class="pill label">best for monorepos</span> {#install-local}
 
 Add both as dev dependencies. jen reads packs straight from the project's `package.json`, so the generator versions are pinned with the repo: every contributor and every CI run gets the same ones, and there's nothing to set up on anyone's machine. In a monorepo, put them in the root.
 

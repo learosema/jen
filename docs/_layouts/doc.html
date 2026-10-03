@@ -11,19 +11,19 @@ layout: default
   <p class="lede">{{ page.lede }}</p>
   <p class="sub">{{ page.sub }}</p>
   {%- if page.cta %}
-  <div class="cta">
-    <a class="btn" href="{{ page.cta.url }}">{{ page.cta.text }}</a>
+  <div class="cta cluster">
+    <a class="pill big btn" href="{{ page.cta.url }}">{{ page.cta.text }}</a>
   </div>
   {%- endif %}
 </div>
 
 {% include icons.html %}
 <div class="layout">
-  <aside class="toc" aria-label="On this page">
+  <aside class="toc cluster" aria-label="On this page">
     {%- for group in page.toc %}
     <h4>{{ group.title }}</h4>
     {%- for link in group.links %}
-    <a href="#{{ link.id }}">{{ link.title }}</a>
+    <a class="pill" href="#{{ link.id }}">{{ link.title }}</a>
     {%- endfor %}
     {%- endfor %}
   </aside>

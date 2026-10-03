@@ -9,7 +9,7 @@ code { font-size: 0.9em; }
 :where(code) { background: var(--card); border: thin solid var(--border); border-radius: var(--radius-s); padding: 0 0.3em; }
 
 /* label: tiny spaced capitals */
-.eyebrow, .kicker, .toc h4, .copy .tag, .doc h3 .badge, .lang small, .cards .meta span {
+.eyebrow, .kicker, .toc h4, .pill.label, .lang small, .cards .meta span {
   font-size: var(--text-label);
   font-weight: normal;
   letter-spacing: 0.12em;
@@ -27,6 +27,9 @@ code { font-size: 0.9em; }
 .bar .logo { font-size: var(--text-title); }
 h2.big, .doc h2, .finale h2, .steps li::before { font-size: var(--text-heading); }
 
+/* the red dot of a jen. wordmark: upright, in the accent color */
+.bar .logo i, .mega .dot { color: var(--accent); font-style: normal; }
+
 /* title: lighter serif for the small headings */
 .steps h3, .why li strong, .actions h3, .facts h3, .lede {
   font-family: var(--serif);
@@ -35,3 +38,8 @@ h2.big, .doc h2, .finale h2, .steps li::before { font-size: var(--text-heading);
   letter-spacing: -0.02em;
 }
 .steps h3, .why li strong, .actions h3, .facts h3 { font-style: italic; }
+
+/* secondary text: muted, small; code and links inside it stand out in --fg */
+.steps p, .why li, .facts p, .mini li, .doc > p { color: var(--muted); font-size: var(--text-small); }
+:where(.steps, .why, .mini, .facts, .sub, .doc > p, .cards) code { color: var(--fg); }
+:where(.sub, .split p, .doc > p, .facts) a { color: var(--fg); text-decoration-color: var(--accent); text-underline-offset: 0.1875rem; }

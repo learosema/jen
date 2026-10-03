@@ -20,10 +20,10 @@ section > .sub + *, section > .facts + .sub { --flow-space: var(--space-l); }
 .finale { --flow-space: var(--space-l); }
 .finale, footer { margin-block-start: var(--space-xl); }
 
-/* boxes: one padding for the big cards, one for the small ones, one for pills and chips */
+/* boxes: one padding for the big cards, one for the small ones, one for chips (pills pad themselves, surfaces.css) */
 .steps li, .why li, .actions li, .facts > div { padding: var(--space-l); }
 .cards .card, .terminal pre { padding: var(--space-m); }
-.tab, .terminal .cp { padding: 0.5em 1em; }
+.terminal .cp { padding: 0.5em 1em; }
 
 /* the text inside a card is stacked with a gap, not margins */
 .steps li, .actions li, .facts > div { display: grid; gap: var(--space-s); }

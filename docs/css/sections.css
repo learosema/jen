@@ -23,19 +23,9 @@ h2.big em { color: var(--accent); }
   color: var(--accent);
   display: block;
 }
-.steps p { color: var(--muted); font-size: var(--text-small); }
-.steps code { color: var(--fg); }
 
 /* why grid */
-.why {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
-  gap: var(--space-m);
-}
-.why li {
-  color: var(--muted);
-  font-size: var(--text-small);
-}
+.why { --min: 17rem; }
 .why li:hover {
   transform: translate(-0.1875rem, -0.1875rem);
   border-color: var(--fg);
@@ -47,7 +37,6 @@ h2.big em { color: var(--accent); }
   margin-block-end: var(--space-s);
 }
 .why li.wide { grid-column: span 2; }
-.why code { color: var(--fg); }
 
 /* yeoman split */
 .split {
@@ -57,7 +46,6 @@ h2.big em { color: var(--accent); }
   align-items: center;
 }
 .split p { color: var(--muted); font-size: var(--text-body); }
-.split p a { color: var(--fg); text-decoration-color: var(--accent); text-underline-offset: 0.1875rem; }
 
 /* big install */
 .finale {
@@ -79,27 +67,19 @@ h2.big em { color: var(--accent); }
   opacity: 0.9;
   pointer-events: none;
 }
-.finale h2 {
-  position: relative;
-  z-index: 1;
-}
-.finale .cta { position: relative; z-index: 1; }
-.finale .copy { background: var(--bg); color: var(--fg); }
-.finale .btn { border-color: var(--bg); }
-.finale .btn:hover { background: var(--bg); color: var(--fg); }
-.finale small { display: block; opacity: 0.65; position: relative; z-index: 1; }
+.finale > * { position: relative; z-index: 1; }  /* above the big jen. */
+.finale .cta { --ink: var(--bg); --paper: var(--fg); }
+.finale small { display: block; opacity: 0.65; }
 
 footer {
+  --gap: var(--space-s) var(--space-l);
+  --justify: space-between;
   padding-block: var(--space-l) var(--space-xl);
   border-top: thin solid var(--border);
   color: var(--muted);
   font-size: var(--text-small);
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-s) var(--space-l);
-  justify-content: space-between;
 }
 footer a { color: var(--fg); text-decoration: none; border-bottom: thin solid var(--border); }
 footer a:hover { color: var(--accent); border-color: var(--accent); }
 footer .made { flex-basis: 100%; }
-footer .links { display: flex; gap: var(--space-l); flex-wrap: wrap; }
+footer .links { --gap: var(--space-l); }

@@ -33,10 +33,3 @@
 /* recipes: highlight the table-of-contents entry of the section in view, no JS */
 .toc { scroll-target-group: auto; }
 .toc a:target-current { color: var(--fg); border-color: var(--accent); }
-
-.doc h3 .badge {
-  background: var(--accent);
-  color: var(--accent-ink);
-  padding: 0.75em;
-  vertical-align: 0.12em;
-}

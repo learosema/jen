@@ -1,13 +1,10 @@
 /* ───────── languages ───────── */
 .langs { text-align: center; }
 .langs ul {
-  list-style: none;
+  --gap: var(--space-m);
+  --justify: center;
   margin-inline: auto;
   max-width: 40rem;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-m);
 }
 .lang { display: grid; justify-items: center; gap: var(--space-s); width: 4.6rem; }
 .lang b {

@@ -1,5 +1,5 @@
 {%- comment %} The "$ npm install -g @codejen/jen" button; site.js copies data-copy. Param: cmd. {% endcomment -%}
-<button class="copy" type="button" data-copy="{{ include.cmd }}">
+<button class="pill big copy" type="button" data-copy="{{ include.cmd }}">
   <span><span class="pfx">$ </span>{{ include.cmd }}</span>
-  <span class="tag">copy</span>
+  <span class="pill label tag">copy</span>
 </button>

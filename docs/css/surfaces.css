@@ -20,10 +20,36 @@
   border-radius: var(--radius-m);
 }
 
-/* pills and the round-ended things */
-.theme, .tab, .btn, .copy, .copy .tag, .doc h3 .badge, .switch .knob, .switch .knob::after {
-  border-radius: var(--radius-pill);
+/* a dark box in the terminal colors */
+.terminal, .actions li {
+  position: relative;
+  background: var(--term-bg);
+  color: var(--term-fg);
+  border-radius: var(--radius-m);
+  font-size: var(--text-small);
 }
+
+/* pill: the one round-ended component. Outlined by default; .big for the call-to-action
+   size, .label for the small filled tags. A component adds only its colors and states. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  border: thin solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 0.5em 1em;
+  font-size: var(--text-small);
+  text-decoration: none;
+}
+.pill.big { padding: 0.85rem 1.35rem; }
+.pill.label, .tab[aria-selected="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  padding: 0.2em 0.8em;
+}
+.switch .knob, .switch .knob::after { border-radius: var(--radius-pill); }
 
 /* one transition for everything interactive, so hover states don't each declare their own */
 :where(a, button, li, .lang b, .switch .knob, .switch .knob::after) {

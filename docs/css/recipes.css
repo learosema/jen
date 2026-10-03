@@ -8,27 +8,34 @@
   align-items: start;
   padding-top: var(--space-l);
 }
-.toc {
-  position: sticky;
-  top: 1.5rem;
-  font-size: var(--text-small);
-  max-height: calc(100vh - 3rem);
-  overflow-y: auto;
-  padding-bottom: var(--space-m);
-}
+/* table of contents: a row of pills on narrow screens, a sticky sidebar from 53.75em */
+.toc { font-size: var(--text-small); }
 .toc h4 {
-  --flow-space: var(--space-l);
+  --flow-space: var(--space-s);
+  width: 100%;
   color: var(--accent);
 }
-.toc h4 + a { --flow-space: var(--space-s); }
-.toc a {
-  display: block;
-  text-decoration: none;
-  color: var(--muted);
-  padding: 0.2rem 0 0.2rem var(--space-m);
-  border-left: 0.125rem solid var(--border);
-}
+.toc a { color: var(--muted); }
 .toc a:hover { color: var(--fg); }
+@media (min-width: 53.75em) {
+  .toc {
+    display: block;
+    position: sticky;
+    top: 1.5rem;
+    max-height: calc(100vh - 3rem);
+    overflow-y: auto;
+    padding-bottom: var(--space-m);
+  }
+  .toc h4 { --flow-space: var(--space-l); }
+  .toc h4 + a { --flow-space: var(--space-s); }
+  .toc a {
+    display: block;
+    padding: 0.2rem 0 0.2rem var(--space-m);
+    border: 0;
+    border-left: 0.125rem solid var(--border);
+    border-radius: 0;
+  }
+}
 
 
 .doc :is(h2, h3) { scroll-margin-top: var(--space-m); }
@@ -44,30 +51,16 @@
   border-radius: var(--radius-s);
   padding: 0.1em 0.6em;
 }
-.doc h1,
-.doc h2,
-.doc h3,
-.doc h4 {
+.doc :is(h1, h2, h3, h4) {
   margin-block-end: max(1rem, 0.5em);
   --flow-space: 1.5em;
 }
 
 .doc h3 a { text-decoration: none; }
 
-.doc > p { color: var(--muted); font-size: var(--text-small); max-width: 46rem; }
-.doc > p code, .doc > p a { color: var(--fg); }
-.doc > p a { text-decoration-color: var(--accent); text-underline-offset: 0.1875rem; }
+.doc > p { max-width: 46rem; }
 
-/* params and the like: a responsive grid of cards (tables overflow on phones) */
-.auto-grid {
-  --min: 15rem;
-  --gap: var(--space-m);
-
-  display: grid;
-  gap: var(--gap);
-  /* min() with 100% prevents overflow in extra narrow spaces */
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--min)), 1fr));
-}
+/* params and the like: an .auto-grid of cards (tables overflow on phones) */
 .cards-title {
   --flow-space: var(--space-l);
   font-size: var(--text-title);
@@ -101,5 +94,4 @@
 .cards h4 { font-size: var(--text-body); font-weight: 600; line-height: 1.25; min-width: 0; }
 .cards h4 code { color: var(--accent); }
 .cards p { color: var(--muted); line-height: 1.5; }
-.cards code { color: var(--fg); }
 .cards .meta { font-size: var(--text-label); margin-block-start: auto; }
