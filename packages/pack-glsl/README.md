@@ -16,6 +16,15 @@ jen glsl:util --fns=rot2,remap --into=shaders/clouds.frag.glsl # insert helpers 
 jen glsl:port --file=shaders/clouds.frag.glsl --to=410         # ready for cpp:sdl3-opengl
 ```
 
+## WebGL playground
+
+```sh
+jen glsl:webgl --name=Clouds            # index.html, shader-canvas.js, shaders/clouds.frag.glsl
+jen glsl:webgl --name=Clouds --inline   # shader inside index.html – opens straight from disk
+```
+
+`<shader-canvas>` is a single dependency-free script. It feeds `uTime`, `uResolution` and `uMouse`, shows compile errors with the original line numbers over the canvas, and with `live` recompiles whenever the shader file changes (fetching files needs any static server, e.g. `npx serve`). It also draws `mesh="plane|sphere"` with a custom `vert` shader (drag with `orbit`), binds `texture0`…`texture3` to `uTexture0`…`uTexture3`, pauses offscreen and respects `prefers-reduced-motion`. Desktop shaders (`#version 410 core`) run unchanged, so the same file works in the browser and in `cpp:sdl3-opengl`. See [its README](web/shader-canvas/README.md) for all attributes, uniforms and events.
+
 ## How functions get into your shader
 
 GLSL has no `#include`, so functions ship as plain `.glsl` files under `glsl/`. With `--into=<shader>`, jen inserts the ones you pick – plus whatever they depend on – right above `void main(`. Anything already in the file is skipped, so running a generator twice, or two generators sharing a helper, never duplicates code. Without `--into`, each function is written as its own file under `<dir>/lib/` (default `shaders/lib/`) for setups with an include mechanism (vite-plugin-glsl, glslify, three.js, …).

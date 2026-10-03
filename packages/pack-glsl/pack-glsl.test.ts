@@ -11,6 +11,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { Script } from 'node:vm';
 import { describe, it } from 'node:test';
 import type { Action, Helpers } from '@codejen/jen';
 import pack from './src/index.ts';
@@ -273,5 +274,53 @@ describe('glsl:util', () => {
       applyActions(files, run('util', { into: 'shaders/x.frag.glsl', fns: 'all' }));
       assertCompiles(files.get('shaders/x.frag.glsl')!, 'frag', `frag + util (${version})`);
     }
+  });
+});
+
+describe('glsl:webgl', () => {
+  const byPath = (actions: Action[]) => new Map(adds(actions).map((a) => [a.add, a.template]));
+
+  it('writes the page, the element and a fetched 300 es shader', () => {
+    const files = byPath(run('webgl', { name: 'MyClouds' }));
+    assert.deepEqual([...files.keys()], ['index.html', 'shader-canvas.js', 'shaders/my-clouds.frag.glsl']);
+    const html = files.get('index.html')!;
+    assert.match(html, /<title>MyClouds<\/title>/);
+    assert.match(html, /<script src="shader-canvas.js" defer><\/script>/, 'classic script, so file:// works');
+    assert.match(html, /<shader-canvas src="shaders\/my-clouds.frag.glsl" live><\/shader-canvas>/);
+    assert.match(files.get('shaders/my-clouds.frag.glsl')!, /^#version 300 es\n/);
+  });
+
+  it('--inline embeds the shader in the page and writes no shader file', () => {
+    const files = byPath(run('webgl', { name: 'x', inline: true, dir: 'play' }));
+    assert.deepEqual([...files.keys()], ['play/index.html', 'play/shader-canvas.js']);
+    const html = files.get('play/index.html')!;
+    assert.doesNotMatch(html, / src="shaders/);
+    const shader = /<script type="x-shader\/x-fragment">\n([\s\S]*?)\n\s*<\/script>/.exec(html)?.[1];
+    assert.ok(shader, 'inline fragment shader');
+    assert.match(shader.trimStart(), /^#version 300 es\n/);
+  });
+
+  it('--tag renames the element in the script and the page', () => {
+    const files = byPath(run('webgl', { name: 'x', tag: 'my-canvas' }));
+    assert.match(files.get('my-canvas.js')!, /^ {2}const TAG = 'my-canvas';$/m);
+    assert.match(files.get('index.html')!, /<my-canvas src=/);
+    assert.match(files.get('index.html')!, /<script src="my-canvas.js" defer>/);
+    assert.throws(() => run('webgl', { name: 'x', tag: 'Canvas' }), /--tag: "Canvas" is not a valid custom element name/);
+    assert.throws(() => run('webgl', { name: 'x', tag: 'canvas' }), /not a valid custom element name/);
+  });
+
+  it('the element is a classic script without exports, defined once under TAG', () => {
+    const source = byPath(run('webgl', { name: 'x' })).get('shader-canvas.js')!;
+    assert.doesNotThrow(() => new Script(source), 'parses as a classic script');
+    assert.doesNotMatch(source, /^\s*(?:export|import)\s/m);
+    assert.equal(source.match(/const TAG = /g)?.length, 1);
+    assert.match(source, /customElements\.define\(TAG, ShaderCanvas\)/);
+    assert.match(source, /^\/\/ <shader-canvas> · pack-glsl · MIT-0$/m);
+  });
+
+  it('the inline shader compiles', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    const html = byPath(run('webgl', { name: 'x', inline: true })).get('index.html')!;
+    const shader = /<script type="x-shader\/x-fragment">\n([\s\S]*?)\n\s*<\/script>/.exec(html)![1];
+    assertCompiles(shader.split('\n').map((l) => l.replace(/^ {8}/, '')).join('\n'), 'frag', 'inline webgl shader');
   });
 });

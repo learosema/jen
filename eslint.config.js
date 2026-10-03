@@ -23,5 +23,14 @@ export default defineConfig(
         { args: 'after-used', argsIgnorePattern: '^_' },
       ],
     },
+  },
+  {
+    // Browser code shipped by packs (e.g. pack-glsl's <shader-canvas>).
+    files: ['packages/*/web/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+      },
+    },
   }
 );
