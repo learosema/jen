@@ -1,0 +1,46 @@
+{
+  "name": "@codejen/pack-glsl",
+  "version": "0.0.0",
+  "description": "jen pack for GLSL: shader starters, SDF/raymarching, noise and lighting snippets (MIT-licensed, attributed)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "glsl",
+    "starters",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/learosema/jen.git",
+    "directory": "packages/pack-glsl"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "pretypecheck": "npm run build --prefix ../jen",
+    "prebuild": "npm run build --prefix ../jen",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "typecheck": "tsc",
+    "test": "node --test pack-glsl.test.ts",
+    "prepublishOnly": "npm test && npm run typecheck && npm run build"
+  },
+  "keywords": [
+    "jen-pack",
+    "glsl",
+    "shader",
+    "webgl"
+  ],
+  "author": "Lea Rosema",
+  "license": "MIT-0",
+  "devDependencies": {
+    "@codejen/jen": "^1.0.0",
+    "@types/node": "^26.6.3",
+    "typescript": "^6.0.3"
+  }
+}

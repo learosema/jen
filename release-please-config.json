@@ -9,6 +9,9 @@
     },
     "packages/pack-cpp": {
       "component": "pack-cpp"
+    },
+    "packages/pack-glsl": {
+      "component": "pack-glsl"
     }
   }
 }
