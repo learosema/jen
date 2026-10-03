@@ -12,9 +12,11 @@
  *   jen glsl:port --file=shaders/clouds.frag.glsl --to=410   switch dialect header
  *   jen glsl:util --fns=rot2,remap --into=shaders/clouds.frag.glsl
  *   jen glsl:webgl --name=Clouds [--inline] [--tag=my-canvas]   no-build WebGL2 playground with <shader-canvas>
+ *   jen glsl:noise --kind=fbm --base=simplex [--dim=3] --into=shaders/clouds.frag.glsl   tileable noise
  */
 import type { Pack } from '@codejen/jen';
 import fragGenerator from './frag.ts';
+import noiseGenerator from './noise.ts';
 import portGenerator from './port.ts';
 import utilGenerator from './util.ts';
 import vertGenerator from './vert.ts';
@@ -26,6 +28,7 @@ const pack: Pack = {
   port: portGenerator,
   util: utilGenerator,
   webgl: webglGenerator,
+  noise: noiseGenerator,
 };
 
 export default pack;

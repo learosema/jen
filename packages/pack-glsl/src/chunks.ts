@@ -5,8 +5,12 @@
  *
  *   // @requires util/consts      another chunk this one calls (repeatable)
  *   // @license MIT-0             the pack's own code: no notice to carry along
- *   // @license gustavson         third-party code: glsl/licenses/<id>.glsl holds
+ *   // @license webgl-noise       third-party code: glsl/licenses/<id>.glsl holds
  *                                 the full notice its license requires
+ *   // @license inline            third-party code whose authors accept the
+ *                                 chunk's own short header as the notice
+ *   // @base value                written against valueNoise, but works on any
+ *                                 base noise (see rebase())
  *
  * Every chunk needs at least one @license.
  * Directives are stripped on output; everything else, including the chunk's
@@ -26,16 +30,32 @@ export interface Chunk {
   id: string;
   requires: string[];
   licenses: string[];
+  /** The base noise a fractal chunk is written against (`@base`), if it can be rebased. */
+  base?: string;
   code: string;
 }
 
-const DIRECTIVE = /^\/\/\s*@(requires|license)\s+(\S+)\s*$/;
+/** Base noises: `noise/<base><dim>.glsl`, each defining `<base>Noise(p)` and `<base>Noise(p, period)`. */
+export const NOISE_BASES = ['value', 'perlin', 'simplex', 'worley'];
+
+const DIRECTIVE = /^\/\/\s*@(requires|license|base)\s+(\S+)\s*$/;
 const cache = new Map<string, Chunk>();
 
+/**
+ * Loads a chunk by id. `<id>@<base>` loads a rebased copy of a chunk with an
+ * `@base` directive, e.g. `fractal/fbm2@perlin`.
+ */
 export function loadChunk(id: string): Chunk {
   const cached = cache.get(id);
   if (cached) return cached;
-  if (!/^[a-z0-9-]+\/[a-z0-9-]+$/.test(id) || id.startsWith('licenses/')) fail(`unknown GLSL chunk "${id}"`);
+  if (!/^[a-z0-9-]+\/[a-z0-9-]+(?:@[a-z]+)?$/.test(id) || id.startsWith('licenses/')) fail(`unknown GLSL chunk "${id}"`);
+
+  const at = id.indexOf('@');
+  if (at >= 0) {
+    const rebased = rebase(loadChunk(id.slice(0, at)), id.slice(at + 1));
+    cache.set(id, rebased);
+    return rebased;
+  }
 
   let text: string;
   try {
@@ -47,17 +67,43 @@ export function loadChunk(id: string): Chunk {
   const lines = text.replace(/\r\n/g, '\n').trimEnd().split('\n');
   const requires: string[] = [];
   const licenses: string[] = [];
+  let base: string | undefined;
   let i = 0;
   for (; i < lines.length; i++) {
     const m = DIRECTIVE.exec(lines[i]);
     if (!m) break;
-    (m[1] === 'requires' ? requires : licenses).push(m[2]);
+    if (m[1] === 'requires') requires.push(m[2]);
+    else if (m[1] === 'license') licenses.push(m[2]);
+    else base = m[2];
   }
   if (licenses.length === 0) fail(`GLSL chunk "${id}" has no // @license directive`);
 
-  const chunk: Chunk = { id, requires, licenses, code: lines.slice(i).join('\n') };
+  const chunk: Chunk = { id, requires, licenses, base, code: lines.slice(i).join('\n') };
   cache.set(id, chunk);
   return chunk;
+}
+
+/**
+ * GLSL has no function pointers, so a fractal that works on "any noise" is
+ * written against one (`// @base value`: calls valueNoise, defines valueFbm)
+ * and rebased by renaming: every identifier starting with the base name
+ * followed by an uppercase letter gets the new base (valueNoise →
+ * perlinNoise, valueFbm → perlinFbm). Requirements follow along: the base
+ * noise chunk is swapped, rebasable chunks (warp needs fbm) are rebased too.
+ * Each base thus gets its own function names and can share a shader.
+ */
+function rebase(chunk: Chunk, base: string): Chunk {
+  if (!chunk.base) fail(`GLSL chunk "${chunk.id}" has no // @base directive, so it can't use "${base}"`);
+  if (!NOISE_BASES.includes(base)) fail(`unknown base noise "${base}" – valid: ${NOISE_BASES.join(', ')}`);
+  if (base === chunk.base) return chunk;
+  const from = chunk.base;
+  const requires = chunk.requires.map((r) => {
+    const m = /^noise\/([a-z]+)(\d)$/.exec(r);
+    if (m && m[1] === from) return `noise/${base}${m[2]}`;
+    return loadChunk(r).base ? `${r}@${base}` : r;
+  });
+  const code = chunk.code.replace(new RegExp(`\\b${from}(?=[A-Z])`, 'g'), base);
+  return { ...chunk, id: `${chunk.id}@${base}`, requires, base: undefined, code };
 }
 
 /**
@@ -67,9 +113,12 @@ export function loadChunk(id: string): Chunk {
  */
 export const OWN_LICENSE = 'MIT-0';
 
-/** The notices a chunk must carry along: one per third-party license, none for MIT-0. */
+/** A license whose notice is the chunk's own header (e.g. psrdnoise's permitted short form). */
+export const INLINE_LICENSE = 'inline';
+
+/** The notices a chunk must carry along: one per third-party license, none for MIT-0 or inline ones. */
 export function noticesFor(chunk: Chunk): string[] {
-  return chunk.licenses.filter((l) => l !== OWN_LICENSE);
+  return chunk.licenses.filter((l) => l !== OWN_LICENSE && l !== INLINE_LICENSE);
 }
 
 /** The full notice for a third-party license id (glsl/licenses/<id>.glsl). */
@@ -123,9 +172,9 @@ export function pickChunks(area: string, selection: string[], flag: string, gene
   return selection.map((name) => `${area}/${name}`);
 }
 
-/** The local file name a chunk gets under `<dir>/lib/`: util/rot2 → util-rot2.glsl. */
+/** The local file name a chunk gets under `<dir>/lib/`: util/rot2 → util-rot2.glsl, fractal/fbm2@perlin → fractal-fbm2-perlin.glsl. */
 export function chunkFileName(id: string): string {
-  return `${id.replace('/', '-')}.glsl`;
+  return `${id.replace('/', '-').replace('@', '-')}.glsl`;
 }
 
 /** Marker for --into: functions go right above main(), so any shader works, no marker needed. */

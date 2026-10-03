@@ -25,6 +25,20 @@ jen glsl:webgl --name=Clouds --inline   # shader inside index.html – opens str
 
 `<shader-canvas>` is a single dependency-free script. It feeds `uTime`, `uResolution` and `uMouse`, shows compile errors with the original line numbers over the canvas, and with `live` recompiles whenever the shader file changes (fetching files needs any static server, e.g. `npx serve`). It also draws `mesh="plane|sphere"` with a custom `vert` shader (drag with `orbit`), binds `texture0`…`texture3` to `uTexture0`…`uTexture3`, pauses offscreen and respects `prefers-reduced-motion`. Desktop shaders (`#version 410 core`) run unchanged, so the same file works in the browser and in `cpp:sdl3-opengl`. See [its README](web/shader-canvas/README.md) for all attributes, uniforms and events.
 
+## Noise
+
+```sh
+jen glsl:noise --kind=fbm --base=simplex --into=shaders/clouds.frag.glsl   # simplexFbm(p, octaves)
+jen glsl:noise --kind=worley --dim=3 --into=shaders/cells.frag.glsl        # worleyNoise(vec3), worley(vec3) → F1, F2
+jen glsl:noise --kind=warp --name=Marble --tile                             # preview shader, drawn 2×2 to show the seams
+```
+
+- **Base noises** (`--kind=value|perlin|simplex|worley`): `<kind>Noise(p)`, about [-1, 1]. Worley also has `worley(p)`, the distances to the nearest two feature points.
+- **Fractals** (`--kind=fbm|turbulence|ridged|warp`): `<base>Fbm(p, octaves)` and friends, on any base noise via `--base` (default `perlin`). Different bases can share a shader: `perlinFbm` and `simplexFbm` don't clash.
+- **Flow** (`--kind=curl`): `curlNoise(p, alpha)`, a divergence-free vector field for particles; animate `alpha` for swirling motion.
+
+Everything comes in 2D and 3D (`--dim=2|3`), and every function has an overload with a `period` that tiles seamlessly, e.g. `simplexFbm(p, vec2(4.0), 6)`. It's the same trick as SVG feTurbulence's `stitchTiles`, but for any noise: each octave doubles the period along with the frequency. Periods are positive whole numbers; 2D simplex wants an even period along y, and 3D simplex periods are limited to 289.
+
 ## How functions get into your shader
 
 GLSL has no `#include`, so functions ship as plain `.glsl` files under `glsl/`. With `--into=<shader>`, jen inserts the ones you pick – plus whatever they depend on – right above `void main(`. Anything already in the file is skipped, so running a generator twice, or two generators sharing a helper, never duplicates code. Without `--into`, each function is written as its own file under `<dir>/lib/` (default `shaders/lib/`) for setups with an include mechanism (vite-plugin-glsl, glslify, three.js, …).

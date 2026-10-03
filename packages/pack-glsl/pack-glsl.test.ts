@@ -15,7 +15,7 @@ import { Script } from 'node:vm';
 import { describe, it } from 'node:test';
 import type { Action, Helpers } from '@codejen/jen';
 import pack from './src/index.ts';
-import { OWN_LICENSE, chunkIds, licenseText, loadChunk, noticesFor, resolveChunks } from './src/chunks.ts';
+import { INLINE_LICENSE, NOISE_BASES, OWN_LICENSE, chunkIds, licenseText, loadChunk, noticesFor, resolveChunks } from './src/chunks.ts';
 import { listGlsl, packPath } from './src/common.ts';
 import { VERSIONS, header } from './src/dialect.ts';
 import type { Version } from './src/dialect.ts';
@@ -85,7 +85,7 @@ function assertCompiles(source: string, stage: 'vert' | 'frag', label: string) {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('chunks', () => {
-  const allIds = ['util'].flatMap(chunkIds);
+  const allIds = ['util', 'noise', 'fractal'].flatMap(chunkIds);
 
   it('every chunk declares a license; third-party ones have an existing notice', () => {
     for (const id of allIds) {
@@ -101,11 +101,22 @@ describe('chunks', () => {
     }
   });
 
+  it('inline-licensed chunks carry copyright, license name and source in their own header', () => {
+    for (const id of allIds.filter((i) => loadChunk(i).licenses.includes(INLINE_LICENSE))) {
+      const header = loadChunk(id).code.split('\n').slice(0, 3).join('\n');
+      assert.match(header, /\(c\) \d{4} /, id);
+      assert.match(header, /MIT license/i, id);
+      assert.match(header, /https:\/\//, id);
+    }
+  });
+
   it('every third-party notice is a full MIT notice, as GLSL line comments', () => {
     const ids = existsSync(packPath('glsl/licenses')) ? listGlsl('glsl/licenses') : [];
+    assert.ok(ids.length > 0);
     for (const id of ids) {
       const text = licenseText(id);
-      assert.match(text, /MIT License/, id);
+      assert.match(text, /Copyright \(C\)/i, id);
+      assert.match(text, /Permission is hereby granted, free of charge/, id);
       assert.match(text, /The above copyright notice and this permission notice shall be included/, id);
       assert.ok(text.split('\n').every((l) => l.startsWith('//')), `${id}: every line must be a // comment`);
     }
@@ -125,6 +136,18 @@ describe('chunks', () => {
     assert.match(chunk.code, /^\/\/ rot2 · pack-glsl · MIT-0\n/);
   });
 
+  it('rebases fractals onto another noise, renaming functions and swapping requirements', () => {
+    const warp = loadChunk('fractal/warp2@simplex');
+    assert.equal(warp.id, 'fractal/warp2@simplex');
+    assert.deepEqual(warp.requires, ['fractal/fbm2@simplex']);
+    assert.match(warp.code, /float simplexWarp\(vec2 p, int octaves\)/);
+    assert.doesNotMatch(warp.code, /valueFbm|valueWarp/);
+    assert.deepEqual(loadChunk('fractal/fbm2@simplex').requires, ['noise/simplex2']);
+    assert.equal(loadChunk('fractal/fbm2@value'), loadChunk('fractal/fbm2'), 'own base: same chunk');
+    assert.throws(() => loadChunk('fractal/fbm2@gabor'), /unknown base noise "gabor"/);
+    assert.throws(() => loadChunk('noise/perlin2@simplex'), /has no \/\/ @base directive/);
+  });
+
   it('rejects unknown and path-like ids', () => {
     assert.throws(() => loadChunk('util/nope'), /unknown GLSL chunk/);
     assert.throws(() => loadChunk('../package'), /unknown GLSL chunk/);
@@ -132,8 +155,9 @@ describe('chunks', () => {
   });
 
   it('compiles every chunk in every dialect', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    const rebased = ['fbm', 'turbulence', 'ridged', 'warp'].flatMap((k) => [2, 3].flatMap((d) => NOISE_BASES.map((b) => `fractal/${k}${d}@${b}`)));
     for (const version of VERSIONS) {
-      for (const id of allIds) {
+      for (const id of [...allIds, ...rebased]) {
         const code = resolveChunks([id])
           .map((c) => c.code)
           .join('\n\n');
@@ -264,7 +288,7 @@ describe('glsl:util', () => {
   });
 
   it('fails with the valid names when nothing or something unknown is picked', () => {
-    assert.throws(() => run('util', {}), /glsl:util --fns: pick at least one – valid: consts, remap, rot2, saturate \(or "all"\)/);
+    assert.throws(() => run('util', {}), /glsl:util --fns: pick at least one – valid: consts, hash, remap, rot2, saturate \(or "all"\)/);
     assert.throws(() => run('util', { fns: 'rot2,rot4' }), /unknown "rot4"/);
   });
 
@@ -322,5 +346,91 @@ describe('glsl:webgl', () => {
     const html = byPath(run('webgl', { name: 'x', inline: true })).get('index.html')!;
     const shader = /<script type="x-shader\/x-fragment">\n([\s\S]*?)\n\s*<\/script>/.exec(html)![1];
     assertCompiles(shader.split('\n').map((l) => l.replace(/^ {8}/, '')).join('\n'), 'frag', 'inline webgl shader');
+  });
+});
+
+describe('glsl:noise', () => {
+  const KINDS = [...NOISE_BASES, 'fbm', 'turbulence', 'ridged', 'warp', 'curl'];
+  const emptyShader = (version: Version = '300es') =>
+    new Map([['s.frag.glsl', `${header(version)}\n\nout vec4 fragColor;\n\nvoid main() {\n  fragColor = vec4(0.0);\n}\n`]]);
+  const into = (files: Map<string, string>, answers: Record<string, string>) =>
+    applyActions(files, run('noise', { into: 's.frag.glsl', ...answers }));
+
+  it('inserts the webgl-noise notice once and the shared helpers once for 2D + 3D Perlin', () => {
+    const files = into(into(emptyShader(), { kind: 'perlin' }), { kind: 'perlin', dim: '3' });
+    const out = files.get('s.frag.glsl')!;
+    assert.equal(out.match(/Permission is hereby granted/g)?.length, 1);
+    assert.equal(out.match(/vec4 permute\(vec4 x\)/g)?.length, 1);
+    assert.match(out, /float perlinNoise\(vec2 p\)/);
+    assert.match(out, /float perlinNoise\(vec3 p, vec3 period\)/);
+    assert.ok(out.indexOf('Permission is hereby granted') < out.indexOf('vec4 mod289'), 'notice before the code it covers');
+  });
+
+  it('psrdnoise carries its short header instead of a full notice', () => {
+    const out = into(emptyShader(), { kind: 'simplex' }).get('s.frag.glsl')!;
+    assert.match(out, /\/\/ psrdnoise \(c\) 2021 Stefan Gustavson and Ian McEwan\n\/\/ Published under the MIT license.\n\/\/ https:\/\/github.com\/stegu\/psrdnoise\//);
+    assert.doesNotMatch(out, /Permission is hereby granted/);
+  });
+
+  it('fractals default to perlin and follow --base', () => {
+    const fbm = into(emptyShader(), { kind: 'fbm' }).get('s.frag.glsl')!;
+    assert.match(fbm, /float perlinFbm\(vec2 p, vec2 period, int octaves\)/);
+    const ridged = into(emptyShader(), { kind: 'ridged', base: 'worley', dim: '3' }).get('s.frag.glsl')!;
+    assert.match(ridged, /float worleyRidged\(vec3 p, int octaves\)/);
+    assert.match(ridged, /vec2 worley\(vec3 p, vec3 period\)/);
+  });
+
+  it('without --into, writes chunk files, each with the notices it needs', () => {
+    const files = new Map(adds(run('noise', { kind: 'turbulence', base: 'perlin' })).map((a) => [a.add, a.template]));
+    assert.deepEqual([...files.keys()], [
+      'shaders/lib/noise-gustavson-common.glsl',
+      'shaders/lib/noise-classic2.glsl',
+      'shaders/lib/noise-perlin2.glsl',
+      'shaders/lib/fractal-turbulence2-perlin.glsl',
+    ]);
+    assert.match(files.get('shaders/lib/noise-classic2.glsl')!, /^\/\/ webgl-noise .*\n\/\/\n\/\/ Copyright \(C\) 2011 by Ashima Arts/);
+    assert.doesNotMatch(files.get('shaders/lib/fractal-turbulence2-perlin.glsl')!, /Permission is hereby granted/);
+    assert.match(files.get('shaders/lib/fractal-turbulence2-perlin.glsl')!, /^\/\/ Needs \(include first\): noise-perlin2.glsl\n/);
+  });
+
+  it('validates its flags', () => {
+    assert.throws(() => run('noise', {}), /--kind: pick one of "value", "perlin", "simplex", "worley", "fbm", "turbulence", "ridged", "warp", "curl"/);
+    assert.throws(() => run('noise', { kind: 'gabor' }), /--kind: expected one of/);
+    assert.throws(() => run('noise', { kind: 'value', dim: '4' }), /--dim: expected "2" or "3", got "4"/);
+    assert.throws(() => run('noise', { kind: 'fbm', base: 'curl' }), /--base: expected one of "value", "perlin", "simplex", "worley", got "curl"/);
+    assert.throws(() => run('noise', { kind: 'value', name: 'x', into: 'y' }), /either --name .* or --into/);
+  });
+
+  it('--name writes a preview shader with the noise inserted before main()', () => {
+    const files = applyActions(new Map(), run('noise', { kind: 'warp', name: 'Marble', base: 'simplex', tile: true }));
+    const out = files.get('shaders/marble.frag.glsl')!;
+    assert.match(out, /^#version 300 es\n/);
+    assert.match(out, /float n = simplexWarp\(p, period, 6\);/);
+    assert.ok(out.indexOf('float simplexWarp(') < out.indexOf('void main('));
+  });
+
+  it('every kind, base and dimension fits into one shader without clashes', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    for (const version of VERSIONS) {
+      let files = emptyShader(version);
+      for (const kind of KINDS) {
+        for (const dim of ['2', '3']) {
+          for (const base of kind === 'fbm' || kind === 'turbulence' || kind === 'ridged' || kind === 'warp' ? NOISE_BASES : ['perlin']) {
+            files = into(files, { kind, dim, base });
+          }
+        }
+      }
+      assertCompiles(files.get('s.frag.glsl')!, 'frag', `all noises (${version})`);
+    }
+  });
+
+  it('every preview shader compiles', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    for (const kind of KINDS) {
+      for (const dim of ['2', '3']) {
+        for (const tile of [false, true]) {
+          const files = applyActions(new Map(), run('noise', { kind, dim, tile, name: 'x', base: 'simplex' }));
+          assertCompiles(files.get('shaders/x.frag.glsl')!, 'frag', `preview ${kind} ${dim}D${tile ? ' tiled' : ''}`);
+        }
+      }
+    }
   });
 });
