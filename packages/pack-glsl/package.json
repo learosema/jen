@@ -9,6 +9,7 @@
     "dist",
     "glsl",
     "starters",
+    "web",
     "THIRD_PARTY_NOTICES.md"
   ],
   "repository": {
