@@ -45,6 +45,7 @@ Everything comes in 2D and 3D (`--dim=2|3`), and every function has an overload 
 jen glsl:raymarch --name=Scene                     # starter: scene(), orbiting camera, soft shadows, AO, fog
 jen glsl:raymarch --name=Scene --minimal           # just march, normal and diffuse light
 jen glsl:raymarch --name=Scene --materials         # sceneMaterial() also returns a material id per surface
+jen glsl:raymarch --name=Scene --lighting=pbr      # lambert (default), blinn, toon or pbr
 jen glsl:sdf --dim=3 --shapes=box,torus --ops=smooth-union --into=shaders/scene.frag.glsl
 jen glsl:sdf --shapes=star --effects=fill,stroke,glow --into=shaders/logo.frag.glsl
 jen glsl:sdf --dim=3 --shapes=all --name=Shapes    # preview: every shape side by side
@@ -56,6 +57,18 @@ jen glsl:sdf --dim=3 --shapes=all --name=Shapes    # preview: every shape side b
 - **Raymarching helpers** (`glsl:raymarch --into`, pick with `--parts`): `raymarch`, `calcNormal`, `softShadow`, `calcAO`, `cameraMatrix`. They call your `float scene(vec3 p)`, which they declare up front, so it can live anywhere in the shader. For materials, keep that function returning the distance and look the material up once at the hit point, as the `--materials` starter does: `vec2 sceneMaterial(vec3 p)` returns distance and id, `scene()` returns its `.x`.
 
 Each list also takes `all`. The formulas follow Inigo Quilez's articles on [distance functions](https://iquilezles.org/articles/distfunctions/), [2D distance functions](https://iquilezles.org/articles/distfunctions2d/), [smooth minimum](https://iquilezles.org/articles/smin/), [SDF normals](https://iquilezles.org/articles/normalsSDF/) and [soft shadows](https://iquilezles.org/articles/rmshadows/), credited in each function. The code itself is the pack's own (MIT-0).
+
+## Lighting
+
+```sh
+jen glsl:lighting --models=pbr --tonemap=aces,srgb --into=shaders/scene.frag.glsl
+jen glsl:lighting --models=toon --into=shaders/scene.frag.glsl
+```
+
+- **Models** (`--models`): `lambert(n, l, albedo)`, `blinnPhong(n, v, l, albedo, shininess, specular)`, `toon(n, v, l, albedo, bands)` with a rim light, and `pbr(n, v, l, albedo, metallic, roughness)` – Cook-Torrance with GGX, Smith-Schlick and Schlick Fresnel, plus `pbrAmbient()`, a sky/ground ambient light that needs no environment map.
+- **Color output** (`--tonemap`): `tonemapAces()` (Stephen Hill's ACES fit), `tonemapReinhard()`, and `linearToSrgb()`/`srgbToLinear()` with the exact sRGB curve.
+
+Every model takes the normal `n`, the direction to the viewer `v` and to the light `l`, and returns the reflected light for a white light of intensity 1: multiply by the light's color and shadow, sum over lights, tonemap, encode. `jen glsl:raymarch --name=Scene --lighting=pbr` shows a model in a full scene.
 
 ## How functions get into your shader
 

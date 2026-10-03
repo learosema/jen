@@ -1,10 +1,11 @@
 /**
  * `glsl:raymarch`: sphere tracing signed distance fields.
  *
- *   --name=Scene [--minimal] [--materials]
+ *   --name=Scene [--lighting=lambert|blinn|toon|pbr] [--minimal] [--materials]
  *                    a starter: scene() with a small scene, camera orbit, soft shadows,
- *                    ambient occlusion and fog (--minimal: just march, normal, diffuse;
- *                    --materials: sceneMaterial() returns a material id per surface)
+ *                    ambient occlusion and fog, lit with the chosen model (see
+ *                    glsl:lighting); --minimal: no shadows, AO or fog;
+ *                    --materials: sceneMaterial() returns a material id per surface
  *   --into=<shader>  the helpers for your own scene(): raymarch, calcNormal, softShadow,
  *                    calcAO, cameraMatrix (pick with --parts=march,normal,…)
  *
@@ -50,35 +51,54 @@ vec2 sceneMaterial(vec3 p) {
 // The distance alone, for raymarch(), calcNormal(), softShadow() and calcAO().
 float scene(vec3 p) { return sceneMaterial(p).x; }`;
 
+export const LIGHTING_MODELS = ['lambert', 'blinn', 'toon', 'pbr'];
+
+const CHECKER = 'vec3(0.45 + 0.2 * mod(floor(p.x) + floor(p.z), 2.0))';
+
 /**
- * Without materials, the ground is the plane at y = -0.5 and everything above
- * it gets the scene color. The tolerance grows with t like raymarch()'s hit
- * threshold, so the distant ground isn't mistaken for an object.
+ * The surface at the hit point: albedo, plus metallic/roughness for pbr.
+ * Without materials, the ground is the plane at y = -0.5; the tolerance grows
+ * with t like raymarch()'s hit threshold, so the distant ground isn't
+ * mistaken for an object.
  */
-const ALBEDO = `vec3 albedo = p.y < -0.49 + 0.001 * t
-      ? vec3(0.45 + 0.2 * mod(floor(p.x) + floor(p.z), 2.0))  // checkered ground
-      : vec3(0.95, 0.4, 0.6);`;
-
-const MATERIAL_ALBEDO = `float material = sceneMaterial(p).y;
-    vec3 albedo = material < 0.5 ? vec3(0.45 + 0.2 * mod(floor(p.x) + floor(p.z), 2.0))  // checkered ground
+function surface(materials: boolean, pbr: boolean): string {
+  if (materials) {
+    return `float material = sceneMaterial(p).y;  // 0 ground, 1 blob, 2 box
+    vec3 albedo = material < 0.5 ? ${CHECKER}  // checkered ground
                 : material < 1.5 ? vec3(0.95, 0.4, 0.6)
-                : vec3(0.3, 0.55, 0.95);`;
-
-function shade(minimal: boolean, albedo: string, fogDistance: string): string {
-  if (minimal) {
-    return `    vec3 n = calcNormal(p);
-    vec3 light = normalize(vec3(0.6, 0.8, 0.4));
-    float diffuse = max(dot(n, light), 0.0);
-    ${albedo}
-    color = albedo * (0.2 + 0.8 * diffuse);`;
+                : vec3(0.3, 0.55, 0.95);${pbr ? `
+    float metallic = material > 1.5 ? 1.0 : 0.0;
+    float roughness = material < 0.5 ? 0.8 : 0.3;` : ''}`;
   }
-  return `    vec3 n = calcNormal(p);
-    vec3 light = normalize(vec3(0.6, 0.8, 0.4));
-    float diffuse = max(dot(n, light), 0.0) * softShadow(p, light, 0.02, 10.0, 16.0);
-    float ambient = (0.5 + 0.5 * n.y) * calcAO(p, n);
-    ${albedo}
-    color = albedo * (diffuse * vec3(1.0, 0.95, 0.85) + ambient * vec3(0.25, 0.3, 0.4));
-    color = mix(color, sky, 1.0 - exp(-pow(t / ${fogDistance}, 3.0)));  // distance fog`;
+  return `bool ground = p.y < -0.49 + 0.001 * t;
+    vec3 albedo = ground ? ${CHECKER} : vec3(0.95, 0.4, 0.6);  // checkered ground, pink objects${pbr ? `
+    float metallic = 0.0;
+    float roughness = ground ? 0.8 : 0.3;` : ''}`;
+}
+
+/** Sun and sky light for each model; `shadow` and `ao` are 1.0 in the minimal starter. */
+const LIGHT: Record<string, string> = {
+  lambert: `color = lambert(n, light, albedo) * shadow * vec3(1.0, 0.95, 0.85)
+          + albedo * (0.5 + 0.5 * n.y) * ao * vec3(0.25, 0.3, 0.4);`,
+  blinn: `color = blinnPhong(n, v, light, albedo, 64.0, 0.6) * shadow * vec3(1.0, 0.95, 0.85)
+          + albedo * (0.5 + 0.5 * n.y) * ao * vec3(0.25, 0.3, 0.4);`,
+  toon: `color = toon(n, v, light, albedo, 3.0) * (0.5 + 0.5 * step(0.5, shadow));`,
+  pbr: `color = pbr(n, v, light, albedo, metallic, roughness) * shadow * 3.0 * vec3(1.0, 0.95, 0.85)
+          + pbrAmbient(n, v, albedo, metallic, roughness, vec3(0.35, 0.45, 0.6), vec3(0.15, 0.12, 0.1)) * ao;`,
+};
+
+function shade(minimal: boolean, materials: boolean, lighting: string, fogDistance: string): string {
+  const lines = [
+    'vec3 n = calcNormal(p);',
+    'vec3 v = -rd;',
+    'vec3 light = normalize(vec3(0.6, 0.8, 0.4));',
+    minimal ? 'float shadow = 1.0;' : 'float shadow = softShadow(p, light, 0.02, 10.0, 16.0);',
+    minimal ? 'float ao = 1.0;' : 'float ao = calcAO(p, n);',
+    surface(materials, lighting === 'pbr'),
+    LIGHT[lighting],
+  ];
+  if (!minimal) lines.push(`color = mix(color, sky, 1.0 - exp(-pow(t / ${fogDistance}, 3.0)));  // distance fog`);
+  return lines.map((l) => `    ${l}`).join('\n');
 }
 
 export interface StarterOptions {
@@ -88,14 +108,20 @@ export interface StarterOptions {
   chunks: string[];
   minimal: boolean;
   materials?: boolean;
+  /** One of LIGHTING_MODELS; default lambert. */
+  lighting?: string;
   /** Camera orbit radius. */
   distance?: number;
 }
 
 /** A raymarching starter. Shared with `glsl:sdf --dim=3 --name`, which fills the scene with the picked shapes. */
 export function raymarchStarter(file: string, version: Version, options: StarterOptions): Action[] {
-  const { scene, chunks, minimal, materials = false, distance = 4 } = options;
+  const { scene, chunks, minimal, materials = false, lighting = 'lambert', distance = 4 } = options;
   const parts = minimal ? ['march', 'normal', 'camera'] : ['march', 'normal', 'soft-shadow', 'ao', 'camera'];
+  const color = lighting === 'pbr' ? ['lighting/pbr', 'lighting/pbr-ambient', 'color/aces', 'color/srgb'] : [`lighting/${lighting}`, 'color/srgb'];
+  const output = lighting === 'pbr'
+    ? '  // Exposure, then HDR → [0, 1] → sRGB for display.\n  fragColor = vec4(linearToSrgb(tonemapAces(color * 1.6)), 1.0);'
+    : '  fragColor = vec4(linearToSrgb(color), 1.0);  // linear → sRGB for display';
   const body = `uniform float uTime;        // seconds since start
 uniform vec2 uResolution;   // viewport size in pixels
 uniform vec2 uMouse;        // pointer position in pixels, origin bottom-left
@@ -117,31 +143,36 @@ void main() {
   float t = raymarch(eye, rd, 30.0);
   if (t > 0.0) {
     vec3 p = eye + t * rd;
-${shade(minimal, materials ? MATERIAL_ALBEDO : ALBEDO, (3 * distance).toFixed(1))}
+${shade(minimal, materials, lighting, (3 * distance).toFixed(1))}
   }
 
-  fragColor = vec4(pow(color, vec3(1.0 / 2.2)), 1.0);  // linear → sRGB
+${output}
 }
 `;
   return [
     { add: file, template: withHeader(version, body) },
-    ...chunkActions([...chunks, ...parts.map((part) => `raymarch/${part}`)], { into: file, dir: '' }),
+    ...chunkActions([...chunks, ...parts.map((part) => `raymarch/${part}`), ...color], { into: file, dir: '' }),
   ];
 }
 
 const raymarchGenerator: Generator = {
   description:
-    'raymarch signed distance fields: --name=Scene for a starter (--minimal: no shadows/AO/fog, --materials: per-surface material ids), or the helpers (--parts=march,normal,soft-shadow,ao,camera|all) --into a shader or as files in <dir>/lib/',
+    'raymarch signed distance fields: --name=Scene for a starter (--lighting=lambert|blinn|toon|pbr, --minimal: no shadows/AO/fog, --materials: per-surface material ids), or the helpers (--parts=march,normal,soft-shadow,ao,camera|all) --into a shader or as files in <dir>/lib/',
   params: {
     name: { default: '' },
     minimal: { default: false },
     materials: { default: false },
+    lighting: { default: 'lambert' },
     parts: { default: 'all' },
     into: { default: '' },
     dir: { default: 'shaders' },
     version: { default: '300es' },
   },
-  actions: ({ name, minimal, materials, parts, into, dir, version }, { kebab }) => {
+  actions: ({ name, minimal, materials, lighting, parts, into, dir, version }, { kebab }) => {
+    const model = String(lighting);
+    if (!LIGHTING_MODELS.includes(model)) {
+      fail(`glsl:raymarch --lighting: expected one of ${LIGHTING_MODELS.map((m) => `"${m}"`).join(', ')}, got "${model}"`);
+    }
     if (name && into) fail('glsl:raymarch: use either --name (new starter) or --into (existing shader), not both');
     if (name) {
       const file = inFolder(String(dir), `${kebab(String(name))}.frag.glsl`);
@@ -150,6 +181,7 @@ const raymarchGenerator: Generator = {
         chunks: SCENE_CHUNKS,
         minimal: Boolean(minimal),
         materials: Boolean(materials),
+        lighting: model,
       });
     }
     if (materials) {
