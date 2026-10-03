@@ -140,6 +140,8 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
     #lastTick = 0;
     #playing = true;
     #visible = true;
+    #loseContext = null;
+    #released = false;
     #mouse = [0, 0];
     #rotation = [0, 0];
     #drag = null;
@@ -165,7 +167,14 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
         this.#schedule();
       });
       intersect.observe(this);
-      this.#observers = [resize, intersect];
+      // Browsers only keep around 16 WebGL contexts alive and drop the oldest
+      // for good, so a page full of previews would go blank. Release ours
+      // while more than a screen away, restore it when coming back.
+      const nearby = new IntersectionObserver(([entry]) => this.#setNearby(entry.isIntersecting), {
+        rootMargin: '100% 0%',
+      });
+      nearby.observe(this);
+      this.#observers = [resize, intersect, nearby];
 
       const motion = matchMedia('(prefers-reduced-motion: reduce)');
       this.#playing = !motion.matches;
@@ -219,6 +228,7 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
         return false;
       }
       this.#gl = gl;
+      this.#loseContext = gl.getExtension('WEBGL_lose_context');
       this.#buildMesh();
       for (let i = 0; i < 4; i++) this.#loadTexture(i);
       return true;
@@ -519,6 +529,18 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
       this.#canvas.style.cursor = '';
     };
 
+    #setNearby(near) {
+      const ext = this.#loseContext;
+      if (!ext || !this.#gl) return;
+      if (!near && !this.#released && !this.#gl.isContextLost()) {
+        this.#released = true;
+        ext.loseContext();
+      } else if (near && this.#released) {
+        this.#released = false;
+        ext.restoreContext();
+      }
+    }
+
     #onContextLost = (event) => {
       event.preventDefault();
       cancelAnimationFrame(this.#frame);
@@ -531,7 +553,7 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
       this.#textures = [];
       this.#buildMesh();
       for (let i = 0; i < 4; i++) this.#loadTexture(i);
-      this.#compile();
+      if (this.#sources.frag) this.#compile();  // before the first load, #reload() compiles
     };
   }
 

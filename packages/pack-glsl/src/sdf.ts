@@ -75,8 +75,7 @@ void main() {
 }
 
 const sdfGenerator: Generator = {
-  description:
-    'add signed distance functions (--dim=2|3, --shapes=…, --ops=…, --effects=… for 2D; each takes "all") --into a shader, as files in <dir>/lib/, or --name for a preview',
+  description: 'add signed distance functions',
   params: {
     dim: { default: '2' },
     shapes: { default: '' },
