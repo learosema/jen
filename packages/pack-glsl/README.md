@@ -28,13 +28,13 @@ jen glsl:webgl --name=Clouds --inline   # shader inside index.html – opens str
 ## Noise
 
 ```sh
-jen glsl:noise --kind=fbm --base=simplex --into=shaders/clouds.frag.glsl   # simplexFbm(p, octaves)
+jen glsl:noise --kind=fbm --into=shaders/clouds.frag.glsl                  # simplexFbm(p, octaves[, gain])
 jen glsl:noise --kind=worley --dim=3 --into=shaders/cells.frag.glsl        # worleyNoise(vec3), worley(vec3) → F1, F2
 jen glsl:noise --kind=warp --name=Marble --tile                             # preview shader, drawn 2×2 to show the seams
 ```
 
 - **Base noises** (`--kind=value|perlin|simplex|worley`): `<kind>Noise(p)`, about [-1, 1]. Worley also has `worley(p)`, the distances to the nearest two feature points.
-- **Fractals** (`--kind=fbm|turbulence|ridged|warp`): `<base>Fbm(p, octaves)` and friends, on any base noise via `--base` (default `perlin`). Different bases can share a shader: `perlinFbm` and `simplexFbm` don't clash.
+- **Fractals** (`--kind=fbm|turbulence|ridged|warp`): `<base>Fbm(p, octaves)` and friends, on any base noise via `--base` (default `simplex`). An optional `gain` (default 0.5) sets the roughness; warp takes a `strength` (default 2.0) instead. Different bases can share a shader: `perlinFbm` and `simplexFbm` don't clash.
 - **Flow** (`--kind=curl`): `curlNoise(p, alpha)`, a divergence-free vector field for particles; animate `alpha` for swirling motion.
 
 Everything comes in 2D and 3D (`--dim=2|3`), and every function has an overload with a `period` that tiles seamlessly, e.g. `simplexFbm(p, vec2(4.0), 6)`. It's the same trick as SVG feTurbulence's `stitchTiles`, but for any noise: each octave doubles the period along with the frequency. Periods are positive whole numbers; 2D simplex wants an even period along y, and 3D simplex periods are limited to 289.
