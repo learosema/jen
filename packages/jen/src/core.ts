@@ -21,11 +21,13 @@ export type Action =
   /** Create a file. Skipped if it exists (unless force / --force). */
   | { add: string; template: string; force?: boolean }
   /**
-   * Insert `line` before the marker line. A single line reuses the marker's
-   * own indentation exactly; a `\n`-joined block is re-rendered in the
-   * file's indent style, keeping the block's relative nesting. No duplicates.
+   * Insert `line` before the marker line: the first line containing
+   * `before`, or the first line matching it if it's a RegExp. A single line
+   * reuses the marker's own indentation exactly; a `\n`-joined block is
+   * re-rendered in the file's indent style, keeping the block's relative
+   * nesting. No duplicates.
    */
-  | { insert: string; before: string; line: string }
+  | { insert: string; before: string | RegExp; line: string }
   /**
    * Search and replace via RegExp. Also handy for removing lines. A
    * multi-line `replace` is reindented to match the first match's line.
@@ -143,9 +145,14 @@ export async function plan(actions: Action[], force: boolean) {
         steps.push({ mark: '=', file, note: `already present: ${block[0].trim()}${block.length > 1 ? ' …' : ''}` });
         continue;
       }
-      const i = lines.findIndex((l) => l.includes(a.before));
+      const marker = a.before;
+      const i = lines.findIndex((l) => {
+        if (typeof marker === 'string') return l.includes(marker);
+        marker.lastIndex = 0; // a /g or /y RegExp would otherwise carry state between lines
+        return marker.test(l);
+      });
       if (i < 0) {
-        steps.push({ mark: '?', file, note: `marker "${a.before}" not found` });
+        steps.push({ mark: '?', file, note: `marker ${typeof marker === 'string' ? `"${marker}"` : String(marker)} not found` });
         continue;
       }
       const baseIndent = lines[i].match(/^\s*/)?.[0] ?? '';
