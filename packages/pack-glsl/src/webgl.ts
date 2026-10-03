@@ -51,8 +51,7 @@ ${element}
 }
 
 const webglGenerator: Generator = {
-  description:
-    'create a no-build WebGL2 playground: index.html + <shader-canvas> element + a fragment shader (--inline puts it into the page)',
+  description: 'create a no-build WebGL2 playground',
   params: {
     name: {},
     dir: { default: '.' },

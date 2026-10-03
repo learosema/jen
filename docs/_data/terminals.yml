@@ -361,3 +361,150 @@ together_tooling:
   - "$ jen cpp:tracy --gpu"
   - "…"
   - "$ cmake -S . -B build && cmake --build build && ctest --test-dir build"
+
+# ─── GLSL pack (glsl.md) ─────────────────────────────────────────────────────
+
+glsl_install_global:
+  - "$ npm install -g @codejen/jen @codejen/pack-glsl"
+  - "$ jen glsl:webgl --name=Clouds"
+
+glsl_install_local:
+  - "$ npm install --save-dev @codejen/jen @codejen/pack-glsl"
+  - "$ npx jen glsl:webgl --name=Clouds"
+
+glsl_install_npx:
+  - "$ npx @codejen/jen glsl:webgl --name=Clouds"
+  - "# Fetching @codejen/pack-glsl@latest …"
+
+glsl_webgl:
+  - "$ jen glsl:webgl --name=Clouds"
+  - "glsl:webgl (pack @codejen/pack-glsl) – create a no-build WebGL2 playground"
+  - ""
+  - "  + index.html"
+  - "  + shader-canvas.js"
+  - "  + shaders/clouds.frag.glsl"
+  - ""
+  - "✓ 3 written"
+  - "$ npx serve"
+
+glsl_frag:
+  - "$ jen glsl:frag --name=Plasma"
+  - "glsl:frag (pack @codejen/pack-glsl) – create a full-screen GLSL fragment shader starter"
+  - ""
+  - "  + shaders/plasma.frag.glsl"
+  - ""
+  - "✓ 1 written"
+
+glsl_vert:
+  - "$ jen glsl:vert --name=Mesh --kind=mesh"
+  - "glsl:vert (pack @codejen/pack-glsl) – create a GLSL vertex shader starter"
+  - ""
+  - "  + shaders/mesh.vert.glsl"
+  - ""
+  - "✓ 1 written"
+
+glsl_port:
+  - "$ jen glsl:port --file=shaders/clouds.frag.glsl --to=410"
+  - "glsl:port (pack @codejen/pack-glsl) – switch a shader between GLSL dialects by rewriting its header"
+  - ""
+  - '  ~ shaders/clouds.frag.glsl  /^[ \t]*precision\s+(?:lowp|mediump|highp)\s+(?:float|int)\s*;[ \t]*\r?\n/gm replaced'
+  - '  ~ shaders/clouds.frag.glsl  /^#version[^\n]*$/m replaced'
+  - ""
+  - "✓ 1 written"
+
+glsl_noise:
+  - "$ jen glsl:noise --kind=fbm --into=shaders/clouds.frag.glsl"
+  - "glsl:noise (pack @codejen/pack-glsl) – add GLSL noise, tileable"
+  - ""
+  - "  ~ shaders/clouds.frag.glsl  + // jen:functions – jen glsl:* adds functions above this line"
+  - "  ~ shaders/clouds.frag.glsl  + // psrdnoise (c) 2021 Stefan Gustavson and Ian McEwan (+125 more)"
+  - "  ~ shaders/clouds.frag.glsl  + // simplexNoise (2D) · pack-glsl · MIT-0 (+14 more)"
+  - "  ~ shaders/clouds.frag.glsl  + // simplexFbm (2D) · pack-glsl · MIT-0 (+42 more)"
+  - ""
+  - "✓ 1 written"
+
+glsl_noise_tile:
+  - "$ jen glsl:noise --kind=warp --base=perlin --name=Marble --tile"
+  - "glsl:noise (pack @codejen/pack-glsl) – add GLSL noise, tileable"
+  - ""
+  - "  + shaders/marble.frag.glsl"
+  - "  ~ shaders/marble.frag.glsl  + // jen:functions – jen glsl:* adds functions above this line"
+  - "  ~ shaders/marble.frag.glsl  + // webgl-noise (https://github.com/stegu/webgl-noise) (+22 more)"
+  - "  …"
+  - "  ~ shaders/marble.frag.glsl  + // perlinFbm (2D) · pack-glsl · MIT-0 (+42 more)"
+  - "  ~ shaders/marble.frag.glsl  + // perlinWarp (2D) · pack-glsl · MIT-0 (+21 more)"
+  - ""
+  - "✓ 1 written"
+
+glsl_sdf:
+  - "$ jen glsl:sdf --dim=3 --shapes=sphere,torus --ops=smooth-union --into=shaders/scene.frag.glsl"
+  - "glsl:sdf (pack @codejen/pack-glsl) – add signed distance functions"
+  - ""
+  - "  = shaders/scene.frag.glsl  already present: // jen:functions – jen glsl:* adds functions above this line"
+  - "  ~ shaders/scene.frag.glsl  + // sdSphere · pack-glsl · MIT-0 (+4 more)"
+  - "  ~ shaders/scene.frag.glsl  + // sdTorus · pack-glsl · MIT-0 (+7 more)"
+  - "  ~ shaders/scene.frag.glsl  + // opSmoothUnion · pack-glsl · MIT-0 (+8 more)"
+  - ""
+  - "✓ 1 written"
+
+glsl_raymarch:
+  - "$ jen glsl:raymarch --name=Scene --lighting=pbr --materials"
+  - "glsl:raymarch (pack @codejen/pack-glsl) – raymarch signed distance fields"
+  - ""
+  - "  + shaders/scene.frag.glsl"
+  - "  ~ shaders/scene.frag.glsl  + // jen:functions – jen glsl:* adds functions above this line"
+  - "  ~ shaders/scene.frag.glsl  + // sdPlane · pack-glsl · MIT-0 (+5 more)"
+  - "  …"
+  - "  ~ shaders/scene.frag.glsl  + // raymarch · pack-glsl · MIT-0 (+18 more)"
+  - "  ~ shaders/scene.frag.glsl  + // calcNormal · pack-glsl · MIT-0 (+15 more)"
+  - "  …"
+  - "  ~ shaders/scene.frag.glsl  + // BakingLab (https://github.com/TheRealMJP/BakingLab) (+23 more)"
+  - "  ~ shaders/scene.frag.glsl  + // tonemapAces: Stephen Hill's fit of the ACES filmic curve (RRT + ODT), via (+34 more)"
+  - "  ~ shaders/scene.frag.glsl  + // linearToSrgb · pack-glsl · MIT-0 (+15 more)"
+  - ""
+  - "✓ 1 written"
+
+glsl_lighting:
+  - "$ jen glsl:lighting --models=toon --tonemap=srgb --into=shaders/clouds.frag.glsl"
+  - "glsl:lighting (pack @codejen/pack-glsl) – add lighting and color output"
+  - ""
+  - "  = shaders/clouds.frag.glsl  already present: // jen:functions – jen glsl:* adds functions above this line"
+  - "  ~ shaders/clouds.frag.glsl  + // toon · pack-glsl · MIT-0 (+17 more)"
+  - "  ~ shaders/clouds.frag.glsl  + // linearToSrgb · pack-glsl · MIT-0 (+15 more)"
+  - ""
+  - "✓ 1 written"
+
+glsl_displace:
+  - "$ jen glsl:displace --kind=noise --name=Blob"
+  - "glsl:displace (pack @codejen/pack-glsl) – displace surfaces in the vertex shader with correct normals"
+  - ""
+  - "  + shaders/blob.vert.glsl"
+  - "  ~ shaders/blob.vert.glsl  + // jen:functions – jen glsl:* adds functions above this line"
+  - "  ~ shaders/blob.vert.glsl  + // orthonormalBasis · pack-glsl · MIT-0 (+11 more)"
+  - "  ~ shaders/blob.vert.glsl  + // displace · pack-glsl · MIT-0 (+24 more)"
+  - "  …"
+  - "  + shaders/blob.frag.glsl"
+  - "  ~ shaders/blob.frag.glsl  + // jen:functions – jen glsl:* adds functions above this line"
+  - "  ~ shaders/blob.frag.glsl  + // blinnPhong · pack-glsl · MIT-0 (+14 more)"
+  - "  ~ shaders/blob.frag.glsl  + // linearToSrgb · pack-glsl · MIT-0 (+15 more)"
+  - ""
+  - "✓ 2 written"
+
+glsl_matrix:
+  - "$ jen glsl:matrix --fns=rotate --into=shaders/mesh.vert.glsl"
+  - "glsl:matrix (pack @codejen/pack-glsl) – add matrix helpers"
+  - ""
+  - "  ~ shaders/mesh.vert.glsl  + // jen:functions – jen glsl:* adds functions above this line"
+  - "  ~ shaders/mesh.vert.glsl  + // rotateX, rotateY, rotateZ, rotateAxis · pack-glsl · MIT-0 (+32 more)"
+  - ""
+  - "✓ 1 written"
+
+glsl_util:
+  - "$ jen glsl:util --fns=rot2,remap --into=shaders/clouds.frag.glsl"
+  - "glsl:util (pack @codejen/pack-glsl) – add GLSL helpers"
+  - ""
+  - "  = shaders/clouds.frag.glsl  already present: // jen:functions – jen glsl:* adds functions above this line"
+  - "  ~ shaders/clouds.frag.glsl  + // rot2 · pack-glsl · MIT-0 (+7 more)"
+  - "  ~ shaders/clouds.frag.glsl  + // remap · pack-glsl · MIT-0 (+5 more)"
+  - ""
+  - "✓ 1 written"

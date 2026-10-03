@@ -15,7 +15,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "docs:install": "gem install --user-install bundler && cd docs && PATH=\"$(ruby -e 'puts Gem.user_dir')/bin:$PATH\" bundle install",
-    "docs": "cd docs && PATH=\"$(ruby -e 'puts Gem.user_dir')/bin:$PATH\" bundle exec jekyll serve --livereload"
+    "docs": "node packages/pack-glsl/scripts/docs-assets.ts && cd docs && PATH=\"$(ruby -e 'puts Gem.user_dir')/bin:$PATH\" bundle exec jekyll serve --livereload"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

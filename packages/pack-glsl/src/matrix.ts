@@ -9,7 +9,7 @@ import { chunkActions, pickChunks } from './chunks.ts';
 import { parseList } from './common.ts';
 
 const matrixGenerator: Generator = {
-  description: 'add matrix helpers (--fns=rotate,perspective,look-at,transform|all) --into a shader, or as files in <dir>/lib/',
+  description: 'add matrix helpers',
   params: {
     fns: { default: '' },
     into: { default: '' },

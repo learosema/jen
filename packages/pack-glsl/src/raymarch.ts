@@ -156,8 +156,7 @@ ${output}
 }
 
 const raymarchGenerator: Generator = {
-  description:
-    'raymarch signed distance fields: --name=Scene for a starter (--lighting=lambert|blinn|toon|pbr, --minimal: no shadows/AO/fog, --materials: per-surface material ids), or the helpers (--parts=march,normal,soft-shadow,ao,camera|all) --into a shader or as files in <dir>/lib/',
+  description: 'raymarch signed distance fields',
   params: {
     name: { default: '' },
     minimal: { default: false },

@@ -18,8 +18,7 @@ import { fail, parseList } from './common.ts';
 const TONEMAP_NAMES: Record<string, string> = { aces: 'color/aces', reinhard: 'color/reinhard', srgb: 'color/srgb' };
 
 const lightingGenerator: Generator = {
-  description:
-    'add lighting (--models=lambert,blinn,toon,pbr) and color output (--tonemap=aces,reinhard,srgb) --into a shader or as files in <dir>/lib/; each takes "all"',
+  description: 'add lighting and color output',
   params: {
     models: { default: '' },
     tonemap: { default: '' },

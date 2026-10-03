@@ -1,0 +1,17 @@
+/* ───────── GLSL recipes: live <shader-canvas> previews ───────── */
+.shaders { --min: 13rem; --gap: var(--space-m); }
+.shaders.wide { --min: 20rem; }
+.shader { margin: 0; }
+.shader shader-canvas {
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  background: var(--term-bg);
+  border: thin solid var(--border);
+}
+.shader figcaption {
+  margin-block-start: var(--space-s);
+  font-size: var(--text-label);
+  color: var(--muted);
+}
+.shader figcaption code { font-size: inherit; }
