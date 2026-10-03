@@ -130,12 +130,10 @@ There's no prompting, no `validate`, no `select` with choices – if a generator
 
 ### Actions
 
-| Action     | Shape                          | What it does                                                                                                                                 |
-| ---------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **add**    | `{ add, template, force? }`    | Creates a file. Existing files are skipped unless `force` or `--force` is set.                                                               |
-| **insert** | `{ insert, before, line }`     | Inserts `line` before the first line containing the marker `before`, using the marker's indentation. Skipped if the line is already present. |
-| **modify** | `{ modify, pattern, replace }` | Search and replace with a `RegExp`. Also the way to remove lines.                                                                            |
-| **delete** | `{ delete }`                   | Deletes a file. Only works inside the project root, and never on directories.                                                                |
+- **add** – `{ add, template, force? }`: Creates a file. Existing files are skipped unless `force` or `--force` is set.
+- **insert** – `{ insert, before, line }`: Inserts `line` before the first line containing the marker `before`, using the marker's indentation. Skipped if the line is already present.
+- **modify** – `{ modify, pattern, replace }`: Search and replace with a `RegExp`. Also the way to remove lines.
+- **delete** – `{ delete }`: Deletes a file. Only works inside the project root, and never on directories.
 
 All paths are relative to the **project root**: the directory containing `.jen/`, or the current directory if there is none. Actions on the same file build on each other, so you can `add` a file and `insert` into it in the same run.
 
@@ -165,13 +163,13 @@ For a `modify` replacement, only the lines *after* the first are reindented – 
 
 The second argument to `actions()` is a set of case helpers, so generators never need to import anything:
 
-| Helper     | `'rigid body'` becomes |
-| ---------- | ---------------------- |
-| `pascal`   | `RigidBody`            |
-| `camel`    | `rigidBody`            |
-| `snake`    | `rigid_body`           |
-| `kebab`    | `rigid-body`           |
-| `constant` | `RIGID_BODY`           |
+With `'rigid body'` as input:
+
+- `pascal` – `RigidBody`
+- `camel` – `rigidBody`
+- `snake` – `rigid_body`
+- `kebab` – `rigid-body`
+- `constant` – `RIGID_BODY`
 
 ### Undoing things
 
@@ -322,14 +320,12 @@ By default, all action paths are relative to the project root (the directory con
 
 The plan uses these marks:
 
-| Mark | Meaning                                                            |
-| ---- | ------------------------------------------------------------------ |
-| `+`  | file will be created                                               |
-| `~`  | file will be changed                                               |
-| `!`  | file will be overwritten                                           |
-| `-`  | file will be deleted                                               |
-| `=`  | nothing to do (already exists, already present, no match)          |
-| `?`  | problem, action skipped (missing file or marker, path not allowed) |
+- `+` – file will be created
+- `~` – file will be changed
+- `!` – file will be overwritten
+- `-` – file will be deleted
+- `=` – nothing to do (already exists, already present, no match)
+- `?` – problem, action skipped (missing file or marker, path not allowed)
 
 ## Editor integration
 
