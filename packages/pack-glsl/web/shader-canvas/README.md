@@ -88,7 +88,7 @@ Inline shaders compile right after the element is defined, so add your listeners
 
 ## Accessibility and performance
 
-With `prefers-reduced-motion: reduce`, a single frame is rendered and nothing animates until `play()` is called. Rendering stops while the element is offscreen or the tab is hidden, and live reload polling pauses too. More than a screen away, the element releases its WebGL context and restores it when it comes back, so a page can hold many previews: browsers only keep around 16 contexts alive. A context lost for other reasons is restored automatically, too.
+With `prefers-reduced-motion: reduce`, a single frame is rendered and nothing animates until `play()` is called. Rendering stops while the element is offscreen or the tab is hidden, and live reload polling pauses too. The WebGL context is only created once the element comes within a screen of the viewport, and dropped again when it's further away, so a page can hold many previews: browsers only keep around 16 contexts alive (fewer on phones) and drop the oldest for good. Coming back creates a fresh context right away. If the browser drops the context of a visible element anyway, it starts over once.
 
 ## License
 
