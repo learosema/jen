@@ -16,12 +16,13 @@
  * Directives are stripped on output; everything else, including the chunk's
  * own attribution line, is emitted verbatim.
  *
- * With `--into=<file>`, every chunk and its dependencies are inserted before
- * `void main(` in dependency order, each license notice right before the
- * first chunk needing one. jen's insert skips blocks that are already
- * present, so dependencies and notices land once per shader – that's the
- * stand-in for #include. Without `--into`, each chunk becomes its own file
- * under `<dir>/lib/`, carrying its notices, for hosts with an include system.
+ * With `--into=<file>`, every chunk and its dependencies are inserted in
+ * dependency order above a `// jen:functions` marker line, each license
+ * notice right before the first chunk needing one. jen's insert skips blocks
+ * that are already present, so dependencies and notices land once per
+ * shader – that's the stand-in for #include. Without `--into`, each chunk
+ * becomes its own file under `<dir>/lib/`, carrying its notices, for hosts
+ * with an include system.
  */
 import type { Action } from '@codejen/jen';
 import { fail, inFolder, listGlsl, readPackFile } from './common.ts';
@@ -177,8 +178,20 @@ export function chunkFileName(id: string): string {
   return `${id.replace('/', '-').replace('@', '-')}.glsl`;
 }
 
-/** Marker for --into: functions go right above main(), so any shader works, no marker needed. */
-export const INTO_MARKER = 'void main(';
+/**
+ * Where --into puts functions: above this marker line. If the shader has
+ * none yet, it's inserted before the first function definition, so the
+ * pack's functions come before any of your own that call them (a scene's
+ * scene(), say). Chunks then pile up above the marker in order, also across
+ * runs – inserting each before "the first function" instead would reverse
+ * them, and put new ones above helpers they need.
+ */
+export const INTO_MARKER = '// jen:functions';
+const MARKER_LINE = `${INTO_MARKER} – jen glsl:* adds functions above this line`;
+
+/** A function definition (or prototype) starting at column 0: `float scene(`, `vec3 shade(`, `Material pick(`, `void main(`. */
+export const FIRST_FUNCTION =
+  /^(?:(?:highp|mediump|lowp|precise)\s+)*(?:void|float|double|int|uint|bool|[biud]?vec[234]|d?mat[234](?:x[234])?|[A-Z]\w*)\s+\w+\s*\(/;
 
 /**
  * Actions that put `ids` (plus dependencies and license notices) into a
@@ -188,7 +201,7 @@ export function chunkActions(ids: string[], { into, dir }: { into: string; dir: 
   const chunks = resolveChunks(ids);
 
   if (into) {
-    const actions: Action[] = [];
+    const actions: Action[] = [{ insert: into, before: FIRST_FUNCTION, line: MARKER_LINE }];
     const noticed = new Set<string>();
     for (const chunk of chunks) {
       for (const license of noticesFor(chunk)) {
@@ -196,7 +209,7 @@ export function chunkActions(ids: string[], { into, dir }: { into: string; dir: 
         noticed.add(license);
         actions.push({ insert: into, before: INTO_MARKER, line: `${licenseText(license)}\n` });
       }
-      // The trailing empty line keeps one blank line between chunks and before main().
+      // The trailing empty line keeps one blank line between chunks.
       actions.push({ insert: into, before: INTO_MARKER, line: `${chunk.code}\n` });
     }
     return actions;

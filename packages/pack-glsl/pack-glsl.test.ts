@@ -54,7 +54,8 @@ function applyActions(files: Map<string, string>, actions: Action[]): Map<string
       const block = a.line.split('\n').map((l) => l.trim());
       const present = lines.some((_, k) => block.every((b, j) => lines[k + j]?.trim() === b));
       if (present) continue;
-      const i = lines.findIndex((l) => l.includes(a.before));
+      const marker = a.before;
+      const i = lines.findIndex((l) => (typeof marker === 'string' ? l.includes(marker) : marker.test(l)));
       assert.ok(i >= 0, `marker "${a.before}" not found in ${a.insert}`);
       lines.splice(i, 0, ...a.line.split('\n'));
       files.set(a.insert, lines.join('\n'));
@@ -85,7 +86,7 @@ function assertCompiles(source: string, stage: 'vert' | 'frag', label: string) {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('chunks', () => {
-  const allIds = ['util', 'noise', 'fractal'].flatMap(chunkIds);
+  const allIds = ['util', 'noise', 'fractal', 'sdf2d', 'sdf3d', 'sdfop', 'sdffx', 'raymarch'].flatMap(chunkIds);
 
   it('every chunk declares a license; third-party ones have an existing notice', () => {
     for (const id of allIds) {
@@ -173,9 +174,11 @@ describe('chunks', () => {
     const rebased = ['fbm', 'turbulence', 'ridged', 'warp'].flatMap((k) => [2, 3].flatMap((d) => NOISE_BASES.map((b) => `fractal/${k}${d}@${b}`)));
     for (const version of VERSIONS) {
       for (const id of [...allIds, ...rebased]) {
-        const code = resolveChunks([id])
+        let code = resolveChunks([id])
           .map((c) => c.code)
           .join('\n\n');
+        // Raymarch helpers call the user's scene, which they only declare.
+        if (/\bscene\(/.test(code)) code += '\n\nfloat scene(vec3 p) { return length(p) - 1.0; }';
         assertCompiles(`${header(version)}\n\n${code}\n\nout vec4 fragColor;\nvoid main() { fragColor = vec4(0.0); }\n`, 'frag', `${id} (${version})`);
       }
     }
@@ -450,5 +453,134 @@ describe('glsl:noise', () => {
         }
       }
     }
+  });
+});
+
+describe('--into placement', () => {
+  const SCENE = `#version 300 es
+precision highp float;
+uniform float uTime;
+out vec4 fragColor;
+
+float scene(vec3 p) {
+  return opSmoothUnion(sdSphere(p, 1.0), sdBox(p - vec3(1.0), vec3(0.5)), 0.2);
+}
+
+void main() {
+  vec3 rd = cameraMatrix(vec3(0.0, 0.0, 4.0), vec3(0.0), 0.0) * normalize(vec3(0.0, 0.0, 1.5));
+  float t = raymarch(vec3(0.0, 0.0, 4.0), rd, 20.0);
+  fragColor = vec4(t > 0.0 ? calcNormal(vec3(0.0, 0.0, 4.0) + t * rd) : vec3(0.0), 1.0);
+}
+`;
+
+  it('puts functions above the first function, so your own scene() can call them', () => {
+    const files = applyActions(new Map([['s.glsl', SCENE]]), run('sdf', { dim: '3', shapes: 'sphere,box', ops: 'smooth-union', into: 's.glsl' }));
+    const out = files.get('s.glsl')!;
+    assert.equal(out.match(/\/\/ jen:functions/g)?.length, 1);
+    const [sphere, union, marker, scene] = ['float sdSphere(', 'float opSmoothUnion(', '// jen:functions', 'float scene('].map((x) => out.indexOf(x));
+    assert.ok(0 < sphere && sphere < union && union < marker && marker < scene, 'chunks, then the marker, then scene()');
+  });
+
+  it('a later run appends below what is already there, and the result compiles', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    const files = applyActions(new Map([['s.glsl', SCENE]]), run('sdf', { dim: '3', shapes: 'sphere,box', ops: 'smooth-union', into: 's.glsl' }));
+    applyActions(files, run('raymarch', { into: 's.glsl', parts: 'march,normal,camera' }));
+    const out = files.get('s.glsl')!;
+    assert.equal(out.match(/\/\/ jen:functions/g)?.length, 1);
+    assert.ok(out.indexOf('float opSmoothUnion(') < out.indexOf('float raymarch('), 'new chunks after existing ones');
+    assert.ok(out.indexOf('float raymarch(') < out.indexOf('// jen:functions'));
+    assertCompiles(out, 'frag', 'scene with sdf + raymarch helpers');
+  });
+});
+
+describe('glsl:sdf', () => {
+  const emptyShader = (version: Version = '300es') =>
+    new Map([['s.glsl', `${header(version)}\n\nout vec4 fragColor;\n\nvoid main() {\n  fragColor = vec4(0.0);\n}\n`]]);
+
+  it('validates its flags, listing what can be picked', () => {
+    assert.throws(() => run('sdf', {}), /pick something – --shapes=box, circle, polygon, round-box, segment, star; --ops=extrude, .*; --effects=fill, glow, inner-shadow, shadow, stroke/);
+    assert.throws(() => run('sdf', { dim: '3' }), /--shapes=box, capsule, cylinder, plane, round-box, sphere, torus; --ops=.*\(each also takes "all"\)$/);
+    assert.throws(() => run('sdf', { dim: '3', effects: 'glow' }), /--effects: 2D only/);
+    assert.throws(() => run('sdf', { shapes: 'sphere' }), /--shapes: unknown "sphere"/);
+    assert.throws(() => run('sdf', { dim: '4', shapes: 'box' }), /--dim: expected "2" or "3", got "4"/);
+    assert.throws(() => run('sdf', { ops: 'union', name: 'x' }), /the preview needs at least one of --shapes=/);
+  });
+
+  it('previews shapes in the order given, `all` in the documented order', () => {
+    const order = (answers: Record<string, string>) => {
+      const out = applyActions(new Map(), run('sdf', { name: 'x', ...answers })).get('shaders/x.frag.glsl')!;
+      return [...out.matchAll(/\b(sd[A-Z]\w*)\(\(p - /g)].map((m) => m[1]);
+    };
+    assert.deepEqual(order({ shapes: 'star,circle,box' }), ['sdStar', 'sdCircle', 'sdBox']);
+    assert.deepEqual(order({ shapes: 'all' }), ['sdCircle', 'sdBox', 'sdRoundBox', 'sdSegment', 'sdPolygon', 'sdStar']);
+    assert.deepEqual(order({ dim: '3', shapes: 'all' }), ['sdSphere', 'sdBox', 'sdRoundBox', 'sdTorus', 'sdCapsule', 'sdCylinder']);
+  });
+
+  it('pulls in dependencies: round-box needs box, stroke needs fill, smooth ops need smooth-union', () => {
+    const ids = adds(run('sdf', { shapes: 'round-box', ops: 'smooth-subtract', effects: 'stroke' })).map((a) => a.add);
+    assert.deepEqual(ids, [
+      'shaders/lib/sdf2d-box.glsl',
+      'shaders/lib/sdf2d-round-box.glsl',
+      'shaders/lib/sdfop-smooth-union.glsl',
+      'shaders/lib/sdfop-smooth-subtract.glsl',
+      'shaders/lib/sdffx-fill.glsl',
+      'shaders/lib/sdffx-stroke.glsl',
+    ]);
+  });
+
+  it('everything 2D and 3D fits into one shader', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    for (const version of VERSIONS) {
+      const files = emptyShader(version);
+      applyActions(files, run('sdf', { shapes: 'all', ops: 'all', effects: 'all', into: 's.glsl' }));
+      applyActions(files, run('sdf', { dim: '3', shapes: 'all', ops: 'all', into: 's.glsl' }));
+      assertCompiles(files.get('s.glsl')!, 'frag', `all sdf (${version})`);
+    }
+  });
+
+  it('previews compile: 2D drawing and 3D raymarched scene', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    for (const dim of ['2', '3']) {
+      const files = applyActions(new Map(), run('sdf', { dim, shapes: 'all', name: 'Shapes' }));
+      const out = files.get('shaders/shapes.frag.glsl')!;
+      assert.match(out, dim === '2' ? /float scene\(vec2 p\)/ : /float scene\(vec3 p\)/);
+      assertCompiles(out, 'frag', `sdf preview ${dim}D`);
+    }
+  });
+});
+
+describe('glsl:raymarch', () => {
+  it('the starter compiles, full, minimal and with materials, in every dialect', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    for (const version of VERSIONS) {
+      for (const minimal of [false, true]) {
+        for (const materials of [false, true]) {
+          const files = applyActions(new Map(), run('raymarch', { name: 'Scene', minimal, materials, version }));
+          assertCompiles(files.get('shaders/scene.frag.glsl')!, 'frag', `raymarch starter (${version}, minimal: ${minimal}, materials: ${materials})`);
+        }
+      }
+    }
+  });
+
+  it('--materials: sceneMaterial() returns (distance, id); scene() stays the distance the helpers use', () => {
+    const out = applyActions(new Map(), run('raymarch', { name: 'x', materials: true })).get('shaders/x.frag.glsl')!;
+    assert.match(out, /vec2 sceneMaterial\(vec3 p\) \{/);
+    assert.match(out, /float scene\(vec3 p\) \{ return sceneMaterial\(p\)\.x; \}/);
+    assert.match(out, /float material = sceneMaterial\(p\)\.y;/);
+    assert.throws(() => run('raymarch', { into: 'x.glsl', materials: true }), /--materials: only for a new starter/);
+  });
+
+  it('--minimal leaves out shadows, AO and fog', () => {
+    const full = applyActions(new Map(), run('raymarch', { name: 'x' })).get('shaders/x.frag.glsl')!;
+    const minimal = applyActions(new Map(), run('raymarch', { name: 'x', minimal: true })).get('shaders/x.frag.glsl')!;
+    for (const s of ['float softShadow(', 'float calcAO(', 'fog']) {
+      assert.ok(full.includes(s), `full has ${s}`);
+      assert.ok(!minimal.includes(s), `minimal lacks ${s}`);
+    }
+  });
+
+  it('--parts picks helpers, which declare scene() as a prototype', () => {
+    const files = adds(run('raymarch', { parts: 'soft-shadow' }));
+    assert.deepEqual(files.map((f) => f.add), ['shaders/lib/raymarch-soft-shadow.glsl']);
+    assert.match(files[0].template, /^float scene\(vec3 p\);$/m);
+    assert.doesNotMatch(files[0].template, /\bmap\(/);
+    assert.throws(() => run('raymarch', { parts: 'shade' }), /--parts: unknown "shade" – valid: ao, camera, march, normal, soft-shadow/);
+    assert.throws(() => run('raymarch', { name: 'x', into: 'y' }), /either --name .* or --into/);
   });
 });
