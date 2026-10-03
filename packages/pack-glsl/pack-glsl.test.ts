@@ -86,7 +86,7 @@ function assertCompiles(source: string, stage: 'vert' | 'frag', label: string) {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('chunks', () => {
-  const allIds = ['util', 'noise', 'fractal', 'sdf2d', 'sdf3d', 'sdfop', 'sdffx', 'raymarch'].flatMap(chunkIds);
+  const allIds = ['util', 'noise', 'fractal', 'sdf2d', 'sdf3d', 'sdfop', 'sdffx', 'raymarch', 'lighting', 'color'].flatMap(chunkIds);
 
   it('every chunk declares a license; third-party ones have an existing notice', () => {
     for (const id of allIds) {
@@ -547,15 +547,25 @@ describe('glsl:sdf', () => {
 });
 
 describe('glsl:raymarch', () => {
-  it('the starter compiles, full, minimal and with materials, in every dialect', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+  it('the starter compiles with every lighting model, full, minimal and with materials, in every dialect', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
     for (const version of VERSIONS) {
-      for (const minimal of [false, true]) {
-        for (const materials of [false, true]) {
-          const files = applyActions(new Map(), run('raymarch', { name: 'Scene', minimal, materials, version }));
-          assertCompiles(files.get('shaders/scene.frag.glsl')!, 'frag', `raymarch starter (${version}, minimal: ${minimal}, materials: ${materials})`);
+      for (const lighting of ['lambert', 'blinn', 'toon', 'pbr']) {
+        for (const minimal of [false, true]) {
+          for (const materials of [false, true]) {
+            const files = applyActions(new Map(), run('raymarch', { name: 'Scene', lighting, minimal, materials, version }));
+            assertCompiles(files.get('shaders/scene.frag.glsl')!, 'frag', `raymarch starter (${version}, ${lighting}, minimal: ${minimal}, materials: ${materials})`);
+          }
         }
       }
     }
+  });
+
+  it('--lighting=pbr tonemaps with ACES and carries the BakingLab notice once', () => {
+    const out = applyActions(new Map(), run('raymarch', { name: 'x', lighting: 'pbr', materials: true })).get('shaders/x.frag.glsl')!;
+    assert.match(out, /fragColor = vec4\(linearToSrgb\(tonemapAces\(color \* 1\.6\)\)/);
+    assert.match(out, /float metallic = material > 1\.5 \? 1\.0 : 0\.0;/);
+    assert.equal(out.match(/Copyright \(c\) 2016 MJP/g)?.length, 1);
+    assert.throws(() => run('raymarch', { name: 'x', lighting: 'phong' }), /--lighting: expected one of "lambert", "blinn", "toon", "pbr", got "phong"/);
   });
 
   it('--materials: sceneMaterial() returns (distance, id); scene() stays the distance the helpers use', () => {
@@ -582,5 +592,26 @@ describe('glsl:raymarch', () => {
     assert.doesNotMatch(files[0].template, /\bmap\(/);
     assert.throws(() => run('raymarch', { parts: 'shade' }), /--parts: unknown "shade" – valid: ao, camera, march, normal, soft-shadow/);
     assert.throws(() => run('raymarch', { name: 'x', into: 'y' }), /either --name .* or --into/);
+  });
+});
+
+describe('glsl:lighting', () => {
+  it('validates, listing models and tonemaps', () => {
+    assert.throws(() => run('lighting', {}), /pick something – --models=blinn, lambert, pbr, toon; --tonemap=aces, reinhard, srgb/);
+    assert.throws(() => run('lighting', { tonemap: 'filmic' }), /--tonemap: unknown "filmic"/);
+    assert.throws(() => run('lighting', { models: 'phong' }), /--models: unknown "phong"/);
+  });
+
+  it('pbr brings its ambient light; tonemaps map to color chunks', () => {
+    const files = adds(run('lighting', { models: 'pbr', tonemap: 'aces,srgb' })).map((a) => a.add);
+    assert.deepEqual(files, ['shaders/lib/lighting-pbr.glsl', 'shaders/lib/lighting-pbr-ambient.glsl', 'shaders/lib/color-aces.glsl', 'shaders/lib/color-srgb.glsl']);
+  });
+
+  it('every model and tonemap fits into one shader', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    for (const version of VERSIONS) {
+      const files = new Map([['s.glsl', `${header(version)}\n\nout vec4 fragColor;\n\nvoid main() {\n  fragColor = vec4(0.0);\n}\n`]]);
+      applyActions(files, run('lighting', { models: 'all', tonemap: 'all', into: 's.glsl' }));
+      assertCompiles(files.get('s.glsl')!, 'frag', `all lighting (${version})`);
+    }
   });
 });

@@ -15,9 +15,11 @@
  *   jen glsl:noise --kind=fbm --base=simplex [--dim=3] --into=shaders/clouds.frag.glsl   tileable noise
  *   jen glsl:sdf --dim=3 --shapes=box,torus --ops=smooth-union --into=shaders/scene.frag.glsl
  *   jen glsl:raymarch --name=Scene [--minimal]   raymarching starter (or its helpers --into a shader)
+ *   jen glsl:lighting --models=pbr --tonemap=aces,srgb --into=shaders/scene.frag.glsl
  */
 import type { Pack } from '@codejen/jen';
 import fragGenerator from './frag.ts';
+import lightingGenerator from './lighting.ts';
 import noiseGenerator from './noise.ts';
 import raymarchGenerator from './raymarch.ts';
 import sdfGenerator from './sdf.ts';
@@ -35,6 +37,7 @@ const pack: Pack = {
   noise: noiseGenerator,
   sdf: sdfGenerator,
   raymarch: raymarchGenerator,
+  lighting: lightingGenerator,
 };
 
 export default pack;
