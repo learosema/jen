@@ -13,10 +13,14 @@
  *   jen glsl:util --fns=rot2,remap --into=shaders/clouds.frag.glsl
  *   jen glsl:webgl --name=Clouds [--inline] [--tag=my-canvas]   no-build WebGL2 playground with <shader-canvas>
  *   jen glsl:noise --kind=fbm --base=simplex [--dim=3] --into=shaders/clouds.frag.glsl   tileable noise
+ *   jen glsl:sdf --dim=3 --shapes=box,torus --ops=smooth-union --into=shaders/scene.frag.glsl
+ *   jen glsl:raymarch --name=Scene [--minimal]   raymarching starter (or its helpers --into a shader)
  */
 import type { Pack } from '@codejen/jen';
 import fragGenerator from './frag.ts';
 import noiseGenerator from './noise.ts';
+import raymarchGenerator from './raymarch.ts';
+import sdfGenerator from './sdf.ts';
 import portGenerator from './port.ts';
 import utilGenerator from './util.ts';
 import vertGenerator from './vert.ts';
@@ -29,6 +33,8 @@ const pack: Pack = {
   util: utilGenerator,
   webgl: webglGenerator,
   noise: noiseGenerator,
+  sdf: sdfGenerator,
+  raymarch: raymarchGenerator,
 };
 
 export default pack;
