@@ -38,7 +38,7 @@
     "webgl"
   ],
   "author": "Lea Rosema",
-  "license": "MIT-0",
+  "license": "MIT-0 AND MIT",
   "devDependencies": {
     "@codejen/jen": "^1.0.0",
     "@types/node": "^26.6.3",
