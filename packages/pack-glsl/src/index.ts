@@ -16,10 +16,14 @@
  *   jen glsl:sdf --dim=3 --shapes=box,torus --ops=smooth-union --into=shaders/scene.frag.glsl
  *   jen glsl:raymarch --name=Scene [--minimal]   raymarching starter (or its helpers --into a shader)
  *   jen glsl:lighting --models=pbr --tonemap=aces,srgb --into=shaders/scene.frag.glsl
+ *   jen glsl:displace --kind=noise --name=Blob   vertex displacement with normals (preview .vert + .frag)
+ *   jen glsl:matrix --fns=rotate,look-at --into=shaders/mesh.vert.glsl
  */
 import type { Pack } from '@codejen/jen';
+import displaceGenerator from './displace.ts';
 import fragGenerator from './frag.ts';
 import lightingGenerator from './lighting.ts';
+import matrixGenerator from './matrix.ts';
 import noiseGenerator from './noise.ts';
 import raymarchGenerator from './raymarch.ts';
 import sdfGenerator from './sdf.ts';
@@ -38,6 +42,8 @@ const pack: Pack = {
   sdf: sdfGenerator,
   raymarch: raymarchGenerator,
   lighting: lightingGenerator,
+  displace: displaceGenerator,
+  matrix: matrixGenerator,
 };
 
 export default pack;
