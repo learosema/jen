@@ -204,6 +204,26 @@ describe('add + insert', () => {
     assert.equal(r.code, 0, r.stderr);
     assert.equal(read(dir, 'lib/CMakeLists.txt'), 'add_library(lib\n  a.cpp\n  b.cpp\n  # scaffold:sources\n)\n');
   });
+
+  it('accepts a RegExp marker: inserts before the first matching line', () => {
+    const dir = fixture({
+      'shader.glsl': 'out vec4 c;\n\nfloat map(vec3 p) { return 1.0; }\n\nvoid main() {}\n',
+      '.jen/fn.mjs': `export const actions = () => [
+        { insert: 'shader.glsl', before: /^(?:float|void)\\s+\\w+\\s*\\(/g, line: 'float a() { return 0.0; }\\n' },
+        { insert: 'shader.glsl', before: /^(?:float|void)\\s+\\w+\\s*\\(/g, line: 'float b() { return 0.0; }\\n' },
+        { insert: 'shader.glsl', before: /^(?:float|void)\\s+\\w+\\s*\\(/g, line: 'float a() { return 0.0; }\\n' },
+        { insert: 'shader.glsl', before: /^nope/, line: 'never' },
+      ];`,
+    });
+    const r = jen(['fn'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    // b lands before a: a is now the first function. The repeated a is skipped (already present).
+    assert.equal(
+      read(dir, 'shader.glsl'),
+      'out vec4 c;\n\nfloat b() { return 0.0; }\n\nfloat a() { return 0.0; }\n\nfloat map(vec3 p) { return 1.0; }\n\nvoid main() {}\n',
+    );
+    assert.match(r.stdout, /marker \/\^nope\/ not found/);
+  });
 });
 
 describe('--where', () => {

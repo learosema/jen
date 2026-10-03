@@ -131,7 +131,7 @@ There's no prompting, no `validate`, no `select` with choices – if a generator
 ### Actions
 
 - **add** – `{ add, template, force? }`: Creates a file. Existing files are skipped unless `force` or `--force` is set.
-- **insert** – `{ insert, before, line }`: Inserts `line` before the first line containing the marker `before`, using the marker's indentation. Skipped if the line is already present.
+- **insert** – `{ insert, before, line }`: Inserts `line` before the first line containing the marker `before` (or, if `before` is a `RegExp`, the first line matching it), using the marker's indentation. Skipped if the line is already present.
 - **modify** – `{ modify, pattern, replace }`: Search and replace with a `RegExp`. Also the way to remove lines.
 - **delete** – `{ delete }`: Deletes a file. Only works inside the project root, and never on directories.
 
