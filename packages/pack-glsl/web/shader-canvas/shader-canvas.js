@@ -141,7 +141,9 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
     #playing = true;
     #visible = true;
     #loseContext = null;
-    #released = false;
+    #canvasUsed = false;
+    #near = false;
+    #recovered = false;
     #mouse = [0, 0];
     #rotation = [0, 0];
     #drag = null;
@@ -158,8 +160,6 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
     }
 
     connectedCallback() {
-      if (!this.#initGL()) return;
-
       const resize = new ResizeObserver(() => this.#resize());
       resize.observe(this);
       const intersect = new IntersectionObserver(([entry]) => {
@@ -167,10 +167,13 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
         this.#schedule();
       });
       intersect.observe(this);
-      // Browsers only keep around 16 WebGL contexts alive and drop the oldest
-      // for good, so a page full of previews would go blank. Release ours
-      // while more than a screen away, restore it when coming back.
-      const nearby = new IntersectionObserver(([entry]) => this.#setNearby(entry.isIntersecting), {
+      // Browsers only keep around 16 WebGL contexts alive (fewer on phones)
+      // and drop the oldest for good, so a page full of previews would go
+      // blank. So the context is only created once the element comes within
+      // a screen of the viewport, and dropped when it's further away again;
+      // coming back creates a fresh one (restoreContext() would be async and
+      // slow). Shaders load right away either way.
+      const nearby = new IntersectionObserver((entries) => this.#setNearby(entries[entries.length - 1].isIntersecting), {
         rootMargin: '100% 0%',
       });
       nearby.observe(this);
@@ -179,13 +182,7 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
       const motion = matchMedia('(prefers-reduced-motion: reduce)');
       this.#playing = !motion.matches;
 
-      this.#canvas.addEventListener('pointermove', this.#onPointerMove);
-      this.#canvas.addEventListener('pointerdown', this.#onPointerDown);
-      this.#canvas.addEventListener('pointerup', this.#onPointerUp);
-      this.#canvas.addEventListener('pointercancel', this.#onPointerUp);
-      this.#canvas.addEventListener('webglcontextlost', this.#onContextLost);
-      this.#canvas.addEventListener('webglcontextrestored', this.#onContextRestored);
-
+      this.#listen(this.#canvas);
       this.#resize();
       this.#reload();
     }
@@ -200,11 +197,13 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
-      if (!this.#gl || oldValue === newValue) return;
+      if (!this.isConnected || oldValue === newValue) return;
       if (name === 'live') this.#setupPolling();
-      else if (name.startsWith('texture')) this.#loadTexture(Number(name.slice(-1)));
-      else if (name === 'mesh' || name === 'detail') this.#buildMesh();
       if (name === 'src' || name === 'vert') this.#reload();
+      // Without a context yet, #initGL() picks up the current mesh and textures.
+      if (!this.#gl || this.#gl.isContextLost()) return;
+      if (name.startsWith('texture')) this.#loadTexture(Number(name.slice(-1)));
+      else if (name === 'mesh' || name === 'detail') this.#buildMesh();
       this.#schedule();
     }
 
@@ -221,6 +220,15 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
 
     // ─── GL setup ───────────────────────────────────────────────────────────
 
+    #listen(canvas) {
+      canvas.addEventListener('pointermove', this.#onPointerMove);
+      canvas.addEventListener('pointerdown', this.#onPointerDown);
+      canvas.addEventListener('pointerup', this.#onPointerUp);
+      canvas.addEventListener('pointercancel', this.#onPointerUp);
+      canvas.addEventListener('webglcontextlost', this.#onContextLost);
+      canvas.addEventListener('webglcontextrestored', this.#onContextRestored);
+    }
+
     #initGL() {
       const gl = this.#canvas.getContext('webgl2', { antialias: true, premultipliedAlpha: true });
       if (!gl) {
@@ -228,6 +236,7 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
         return false;
       }
       this.#gl = gl;
+      this.#canvasUsed = true;
       this.#loseContext = gl.getExtension('WEBGL_lose_context');
       this.#buildMesh();
       for (let i = 0; i < 4; i++) this.#loadTexture(i);
@@ -356,6 +365,9 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
 
     #compile() {
       const gl = this.#gl;
+      // No context yet, or dropped: compiling now would only report bogus
+      // errors. #freshContext() compiles once there is one.
+      if (!gl || gl.isContextLost() || !this.#sources.frag) return;
       const vs = this.#compileStage(gl.VERTEX_SHADER, 'vertex shader', this.#sources.vert);
       const fs = this.#compileStage(gl.FRAGMENT_SHADER, 'fragment shader', this.#sources.frag);
       const errors = [vs.error, fs.error].filter(Boolean);
@@ -530,25 +542,57 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
     };
 
     #setNearby(near) {
-      const ext = this.#loseContext;
-      if (!ext || !this.#gl) return;
-      if (!near && !this.#released && !this.#gl.isContextLost()) {
-        this.#released = true;
-        ext.loseContext();
-      } else if (near && this.#released) {
-        this.#released = false;
-        ext.restoreContext();
+      this.#near = near;
+      if (near) {
+        this.#recovered = false;
+        if (!this.#gl || this.#gl.isContextLost()) this.#freshContext();
+        return;
       }
+      if (!this.#gl) return;
+      // Hand the context back right away instead of waiting for garbage collection.
+      if (!this.#gl.isContextLost()) this.#loseContext?.loseContext();
+      cancelAnimationFrame(this.#frame);
+      this.#frame = 0;
+      this.#gl = null;
+      this.#program = null;
+      this.#mesh = null;
+      this.#textures = [];
+    }
+
+    /** A new context – on a new canvas if this one ever had one, since a canvas keeps its (lost) context. */
+    #freshContext() {
+      if (this.#canvasUsed) {
+        const canvas = document.createElement('canvas');
+        canvas.setAttribute('part', 'canvas');
+        canvas.width = this.#canvas.width;
+        canvas.height = this.#canvas.height;
+        this.#canvas.replaceWith(canvas);
+        this.#canvas = canvas;
+        this.#listen(canvas);
+      }
+      this.#gl = null;
+      this.#program = null;
+      this.#mesh = null;
+      this.#textures = [];
+      if (this.#initGL()) this.#compile();
     }
 
     #onContextLost = (event) => {
+      if (event.target !== this.#canvas) return;  // an old canvas, dropped on purpose
       event.preventDefault();
       cancelAnimationFrame(this.#frame);
       this.#frame = 0;
       this.#program = null;
+      // Lost while on screen (the browser made room for other contexts):
+      // start over once, rather than staying blank.
+      if (this.#near && !this.#recovered) {
+        this.#recovered = true;
+        setTimeout(() => this.#near && this.#freshContext(), 0);
+      }
     };
 
-    #onContextRestored = () => {
+    #onContextRestored = (event) => {
+      if (event.target !== this.#canvas) return;
       this.#mesh = null;
       this.#textures = [];
       this.#buildMesh();
