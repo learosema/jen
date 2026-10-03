@@ -14,8 +14,7 @@ import { parseVersion, withHeader } from './dialect.ts';
 const KINDS = ['quad', 'triangle', 'mesh'];
 
 const vertGenerator: Generator = {
-  description:
-    'create a GLSL vertex shader starter (<dir>/<name>.vert.glsl, --kind=quad|triangle|mesh, --version=300es|330|410)',
+  description: 'create a GLSL vertex shader starter',
   params: {
     name: {},
     kind: { default: 'quad' },

@@ -9,7 +9,7 @@ import { inFolder, readPackFile } from './common.ts';
 import { parseVersion, withHeader } from './dialect.ts';
 
 const fragGenerator: Generator = {
-  description: 'create a full-screen GLSL fragment shader starter (<dir>/<name>.frag.glsl, --version=300es|330|410)',
+  description: 'create a full-screen GLSL fragment shader starter',
   params: {
     name: {},
     dir: { default: 'shaders' },

@@ -8,7 +8,7 @@ import { chunkActions, pickChunks } from './chunks.ts';
 import { parseList } from './common.ts';
 
 const utilGenerator: Generator = {
-  description: 'add GLSL helpers (--fns=consts,hash,rot2,remap,saturate|all) into --into=<shader>, or as files in <dir>/lib/',
+  description: 'add GLSL helpers',
   params: {
     fns: { default: '' },
     into: { default: '' },

@@ -10,7 +10,7 @@ import { fail } from './common.ts';
 import { header, parseVersion } from './dialect.ts';
 
 const portGenerator: Generator = {
-  description: 'switch a shader between GLSL dialects by rewriting its header (--file=… --to=300es|330|410)',
+  description: 'switch a shader between GLSL dialects by rewriting its header',
   params: {
     file: {},
     to: {},

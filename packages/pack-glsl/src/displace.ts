@@ -125,8 +125,7 @@ function preview(dir: string, base: string, kind: string, version: Version): Act
 }
 
 const displaceGenerator: Generator = {
-  description:
-    'displace surfaces in the vertex shader with correct normals (--kind=noise|wobble|waves) --into a vertex shader, as files in <dir>/lib/, or --name for a <shader-canvas> preview pair (.vert + .frag)',
+  description: 'displace surfaces in the vertex shader with correct normals',
   params: {
     kind: { default: 'noise' },
     into: { default: '' },

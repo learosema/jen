@@ -67,8 +67,7 @@ ${setup.join('\n')}
 }
 
 const noiseGenerator: Generator = {
-  description:
-    'add GLSL noise (--kind=value|perlin|simplex|worley|fbm|turbulence|ridged|warp|curl, --dim=2|3, --base=… for fractals), tileable; --into, files in <dir>/lib/, or --name for a preview shader',
+  description: 'add GLSL noise, tileable',
   params: {
     kind: { default: '' },
     dim: { default: '2' },

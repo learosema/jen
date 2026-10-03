@@ -3,7 +3,7 @@ name: Pages
 on:
   push:
     branches: [main]
-    paths: [docs/**]
+    paths: [docs/**, packages/pack-glsl/**]
   workflow_dispatch:
 
 permissions:
@@ -27,6 +27,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      # The GLSL recipes' live previews (docs/glsl/, gitignored) are made by the
+      # pack itself. Type-only imports, so Node runs the script without npm ci.
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Generate GLSL previews
+        run: node packages/pack-glsl/scripts/docs-assets.ts
 
       - name: Build with Jekyll
         uses: actions/jekyll-build-pages@v1
