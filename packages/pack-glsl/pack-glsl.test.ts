@@ -86,7 +86,7 @@ function assertCompiles(source: string, stage: 'vert' | 'frag', label: string) {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('chunks', () => {
-  const allIds = ['util', 'noise', 'fractal', 'sdf2d', 'sdf3d', 'sdfop', 'sdffx', 'raymarch', 'lighting', 'color'].flatMap(chunkIds);
+  const allIds = ['util', 'noise', 'fractal', 'sdf2d', 'sdf3d', 'sdfop', 'sdffx', 'raymarch', 'lighting', 'color', 'matrix', 'vertex'].flatMap(chunkIds);
 
   it('every chunk declares a license; third-party ones have an existing notice', () => {
     for (const id of allIds) {
@@ -179,6 +179,7 @@ describe('chunks', () => {
           .join('\n\n');
         // Raymarch helpers call the user's scene, which they only declare.
         if (/\bscene\(/.test(code)) code += '\n\nfloat scene(vec3 p) { return length(p) - 1.0; }';
+        if (/\bdisplacement\(/.test(code)) code += '\n\nfloat displacement(vec3 p) { return 0.1 * p.y; }';
         assertCompiles(`${header(version)}\n\n${code}\n\nout vec4 fragColor;\nvoid main() { fragColor = vec4(0.0); }\n`, 'frag', `${id} (${version})`);
       }
     }
@@ -612,6 +613,45 @@ describe('glsl:lighting', () => {
       const files = new Map([['s.glsl', `${header(version)}\n\nout vec4 fragColor;\n\nvoid main() {\n  fragColor = vec4(0.0);\n}\n`]]);
       applyActions(files, run('lighting', { models: 'all', tonemap: 'all', into: 's.glsl' }));
       assertCompiles(files.get('s.glsl')!, 'frag', `all lighting (${version})`);
+    }
+  });
+});
+
+describe('glsl:displace', () => {
+  it('--name writes a vertex/fragment pair that compiles, for every kind and dialect', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    for (const version of VERSIONS) {
+      for (const kind of ['noise', 'wobble', 'waves']) {
+        const files = applyActions(new Map(), run('displace', { kind, name: 'Blob', version }));
+        assert.deepEqual([...files.keys()], ['shaders/blob.vert.glsl', 'shaders/blob.frag.glsl']);
+        assertCompiles(files.get('shaders/blob.vert.glsl')!, 'vert', `displace ${kind} vertex (${version})`);
+        assertCompiles(files.get('shaders/blob.frag.glsl')!, 'frag', `displace ${kind} fragment (${version})`);
+      }
+    }
+  });
+
+  it('the preview uses the attributes and uniforms <shader-canvas> provides', () => {
+    const vert = applyActions(new Map(), run('displace', { name: 'x' })).get('shaders/x.vert.glsl')!;
+    for (const s of ['layout(location = 0) in vec3 aPosition;', 'layout(location = 1) in vec3 aNormal;', 'layout(location = 2) in vec2 aUV;', 'uniform mat4 uModel;', 'uniform float uTime;']) {
+      assert.ok(vert.includes(s), s);
+    }
+    assert.ok(vert.indexOf('float simplexNoise(vec3 p)') < vert.indexOf('float displacement(vec3 p) {'), 'noise above your displacement()');
+  });
+
+  it('--into adds only the building blocks', () => {
+    assert.deepEqual(adds(run('displace', { kind: 'noise' })).map((a) => a.add), ['shaders/lib/vertex-basis.glsl', 'shaders/lib/vertex-displace.glsl']);
+    assert.deepEqual(adds(run('displace', { kind: 'waves' })).map((a) => a.add), ['shaders/lib/vertex-gerstner.glsl']);
+    assert.throws(() => run('displace', { kind: 'twist' }), /--kind: expected one of "noise", "wobble", "waves", got "twist"/);
+    assert.throws(() => run('displace', { name: 'x', into: 'y' }), /either --name .* or --into/);
+  });
+});
+
+describe('glsl:matrix', () => {
+  it('picks matrix helpers, which compile in vertex shaders too', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    assert.throws(() => run('matrix', {}), /--fns: pick at least one – valid: look-at, perspective, rotate, transform \(or "all"\)/);
+    for (const version of VERSIONS) {
+      const files = new Map([['m.vert.glsl', adds(run('vert', { name: 'm', kind: 'mesh', version }))[0].template]]);
+      applyActions(files, run('matrix', { fns: 'all', into: 'm.vert.glsl' }));
+      assertCompiles(files.get('m.vert.glsl')!, 'vert', `mesh starter + matrices (${version})`);
     }
   });
 });

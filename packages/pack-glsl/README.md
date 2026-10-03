@@ -70,6 +70,24 @@ jen glsl:lighting --models=toon --into=shaders/scene.frag.glsl
 
 Every model takes the normal `n`, the direction to the viewer `v` and to the light `l`, and returns the reflected light for a white light of intensity 1: multiply by the light's color and shadow, sum over lights, tonemap, encode. `jen glsl:raymarch --name=Scene --lighting=pbr` shows a model in a full scene.
 
+## Vertex displacement and matrices
+
+```sh
+jen glsl:displace --kind=noise --name=Blob    # shaders/blob.vert.glsl + blob.frag.glsl
+jen glsl:displace --kind=waves --name=Sea     # Gerstner waves with exact normals
+jen glsl:matrix --fns=rotate,look-at --into=shaders/mesh.vert.glsl
+```
+
+- **Displacement** (`glsl:displace`): `displace(position, normal)` pushes a vertex along its normal by your `float displacement(vec3 p)` and recomputes the normal from two displaced neighbours, so lighting follows the new shape. `--kind=noise` drives it with 3D simplex noise, `--kind=wobble` with sines; `--kind=waves` sums `gerstnerWave()`s, whose normals are exact.
+- **Previews** (`--name`): a vertex/fragment pair using the attributes and uniforms of `<shader-canvas>`:
+
+  ```html
+  <shader-canvas mesh="sphere" detail="96" vert="shaders/blob.vert.glsl" src="shaders/blob.frag.glsl" orbit></shader-canvas>
+  ```
+
+  For waves, use `mesh="plane" detail="128"`.
+- **Matrices** (`glsl:matrix`): `rotateX/Y/Z`, `rotateAxis`, `perspective`, `lookAt`, `translate`, `scale` and `transform` (mat3 → mat4), following OpenGL conventions.
+
 ## How functions get into your shader
 
 GLSL has no `#include`, so functions ship as plain `.glsl` files under `glsl/`. With `--into=<shader>`, jen inserts the ones you pick – plus whatever they depend on – above a `// jen:functions` marker line. If your shader has none yet, the marker is added before its first function, so the inserted functions come before your own code that calls them (a raymarched `scene()`, say). Later runs add below what's already there. Anything already in the file is skipped, so running a generator twice, or two generators sharing a helper, never duplicates code. Without `--into`, each function is written as its own file under `<dir>/lib/` (default `shaders/lib/`) for setups with an include mechanism (vite-plugin-glsl, glslify, three.js, …).
