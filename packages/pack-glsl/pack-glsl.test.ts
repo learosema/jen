@@ -148,6 +148,21 @@ describe('chunks', () => {
     assert.throws(() => loadChunk('noise/perlin2@simplex'), /has no \/\/ @base directive/);
   });
 
+  it('rebasable chunks only use base-named identifiers the rename can catch', () => {
+    const rebasable = allIds.filter((id) => loadChunk(id).base);
+    assert.ok(rebasable.length > 0);
+    for (const id of rebasable) {
+      const from = loadChunk(id).base!;
+      const code = loadChunk(id).code.split('\n').filter((l) => !l.trimStart().startsWith('//')).join('\n');
+      // The bare base name (e.g. a variable called `value`) would survive the rename unnoticed.
+      assert.doesNotMatch(code, new RegExp(`\\b${from}\\b`), `${id}: bare "${from}"`);
+      for (const base of NOISE_BASES.filter((b) => b !== from)) {
+        const rebased = loadChunk(`${id}@${base}`).code.split('\n').filter((l) => !l.trimStart().startsWith('//')).join('\n');
+        assert.doesNotMatch(rebased, new RegExp(`\\b${from}[A-Z]`), `${id}@${base} still uses ${from}*`);
+      }
+    }
+  });
+
   it('rejects unknown and path-like ids', () => {
     assert.throws(() => loadChunk('util/nope'), /unknown GLSL chunk/);
     assert.throws(() => loadChunk('../package'), /unknown GLSL chunk/);
@@ -372,9 +387,12 @@ describe('glsl:noise', () => {
     assert.doesNotMatch(out, /Permission is hereby granted/);
   });
 
-  it('fractals default to perlin and follow --base', () => {
+  it('fractals default to simplex and follow --base', () => {
     const fbm = into(emptyShader(), { kind: 'fbm' }).get('s.frag.glsl')!;
-    assert.match(fbm, /float perlinFbm\(vec2 p, vec2 period, int octaves\)/);
+    assert.match(fbm, /float simplexFbm\(vec2 p, vec2 period, int octaves, float gain\)/);
+    assert.match(fbm, /float simplexFbm\(vec2 p, int octaves\) \{ return simplexFbm\(p, octaves, 0\.5\); \}/);
+    const warp = into(emptyShader(), { kind: 'warp', base: 'value' }).get('s.frag.glsl')!;
+    assert.match(warp, /float valueWarp\(vec2 p, int octaves, float strength\)/);
     const ridged = into(emptyShader(), { kind: 'ridged', base: 'worley', dim: '3' }).get('s.frag.glsl')!;
     assert.match(ridged, /float worleyRidged\(vec3 p, int octaves\)/);
     assert.match(ridged, /vec2 worley\(vec3 p, vec3 period\)/);
