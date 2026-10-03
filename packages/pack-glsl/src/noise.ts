@@ -2,7 +2,8 @@
  * `glsl:noise`: noise functions, in 2D or 3D (`--dim`).
  *
  *   base noises    value, perlin, simplex, worley    <base>Noise(p) / <base>Noise(p, period), about [-1, 1]
- *   fractals       fbm, turbulence, ridged, warp     <base>Fbm(p, octaves) / (p, period, octaves), any --base
+ *   fractals       fbm, turbulence, ridged, warp     <base>Fbm(p, octaves[, gain]) / (p, period, octaves[, gain]),
+ *                                                     any --base (default simplex); warp takes a strength instead of gain
  *   flow           curl                               curlNoise(p, alpha) / (p, period, alpha)
  *
  * Every function has a `period` overload that tiles seamlessly (feTurbulence's
@@ -71,7 +72,7 @@ const noiseGenerator: Generator = {
   params: {
     kind: { default: '' },
     dim: { default: '2' },
-    base: { default: 'perlin' },
+    base: { default: 'simplex' },
     into: { default: '' },
     dir: { default: 'shaders' },
     name: { default: '' },
