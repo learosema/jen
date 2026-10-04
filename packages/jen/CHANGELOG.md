@@ -2,6 +2,18 @@
 
 > Renamed from `@lea.rosema/jen` to `@codejen/jen` and republished as 1.0.0. The history below (up to 1.1.0) is `@lea.rosema/jen`'s; `@lea.rosema/jen` is deprecated in favor of this package.
 
+## [1.2.0](https://github.com/learosema/jen/compare/jen-v1.1.0...jen-v1.2.0) (2026-10-04)
+
+
+### Features
+
+* **jen:** support regexp for insert.before ([bd43477](https://github.com/learosema/jen/commit/bd43477411c5033bd53c883671f33011d74ec0b9))
+
+
+### Bug Fixes
+
+* **jen:** update esbuild ([99b1e32](https://github.com/learosema/jen/commit/99b1e32df58037b1f2d69eec8dc4cf48a7dec1d4))
+
 ## [1.1.0](https://github.com/learosema/jen/compare/jen-v1.0.0...jen-v1.1.0) (2026-09-30)
 
 
