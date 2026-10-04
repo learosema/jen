@@ -33,7 +33,7 @@
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^26.6.3",
-    "esbuild": "^0.27.7",
+    "esbuild": "^0.28.2",
     "mem-fs": "^6.0.0",
     "typescript": "^6.0.3",
     "yeoman-generator": "^9.2.0"
