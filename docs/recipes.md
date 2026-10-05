@@ -14,6 +14,9 @@ toc:
       - { title: Globally, id: install-global }
       - { title: Locally, id: install-local }
       - { title: Not at all, id: install-npx }
+  - title: Where files go
+    links:
+      - { title: Files and the project root, id: where }
   - title: App starters
     links:
       - { title: "cpp:sdl3", id: cpp-sdl3 }
@@ -88,6 +91,19 @@ That automatic fetch only ever pulls from the `@codejen` scope, so a mistyped na
 
 {% include terminal.html id="install_from" %}
 
+## Where files go {#where}
+
+Generators write into the folder you run them in. Run at the project root, the type generators (`cpp:class`, `cpp:struct`, `cpp:enum`, …) use `src`, so `cpp:class --name=Foo` writes `src/Foo.h` without a `cd`. The app starters make a new project folder in the current directory instead; `--dir` names it. The [home page]({{ '/#where' | relative_url }}) has the general rules.
+
+From `src/net/`, `cpp:class --name=Socket` writes `src/net/Socket.h` and wires `net/Socket.cpp` into the `CMakeLists.txt` that carries `# jen:sources`, which jen finds by walking up from where you are. Wiring is looked up by marker, never guessed:
+
+- **`--dir`**: write somewhere else, relative to the current directory.
+- **`--cmake`**: the `CMakeLists.txt` to wire into, if the nearest one with the marker is the wrong one; a file that doesn't exist is an error. `--cmake=none` skips wiring.
+- **`--withTest`**: the test goes next to the `CMakeLists.txt` that carries `# jen:tests`, `tests/` if there is none yet.
+- **No marker**: jen quits with a hint instead of leaving a file nothing builds.
+
+The tooling generators (`cpp:warnings`, `cpp:tidy`, `cpp:doctest`, …) work on the project as a whole, so they find the project root from wherever you are.
+
 ## App starters {#app-starters}
 
 Every starter creates a new project folder named after the app (`MyGame` becomes `my-game/`), so `cd` into it before running the other generators. All of them split the project into a `<name>-core` library that holds every source file and a thin `<name>` executable that holds only `main.cpp`, which is what makes the code linkable from tests.
@@ -135,14 +151,13 @@ Experimental. A C++20 modules starter: a `.cppm` module interface in a `FILE_SET
 
 ### Core library and markers {#markers}
 
-The starters leave marker comments in the files they write, like `# jen:sources` in `src/CMakeLists.txt`. When you run another generator afterwards, say `cpp:class`, it inserts its new line at the matching marker instead of guessing where it belongs. If a project has no such marker (it wasn't made from a starter), that insert is reported as `?` and skipped, and the generator's other files are still written. Running it twice is safe: the second time it just reports "already present".
+The starters leave marker comments in the files they write, like `# jen:sources` in `src/CMakeLists.txt`. When you run another generator afterwards, say `cpp:class`, it inserts its new line at the matching marker instead of guessing where it belongs. If a project has no such marker (it wasn't made from a starter), the generator quits with a hint instead of leaving a file nothing builds: add the marker, point it at the right `CMakeLists.txt` with `--cmake=<file>`, or skip wiring with `--cmake=none`. Running it twice is safe: the second time it just reports "already present".
 
 Each card below is one marker: the file it lives in, and the generators that insert there.
 
 {% capture rows %}
 `# jen:sources` | `src/CMakeLists.txt` | `cpp:class`, `cpp:interface --impl`, `cpp:pimpl`
-`# jen:shaders` | `src/CMakeLists.txt` (OpenGL starter) | `cpp:shader`
-`# jen:embed` | `src/CMakeLists.txt` | `cpp:embed`
+`# jen:embed` | `src/CMakeLists.txt` | `cpp:embed`, `cpp:shader`
 `# jen:link` | `src/CMakeLists.txt` | `cpp:warnings`, `cpp:compiler`, `cpp:tracy`
 `# jen:app` | `src/CMakeLists.txt` | `cpp:icon` (settings for the executable only)
 `# jen:options` | `CMakeLists.txt` | `cpp:tidy`, `cpp:warnings`, `cpp:compiler`, `cpp:tracy`, `cpp:cpack --staticSdl`
@@ -161,7 +176,7 @@ The tooling generators write a `cmake/<name>.cmake` and add an `include(...)` at
 
 ### `cpp:class` {#cpp-class}
 
-Plain header/source class in `src/`, wired into `src/CMakeLists.txt`'s sources list at the `# jen:sources` marker.
+Plain header/source class, wired into its `CMakeLists.txt`'s sources list at the `# jen:sources` marker.
 
 {% include terminal.html id="class" %}
 
@@ -179,6 +194,8 @@ A move-only RAII wrapper instead (Rule of Five): deleted copy, `noexcept` move v
 `nullValue` | `nullptr` | `--moveOnly` only: the value meaning "no resource"
 `destroy` | `destroy` | `--moveOnly` only: the function that frees the resource
 `withTest` | `false` | also scaffold a test, see [`--withTest`](#with-test)
+`dir` | — | where the files go, relative to the current directory; else the current directory, or `src` at the project root
+`cmake` | — | the `CMakeLists.txt` to wire into, if the nearest one with `# jen:sources` is the wrong one; `none` skips wiring
 {% endcapture %}
 {% include cards.html rows=rows label="default" heading="Params" %}
 
@@ -291,7 +308,7 @@ A `std::variant` of small case structs plus the `overloaded` visitor helper (in 
 
 ### `--withTest` {#with-test}
 
-`cpp:class`, `cpp:r0`, `cpp:struct`, `cpp:strong`, `cpp:enum`, `cpp:pimpl`, `cpp:variant` and `cpp:interface` take `--withTest`. It scaffolds `tests/<Name>_test.cpp` with a doctest case checking what the generator promises (move-only, aggregate, abstract, …) and adds it at `# jen:tests`. Run [`cpp:doctest`](#cpp-doctest) first, otherwise only the test file is written and the insert is reported as skipped.
+`cpp:class`, `cpp:r0`, `cpp:struct`, `cpp:strong`, `cpp:enum`, `cpp:pimpl`, `cpp:variant` and `cpp:interface` take `--withTest`. It scaffolds `<Name>_test.cpp` next to the `CMakeLists.txt` that carries `# jen:tests` (`tests/` if there is none yet) with a doctest case checking what the generator promises (move-only, aggregate, abstract, …), and adds it at that marker. The checks describe the class as generated, so update them when you change the design: give a class a constructor with arguments and the default-constructible check has to go. Run [`cpp:doctest`](#cpp-doctest) first, otherwise only the test file is written and the insert is reported as skipped.
 
 {% include terminal.html id="class_withtest" %}
 
@@ -422,15 +439,16 @@ Platform app resources, separate from embedding: a Windows `resources/app.rc` th
 
 ### `cpp:shader` {#cpp-shader}
 
-A GLSL vertex/fragment pair (or a single stage via `--stage=vert|frag`), embedded into a `<name>.<stage>.glsl.h` header at CMake-configure time by `cmake/embed-glsl.cmake` (added if missing). Wires `embed_glsl(...)` into `src/CMakeLists.txt` at a `# jen:shaders` marker; nothing jen writes needs regenerating when you edit the `.glsl` later, just re-run `cmake`.
+Embeds a GLSL file you already have: write it with [`glsl:frag`]({{ '/glsl.html#glsl-frag' | relative_url }}) from the glsl pack, or by hand. `cpp:shader` turns it into a `<file>.h` header holding the source as a C string at CMake-configure time, using `cmake/embed-glsl.cmake` (added if missing). It writes no GLSL of its own; it only wires `embed_glsl(...)` in at the `# jen:embed` marker, with the shader's path relative to that `CMakeLists.txt`. Edit the `.glsl` later and just re-run `cmake`.
 
 {% include terminal.html id="shader" %}
 
-Running it inside a fresh project (no `cmake/embed-glsl.cmake` yet) adds that helper too, instead of skipping it.
+If the file doesn't exist yet, jen says so and points at `glsl:frag`.
 
 {% capture rows %}
-`name` | — | required; file names and embedded variable names
-`stage` | `both` | `both`, `vert` or `frag`
+`file` | — | required; the shader to embed, relative to the current directory
+`name` | derived | the C++ variable: `vignette.frag.glsl` becomes `vignetteFragmentShader`, `blur.glsl` becomes `blurShader`
+`cmake` | — | the `CMakeLists.txt` to wire into; `none` only adds the helper
 {% endcapture %}
 {% include cards.html rows=rows label="default" heading="Params" %}
 

@@ -8,7 +8,8 @@
 
 demo:
   - "$ jen cpp:class --name=rigid_body --moveOnly"
-  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class in src/ (header + source), wired into src/CMakeLists.txt"
+  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources"
+  - "  # files → src (default at the project root)"
   - ""
   - "  + src/RigidBody.h"
   - "  + src/RigidBody.cpp"
@@ -19,6 +20,7 @@ demo:
 hello:
   - "$ jen hello --name=world"
   - "hello (project) – say hello"
+  - "  # files → src (default at the project root)"
   - ""
   - "  + src/World.txt"
   - ""
@@ -86,7 +88,8 @@ sdl3_opengl:
 
 class:
   - "$ jen cpp:class --name=rigid_body"
-  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class in src/ (header + source), wired into src/CMakeLists.txt; --moveOnly for a Rule-of-Five RAII wrapper"
+  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources; --moveOnly for a Rule-of-Five RAII wrapper"
+  - "  # files → src (default at the project root)"
   - ""
   - "  + src/RigidBody.h"
   - "  + src/RigidBody.cpp"
@@ -96,7 +99,8 @@ class:
 
 class_moveonly:
   - "$ jen cpp:class --name=Texture --moveOnly --resource=GLuint --nullValue=0 --destroy=glDeleteTextures"
-  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class in src/ (header + source), wired into src/CMakeLists.txt; --moveOnly for a Rule-of-Five RAII wrapper"
+  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources; --moveOnly for a Rule-of-Five RAII wrapper"
+  - "  # files → src (default at the project root)"
   - ""
   - "  + src/Texture.h"
   - "  + src/Texture.cpp"
@@ -107,6 +111,7 @@ class_moveonly:
 handle:
   - "$ jen cpp:handle --name=Handle"
   - "cpp:handle (pack @codejen/pack-cpp) – create a generic Handle<T, Deleter, Null> RAII template for non-pointer handles (header-only)"
+  - "  # files → src (default at the project root)"
   - ""
   - "  + src/Handle.h"
   - ""
@@ -115,6 +120,7 @@ handle:
 scopeexit:
   - "$ jen cpp:scopeexit --name=ScopeExit"
   - "cpp:scopeexit (pack @codejen/pack-cpp) – create a ScopeExit scope-guard template (nothrow-enforced, header-only)"
+  - "  # files → src (default at the project root)"
   - ""
   - "  + src/ScopeExit.h"
   - ""
@@ -123,21 +129,21 @@ scopeexit:
 r0:
   - '$ jen cpp:r0 --name=Person --members="std::string name, int age"'
   - "cpp:r0 (pack @codejen/pack-cpp) – create a Rule of Zero class: members generated from constructor params, no special member functions (header-only)"
+  - "  # files → src (default at the project root)"
   - ""
   - "  + src/Person.h"
   - ""
   - "✓ 1 written"
 
 shader:
-  - "$ jen cpp:shader --name=Vignette"
-  - "cpp:shader (pack @codejen/pack-cpp) – create a GLSL vertex/fragment shader pair (or one stage via --stage=vert|frag), embedded via cmake/embed-glsl.cmake and wired into src/CMakeLists.txt"
+  - "$ jen cpp:shader --file=shaders/vignette.frag.glsl"
+  - "cpp:shader (pack @codejen/pack-cpp) – embed an existing GLSL file as a C string via cmake/embed-glsl.cmake, wired in at # jen:embed (write the shader with glsl:frag or by hand)"
   - ""
   - "  = cmake/embed-glsl.cmake  exists, skipped"
-  - "  + src/vignette.vert.glsl"
-  - "  + src/vignette.frag.glsl"
-  - '  ~ src/CMakeLists.txt  + embed_glsl("vignette.vert.glsl" vignetteVertexShader) (+1 more)'
+  - "  ~ src/CMakeLists.txt  + include(${PROJECT_SOURCE_DIR}/cmake/embed-glsl.cmake)"
+  - '  ~ src/CMakeLists.txt  + embed_glsl("../shaders/vignette.frag.glsl" vignetteFragmentShader)'
   - ""
-  - "✓ 3 written"
+  - "✓ 2 written"
 
 app:
   - "$ jen cpp:app --name=MyTool"
@@ -176,7 +182,8 @@ module:
 
 class_withtest:
   - "$ jen cpp:class --name=Camera --withTest"
-  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class in src/ (header + source), wired into src/CMakeLists.txt; --moveOnly for a Rule-of-Five RAII wrapper, --withTest for a doctest case"
+  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources; --moveOnly for a Rule-of-Five RAII wrapper, --withTest for a doctest case"
+  - "  # files → src (default at the project root)"
   - ""
   - "  + src/Camera.h"
   - "  + src/Camera.cpp"
@@ -189,6 +196,7 @@ class_withtest:
 interface:
   - "$ jen cpp:interface --name=Drawable --methods=\"void draw(), void resize(int w, int h)\" --impl=SpriteDrawable"
   - "cpp:interface (pack @codejen/pack-cpp) – create a polymorphic interface class (virtual dtor, protected copy/move, pure virtual --methods); --impl scaffolds a final implementation"
+  - "  # files → src (default at the project root)"
   - ""
   - "  + src/Drawable.h"
   - "  + src/SpriteDrawable.h"
@@ -200,6 +208,7 @@ interface:
 struct:
   - "$ jen cpp:struct --name=Config --members=\"int width = 800, int height = 600\" --compare"
   - "cpp:struct (pack @codejen/pack-cpp) – create an aggregate struct with default member initializers for plain data bundles (header-only)"
+  - "  # files → src (default at the project root)"
   - ""
   - "  + src/Config.h"
   - ""
@@ -208,6 +217,7 @@ struct:
 strong:
   - "$ jen cpp:strong --name=Pixels --underlying=int --ops=compare,arith"
   - "cpp:strong (pack @codejen/pack-cpp) – create a strong typedef: explicit constructor, optional <=> / arithmetic / std::hash (header-only)"
+  - "  # files → src (default at the project root)"
   - ""
   - "  + src/Pixels.h"
   - ""
@@ -216,6 +226,7 @@ strong:
 enum:
   - "$ jen cpp:enum --name=GameState --values=\"menu, playing, paused\""
   - "cpp:enum (pack @codejen/pack-cpp) – create an enum class with to_string() and a std::formatter specialization (header-only)"
+  - "  # files → src (default at the project root)"
   - ""
   - "  + src/GameState.h"
   - ""
@@ -223,7 +234,8 @@ enum:
 
 pimpl:
   - "$ jen cpp:pimpl --name=Renderer"
-  - "cpp:pimpl (pack @codejen/pack-cpp) – create a pimpl class: unique_ptr<Impl>, special members defaulted in the .cpp; wired into src/CMakeLists.txt"
+  - "cpp:pimpl (pack @codejen/pack-cpp) – create a pimpl class: unique_ptr<Impl>, special members defaulted in the .cpp; wired into the CMakeLists.txt with # jen:sources"
+  - "  # files → src (default at the project root)"
   - ""
   - "  + src/Renderer.h"
   - "  + src/Renderer.cpp"
@@ -234,6 +246,7 @@ pimpl:
 variant:
   - "$ jen cpp:variant --name=Event --cases=\"KeyDown, KeyUp, Resize\""
   - "cpp:variant (pack @codejen/pack-cpp) – create a std::variant of case structs plus the overloaded visitor helper (header-only)"
+  - "  # files → src (default at the project root)"
   - ""
   - "  + src/overloaded.h"
   - "  + src/Event.h"
@@ -345,7 +358,9 @@ icon:
 together:
   - "$ jen cpp:sdl3-opengl --name=MyGame"
   - "…"
-  - "$ jen cpp:shader --name=Vignette"
+  - "$ jen glsl:frag --name=vignette --version=410"
+  - "…"
+  - "$ jen cpp:shader --file=shaders/vignette.frag.glsl"
   - "…"
   - "$ jen cpp:class --name=Camera"
   - "…"
@@ -361,6 +376,29 @@ together_tooling:
   - "$ jen cpp:tracy --gpu"
   - "…"
   - "$ cmake -S . -B build && cmake --build build && ctest --test-dir build"
+
+where:
+  - "$ cd my-game"
+  - "$ jen cpp:class --name=Camera"
+  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources; --moveOnly for a Rule-of-Five RAII wrapper, --withTest for a doctest case"
+  - "  # files → src (default at the project root)"
+  - ""
+  - "  + src/Camera.h"
+  - "  + src/Camera.cpp"
+  - "  ~ src/CMakeLists.txt  + Camera.cpp"
+  - ""
+  - "✓ 3 written"
+  - ""
+  - "$ cd src/net"
+  - "$ jen cpp:class --name=Socket"
+  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources; --moveOnly for a Rule-of-Five RAII wrapper, --withTest for a doctest case"
+  - "  # root: ../.. (package.json)"
+  - ""
+  - "  + Socket.h"
+  - "  + Socket.cpp"
+  - "  ~ ../CMakeLists.txt  + net/Socket.cpp"
+  - ""
+  - "✓ 3 written"
 
 # ─── GLSL pack (glsl.md) ─────────────────────────────────────────────────────
 
@@ -390,6 +428,7 @@ glsl_webgl:
 glsl_frag:
   - "$ jen glsl:frag --name=Plasma"
   - "glsl:frag (pack @codejen/pack-glsl) – create a full-screen GLSL fragment shader starter"
+  - "  # files → shaders (default at the project root)"
   - ""
   - "  + shaders/plasma.frag.glsl"
   - ""
@@ -398,6 +437,7 @@ glsl_frag:
 glsl_vert:
   - "$ jen glsl:vert --name=Mesh --kind=mesh"
   - "glsl:vert (pack @codejen/pack-glsl) – create a GLSL vertex shader starter"
+  - "  # files → shaders (default at the project root)"
   - ""
   - "  + shaders/mesh.vert.glsl"
   - ""
@@ -415,6 +455,7 @@ glsl_port:
 glsl_noise:
   - "$ jen glsl:noise --kind=fbm --into=shaders/clouds.frag.glsl"
   - "glsl:noise (pack @codejen/pack-glsl) – add GLSL noise, tileable"
+  - "  # files → shaders (default at the project root)"
   - ""
   - "  ~ shaders/clouds.frag.glsl  + // jen:functions – jen glsl:* adds functions above this line"
   - "  ~ shaders/clouds.frag.glsl  + // psrdnoise (c) 2021 Stefan Gustavson and Ian McEwan (+125 more)"
@@ -426,6 +467,7 @@ glsl_noise:
 glsl_noise_tile:
   - "$ jen glsl:noise --kind=warp --base=perlin --name=Marble --tile"
   - "glsl:noise (pack @codejen/pack-glsl) – add GLSL noise, tileable"
+  - "  # files → shaders (default at the project root)"
   - ""
   - "  + shaders/marble.frag.glsl"
   - "  ~ shaders/marble.frag.glsl  + // jen:functions – jen glsl:* adds functions above this line"
@@ -439,6 +481,7 @@ glsl_noise_tile:
 glsl_sdf:
   - "$ jen glsl:sdf --dim=3 --shapes=sphere,torus --ops=smooth-union --into=shaders/scene.frag.glsl"
   - "glsl:sdf (pack @codejen/pack-glsl) – add signed distance functions"
+  - "  # files → shaders (default at the project root)"
   - ""
   - "  = shaders/scene.frag.glsl  already present: // jen:functions – jen glsl:* adds functions above this line"
   - "  ~ shaders/scene.frag.glsl  + // sdSphere · pack-glsl · MIT-0 (+4 more)"
@@ -450,6 +493,7 @@ glsl_sdf:
 glsl_raymarch:
   - "$ jen glsl:raymarch --name=Scene --lighting=pbr --materials"
   - "glsl:raymarch (pack @codejen/pack-glsl) – raymarch signed distance fields"
+  - "  # files → shaders (default at the project root)"
   - ""
   - "  + shaders/scene.frag.glsl"
   - "  ~ shaders/scene.frag.glsl  + // jen:functions – jen glsl:* adds functions above this line"
@@ -467,6 +511,7 @@ glsl_raymarch:
 glsl_lighting:
   - "$ jen glsl:lighting --models=toon --tonemap=srgb --into=shaders/clouds.frag.glsl"
   - "glsl:lighting (pack @codejen/pack-glsl) – add lighting and color output"
+  - "  # files → shaders (default at the project root)"
   - ""
   - "  = shaders/clouds.frag.glsl  already present: // jen:functions – jen glsl:* adds functions above this line"
   - "  ~ shaders/clouds.frag.glsl  + // toon · pack-glsl · MIT-0 (+17 more)"
@@ -477,6 +522,7 @@ glsl_lighting:
 glsl_displace:
   - "$ jen glsl:displace --kind=noise --name=Blob"
   - "glsl:displace (pack @codejen/pack-glsl) – displace surfaces in the vertex shader with correct normals"
+  - "  # files → shaders (default at the project root)"
   - ""
   - "  + shaders/blob.vert.glsl"
   - "  ~ shaders/blob.vert.glsl  + // jen:functions – jen glsl:* adds functions above this line"
@@ -493,6 +539,7 @@ glsl_displace:
 glsl_matrix:
   - "$ jen glsl:matrix --fns=rotate --into=shaders/mesh.vert.glsl"
   - "glsl:matrix (pack @codejen/pack-glsl) – add matrix helpers"
+  - "  # files → shaders (default at the project root)"
   - ""
   - "  ~ shaders/mesh.vert.glsl  + // jen:functions – jen glsl:* adds functions above this line"
   - "  ~ shaders/mesh.vert.glsl  + // rotateX, rotateY, rotateZ, rotateAxis · pack-glsl · MIT-0 (+32 more)"
@@ -502,6 +549,7 @@ glsl_matrix:
 glsl_util:
   - "$ jen glsl:util --fns=rot2,remap --into=shaders/clouds.frag.glsl"
   - "glsl:util (pack @codejen/pack-glsl) – add GLSL helpers"
+  - "  # files → shaders (default at the project root)"
   - ""
   - "  = shaders/clouds.frag.glsl  already present: // jen:functions – jen glsl:* adds functions above this line"
   - "  ~ shaders/clouds.frag.glsl  + // rot2 · pack-glsl · MIT-0 (+7 more)"

@@ -171,6 +171,29 @@ With `'rigid body'` as input:
 - `kebab` – `rigid-body`
 - `constant` – `RIGID_BODY`
 
+### Where files go, in generators
+
+Declare a `dest` and your generator puts its files where jen says: the current directory, `--dir`, or the `dest` folder when run at the project root. Paths in its actions are then relative to that, and a path starting with `/` is relative to the project root:
+
+```js
+// .jen/class.mjs
+export const dest = "src"; // the folder at the project root; "." for none
+export const params = { name: {} };
+
+export const actions = ({ name }, { pascal }) => [
+  { add: `${pascal(name)}.h`, template: `class ${pascal(name)} {};\n` },
+  { insert: "/CMakeLists.txt", before: "# jen:sources", line: `  ${pascal(name)}.cpp` },
+];
+```
+
+Without `dest`, paths are relative to the project root, as before, so existing generators keep working. If a generator declares its own `dir` param, jen leaves `--dir` to it.
+
+The third argument to `actions()` tells a generator about the project it runs in:
+
+- `ctx.destDir` – the destination directory, relative to the project root.
+- `ctx.root` and `ctx.cwd` – the absolute project root, and the current directory relative to it.
+- `ctx.exists(path)`, `ctx.read(path)`, `ctx.findUp(name, text?)` and `ctx.grep(name, text?)` – a read-only look at the project, with paths relative to the root. Handy for finding a file with a marker to insert into (remember the leading `/` when you use the result as an action path).
+
 ### Undoing things
 
 `delete` and `modify` together make a neat counterpart to the `class` generator above:
@@ -189,6 +212,18 @@ export const actions = ({ name }, { pascal }) => [
   },
 ];
 ```
+
+## Project root and destination
+
+jen never prompts, and it doesn't guess either. There are two simple rules.
+
+**Files go where you are standing.** A generator that scaffolds a class, a shader or a single file writes it into the current directory. App starters (`cpp:sdl3`, `glsl:webgl`, …) create a new folder in the current directory and put everything there. `--dir=<path>` (relative to the current directory) writes somewhere else instead.
+
+A generator may name a default folder (`src`, `shaders`, …) that applies only when you run it at the project root, so `jen cpp:class --name=Foo` at the root still writes `src/Foo.h`. Anywhere else the current directory wins.
+
+**The project root** is only for the project's own files. jen finds it by walking up from the current directory: the parent of the nearest `.jen/`, otherwise the nearest directory with a `package.json` or a `.git`, otherwise the current directory. Paths in actions are relative to it, which is how a generator in a subfolder can still edit the root `CMakeLists.txt`. `--where` sets the root for a single run.
+
+The plan notes what jen decided, for example `root: .. (package.json)` or `files → src (default at the project root)`.
 
 ## Where jen looks for generators
 
@@ -308,6 +343,7 @@ jen [generator] [--param=value …] [options]
   --dry-run, -n   only show the plan
   --force,   -f   overwrite existing files
   --where,   -w   generate into this directory instead of the project root
+  --dir           where the files go instead of the current directory
   --from          fetch a pack or Yeoman generator via npm, run it once, then remove it
   --help,    -h   show this help
 ```
@@ -316,7 +352,9 @@ Without a generator name, jen lists all available generators and exits with code
 
 Params always use the `=` form (`--name=Foo`). The option names `list`, `dry-run`, `force`, `where`, `from` and `help` are reserved, so don't use them as param names.
 
-By default, all action paths are relative to the project root (the directory containing `.jen/`, or the current directory if there is none). `--where`/`-w` overrides that root for a single run, so you can scaffold into another directory without `cd`-ing there first — generators are still looked up from where you actually are.
+All action paths are relative to the project root, found from the current directory (see [Project root and destination](#project-root-and-destination)). `--where`/`-w` overrides that root for a single run, so you can scaffold into another directory without `cd`-ing there first — generators are still looked up from where you actually are.
+
+The plan notes where jen got a location from, for example `root: .. (package.json)` or `--dir → src/net (current directory)`.
 
 The plan uses these marks:
 

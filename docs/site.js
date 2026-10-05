@@ -58,20 +58,19 @@
   const SCENES = [
     {
       cmd: 'jen cpp:class --name=rigid_body --moveOnly',
-      head: 'cpp:class (pack @codejen/pack-cpp) – create a C++ class in src/ (header + source), wired into src/CMakeLists.txt',
+      head: 'cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources',
       rows: [['add', '+ src/RigidBody.h'], ['add', '+ src/RigidBody.cpp'], ['mod', '~ src/CMakeLists.txt  + RigidBody.cpp']],
       done: '✓ 3 written',
     },
     {
-      cmd: 'jen cpp:shader --name=Vignette',
-      head: 'cpp:shader (pack @codejen/pack-cpp) – GLSL vertex/fragment pair, embedded via CMake',
+      cmd: 'jen cpp:shader --file=shaders/vignette.frag.glsl',
+      head: 'cpp:shader (pack @codejen/pack-cpp) – embed an existing GLSL file via CMake',
       rows: [
         ['dim', '= cmake/embed-glsl.cmake  exists, skipped'],
-        ['add', '+ src/vignette.vert.glsl'],
-        ['add', '+ src/vignette.frag.glsl'],
-        ['mod', '~ src/CMakeLists.txt  + embed_glsl("vignette.vert.glsl" …) (+1 more)'],
+        ['mod', '~ src/CMakeLists.txt  + include(${PROJECT_SOURCE_DIR}/cmake/embed-glsl.cmake)'],
+        ['mod', '~ src/CMakeLists.txt  + embed_glsl("../shaders/vignette.frag.glsl" …)'],
       ],
-      done: '✓ 3 written',
+      done: '✓ 2 written',
     },
     {
       cmd: 'jen cpp:sdl3 --name=MyGame',

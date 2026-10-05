@@ -4,12 +4,14 @@
     <pre><span class="c">// params come from --flags, or their default</span>
 <span class="k">export const</span> params = {
   name: {},                  <span class="c">// no default = required</span>
-  dir:  { default: <span class="s">"src"</span> },
 };
 
-<span class="k">export const</span> actions = ({ name, dir }, { pascal }) =&gt; [
+<span class="c">// files go where you stand, or here at the project root</span>
+<span class="k">export const</span> dest = <span class="s">"src"</span>;
+
+<span class="k">export const</span> actions = ({ name }, { pascal }) =&gt; [
   {
-    add: <span class="s">`${dir}/${pascal(name)}.txt`</span>,
+    add: <span class="s">`${pascal(name)}.txt`</span>,
     template: <span class="s">`Hello, ${name}!\n`</span>,
   },
 ];</pre>

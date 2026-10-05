@@ -2,6 +2,7 @@
 # Paths starting with "/" are site-relative; anything else is used as-is.
 header:
   - { title: how, url: "/#how" }
+  - { title: where files go, url: "/#where" }
   - { title: write your own, url: "/#write" }
   - { title: cpp recipes, url: "/recipes.html" }
   - { title: glsl recipes, url: "/glsl.html" }
