@@ -95,7 +95,7 @@ GLSL has no `#include`, so functions ship as plain `.glsl` files under `glsl/`. 
 
 Inserted code is matched by its exact text: if you edit an inserted function and run a generator needing it again, it gets inserted a second time.
 
-`--into` needs jen 1.2 or newer (for inserting before the first function).
+The pack needs jen 2 or newer; npm warns if your jen is older.
 
 ## Where files go
 
