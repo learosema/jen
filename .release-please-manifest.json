@@ -1,5 +1,5 @@
 {
   "packages/jen": "1.2.0",
   "packages/pack-cpp": "0.2.0",
-  "packages/pack-glsl": "1.0.0"
+  "packages/pack-glsl": "2.0.0"
 }

@@ -1,6 +1,6 @@
 {
   "name": "@codejen/pack-glsl",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "jen pack for GLSL: shader starters, SDF/raymarching, noise and lighting snippets (MIT-licensed, attributed)",
   "type": "module",
   "main": "./dist/index.js",

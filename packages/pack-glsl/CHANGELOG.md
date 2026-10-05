@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/learosema/jen/compare/pack-glsl-v1.0.0...pack-glsl-v2.0.0) (2026-10-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* **pack-glsl:** the dir param (default shaders) is gone; jen's --dir, relative to the current directory, replaces it. --into and --file are relative to the current directory.
+
+### Features
+
+* **pack-glsl:** let jen decide where files go ([6d141f2](https://github.com/learosema/jen/commit/6d141f2a22a95b35781c8e0cba3566b5e164b2d7))
+
 ## 1.0.0 (2026-10-04)
 
 
