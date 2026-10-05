@@ -60,7 +60,7 @@ export interface YeomanRunContext {
   given: Record<string, unknown>;
   /** Positionals after the generator name, forwarded as the generator's own positional arguments. */
   positionals: string[];
-  /** Project root, used as the generator's destinationRoot/cwd. */
+  /** Where the files go – the current directory, as with `yo` – used as the generator's destinationRoot/cwd. */
   root: string;
   /** Generator namespace, e.g. "code:app" – yeoman-generator requires one. */
   namespace: string;

@@ -705,6 +705,14 @@ export default class extends Generator {
     assert.equal(read(dir, 'rendered.txt'), 'Hi World!\n');
   });
 
+  it('writes where you stand, like yo', () => {
+    const dir = fixture({ ...WIDGET, 'sub/.keep': '' });
+    withRealYeoman(dir);
+    const r = jen(['widget', '--name=World'], { cwd: join(dir, 'sub') });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(read(dir, 'sub/out.txt'), 'Hello, World!\n');
+  });
+
   it('never runs the install/end priorities', () => {
     const dir = fixture(WIDGET);
     withRealYeoman(dir);
