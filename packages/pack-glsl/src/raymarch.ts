@@ -16,7 +16,7 @@
  */
 import type { Action, Generator } from '@codejen/jen';
 import { chunkActions, pickChunks } from './chunks.ts';
-import { fail, inFolder, parseList } from './common.ts';
+import { fail, parseList } from './common.ts';
 import { parseVersion, withHeader } from './dialect.ts';
 import type { Version } from './dialect.ts';
 
@@ -163,18 +163,17 @@ const raymarchGenerator: Generator = {
     materials: { default: false },
     lighting: { default: 'lambert' },
     parts: { default: 'all' },
-    into: { default: '' },
-    dir: { default: 'shaders' },
+    into: { path: true, default: '' },
     version: { default: '300es' },
   },
-  actions: ({ name, minimal, materials, lighting, parts, into, dir, version }, { kebab }) => {
+  actions: ({ name, minimal, materials, lighting, parts, into, version }, { kebab }) => {
     const model = String(lighting);
     if (!LIGHTING_MODELS.includes(model)) {
       fail(`glsl:raymarch --lighting: expected one of ${LIGHTING_MODELS.map((m) => `"${m}"`).join(', ')}, got "${model}"`);
     }
     if (name && into) fail('glsl:raymarch: use either --name (new starter) or --into (existing shader), not both');
     if (name) {
-      const file = inFolder(String(dir), `${kebab(String(name))}.frag.glsl`);
+      const file = `${kebab(String(name))}.frag.glsl`;
       return raymarchStarter(file, parseVersion(version), {
         scene: materials ? MATERIAL_SCENE : SCENE,
         chunks: SCENE_CHUNKS,
@@ -190,7 +189,7 @@ const raymarchGenerator: Generator = {
       );
     }
     const ids = pickChunks('raymarch', parseList(String(parts)), '--parts', 'glsl:raymarch');
-    return chunkActions(ids, { into: String(into), dir: String(dir) });
+    return chunkActions(ids, { into: String(into), dir: '' });
   },
 };
 

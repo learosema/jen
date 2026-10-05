@@ -11,9 +11,10 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { posix } from 'node:path';
 import { Script } from 'node:vm';
 import { describe, it } from 'node:test';
-import type { Action, Helpers } from '@codejen/jen';
+import type { Action, Find, Helpers } from '@codejen/jen';
 import pack from './src/index.ts';
 import { INLINE_LICENSE, NOISE_BASES, OWN_LICENSE, chunkIds, licenseText, loadChunk, noticesFor, resolveChunks } from './src/chunks.ts';
 import { listGlsl, packPath } from './src/common.ts';
@@ -34,14 +35,29 @@ const helpers: Helpers = {
   constant: (s) => words(s).map((w) => w.toUpperCase()).join('_'),
 };
 
+/**
+ * Runs a generator the way jen does with `--dir=<answers.dir>` (`shaders` if not
+ * given): path params arrive from the project root (`/…`), and the resulting paths
+ * are placed – `/…` at the root, everything else in that folder. The GLSL
+ * generators never look at the project, so there is no Context to fake.
+ */
 function run(generator: string, answers: Record<string, string | boolean>): Action[] {
   const g = pack[generator];
+  const params = g.params ?? {};
   const defaults = Object.fromEntries(
-    Object.entries(g.params ?? {})
+    Object.entries(params)
       .filter(([, p]) => p.default !== undefined)
       .map(([k, p]) => [k, p.default]),
   );
-  return g.actions({ ...defaults, ...answers }, helpers);
+  const given = Object.fromEntries(Object.entries({ ...defaults, ...answers }).map(([k, v]) => [k, params[k]?.path && v ? `/${v}` : v]));
+  const dir = 'dir' in params ? '.' : String(answers.dir ?? 'shaders');
+  const place = (p: string | Find): string => (typeof p !== 'string' ? assert.fail('no find targets here') : p.startsWith('/') ? p.slice(1) : posix.join(dir, p));
+  return g.actions(given, helpers, {} as never).map((a): Action => {
+    if ('add' in a) return { ...a, add: place(a.add) };
+    if ('insert' in a) return { ...a, insert: place(a.insert) };
+    if ('modify' in a) return { ...a, modify: place(a.modify) };
+    return a;
+  });
 }
 
 /** Applies actions to an in-memory file map, like jen's plan() (dedupe by trimmed block, insert before marker). */
@@ -50,6 +66,7 @@ function applyActions(files: Map<string, string>, actions: Action[]): Map<string
     if ('add' in a) {
       if (!files.has(a.add)) files.set(a.add, a.template);
     } else if ('insert' in a) {
+      if (typeof a.insert !== 'string' || !('line' in a)) assert.fail('only plain inserts here');
       const lines = (files.get(a.insert) ?? assert.fail(`missing ${a.insert}`)).split('\n');
       const block = a.line.split('\n').map((l) => l.trim());
       const present = lines.some((_, k) => block.every((b, j) => lines[k + j]?.trim() === b));
@@ -59,7 +76,7 @@ function applyActions(files: Map<string, string>, actions: Action[]): Map<string
       assert.ok(i >= 0, `marker "${a.before}" not found in ${a.insert}`);
       lines.splice(i, 0, ...a.line.split('\n'));
       files.set(a.insert, lines.join('\n'));
-    } else if ('modify' in a) {
+    } else if ('modify' in a && typeof a.modify === 'string') {
       files.set(a.modify, (files.get(a.modify) ?? '').replace(a.pattern, a.replace));
     }
   }
@@ -653,5 +670,13 @@ describe('glsl:matrix', () => {
       applyActions(files, run('matrix', { fns: 'all', into: 'm.vert.glsl' }));
       assertCompiles(files.get('m.vert.glsl')!, 'vert', `mesh starter + matrices (${version})`);
     }
+  });
+});
+
+describe('glsl:webgl --shaderDir', () => {
+  it('moves the shader and the URL that fetches it', () => {
+    const files = new Map(adds(run('webgl', { name: 'x', shaderDir: 'glsl/' })).map((a) => [a.add, a.template]));
+    assert.deepEqual([...files.keys()], ['index.html', 'shader-canvas.js', 'glsl/x.frag.glsl']);
+    assert.match(files.get('index.html')!, /<shader-canvas src="glsl\/x.frag.glsl" live>/);
   });
 });

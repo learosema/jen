@@ -12,7 +12,7 @@ import { header, parseVersion } from './dialect.ts';
 const portGenerator: Generator = {
   description: 'switch a shader between GLSL dialects by rewriting its header',
   params: {
-    file: {},
+    file: { path: true },
     to: {},
   },
   actions: ({ file, to }) => {

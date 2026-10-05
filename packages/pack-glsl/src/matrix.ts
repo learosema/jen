@@ -12,13 +12,12 @@ const matrixGenerator: Generator = {
   description: 'add matrix helpers',
   params: {
     fns: { default: '' },
-    into: { default: '' },
-    dir: { default: 'shaders' },
+    into: { path: true, default: '' },
   },
-  actions: ({ fns, into, dir }) =>
+  actions: ({ fns, into }) =>
     chunkActions(pickChunks('matrix', parseList(String(fns)), '--fns', 'glsl:matrix'), {
       into: String(into),
-      dir: String(dir),
+      dir: '',
     }),
 };
 
