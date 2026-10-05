@@ -20,10 +20,10 @@ target_compile_options(project_warnings INTERFACE
 )
 `;
     return [
-      { add: 'cmake/warnings.cmake', template: warnings },
-      { insert: 'CMakeLists.txt', before: '# jen:options', line: 'include(cmake/warnings.cmake)' },
+      { add: '/cmake/warnings.cmake', template: warnings },
+      { insert: '/CMakeLists.txt', before: '# jen:options', line: 'include(cmake/warnings.cmake)' },
       {
-        insert: 'src/CMakeLists.txt',
+        insert: { find: 'CMakeLists.txt' },
         before: '# jen:link',
         line: 'target_link_libraries(${PROJECT_NAME}-core PRIVATE project_warnings)',
       },

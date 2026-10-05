@@ -4,7 +4,7 @@
  * designated initializers work (`Config{.width = 800}`).
  */
 import type { Generator } from '@codejen/jen';
-import { fail, inNamespace, qualified, splitTopLevel, testActions } from './util.ts';
+import { fail, inNamespace, includeBlock, qualified, splitTopLevel, stdIncludes, testActions } from './util.ts';
 
 /** A member without an initializer gets `{}`, so it is never left uninitialized (ES.20). */
 function withInitializer(member: string): string {
@@ -38,12 +38,12 @@ ${compare ? `\n  auto operator<=>(const ${type}&) const = default;\n` : ''}};
     const header = `#ifndef ${guard}
 #define ${guard}
 
-${compare ? '#include <compare>\n\n' : ''}${inNamespace(ns, body)}
+${includeBlock(compare ? ['<compare>'] : [], stdIncludes(String(members)))}${inNamespace(ns, body)}
 #endif  // ${guard}
 `;
 
     return [
-      { add: `src/${type}.h`, template: header },
+      { add: `${type}.h`, template: header },
       ...testActions(withTest, type, `${type}.h`, [`CHECK(std::is_aggregate_v<${qualified(ns, type)}>);`], ['type_traits']),
     ];
   },

@@ -71,10 +71,10 @@ const compilerGenerator: Generator = {
     hardening: { default: true },
   },
   actions: ({ hardening }) => [
-    { add: 'cmake/compiler.cmake', template: compilerCMake(Boolean(hardening)) },
-    { insert: 'CMakeLists.txt', before: '# jen:options', line: 'include(cmake/compiler.cmake)' },
+    { add: '/cmake/compiler.cmake', template: compilerCMake(Boolean(hardening)) },
+    { insert: '/CMakeLists.txt', before: '# jen:options', line: 'include(cmake/compiler.cmake)' },
     {
-      insert: 'src/CMakeLists.txt',
+      insert: { find: 'CMakeLists.txt' },
       before: '# jen:link',
       line: 'target_link_libraries(${PROJECT_NAME}-core PRIVATE project_options)',
     },

@@ -60,7 +60,7 @@ struct std::formatter<${q}> : std::formatter<std::string_view> {
       `CHECK(std::format("{}", ${q}::${items[0]}) == "${items[0]}");`,
     ];
     return [
-      { add: `src/${type}.h`, template: header },
+      { add: `${type}.h`, template: header },
       ...testActions(withTest, type, `${type}.h`, checks, ['format']),
     ];
   },

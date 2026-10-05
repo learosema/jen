@@ -4,7 +4,7 @@
  * from mixing in graphics code.
  */
 import type { Generator } from '@codejen/jen';
-import { fail, inNamespace, qualified, splitTopLevel, testActions } from './util.ts';
+import { fail, inNamespace, includeBlock, qualified, splitTopLevel, stdIncludes, testActions } from './util.ts';
 
 const OPS = ['compare', 'arith', 'hash'];
 
@@ -64,12 +64,12 @@ struct std::hash<${qualified(ns, type)}> {
 };
 `
       : '';
-    const includes = [has('compare') ? '<compare>' : '', has('hash') ? '<functional>' : ''].filter(Boolean);
+    const includes = [...(has('compare') ? ['<compare>'] : []), ...(has('hash') ? ['<functional>'] : []), ...stdIncludes(under)];
 
     const header = `#ifndef ${guard}
 #define ${guard}
 
-${includes.map((i) => `#include ${i}`).join('\n')}${includes.length ? '\n\n' : ''}${inNamespace(ns, body)}${hash}
+${includeBlock(includes)}${inNamespace(ns, body)}${hash}
 #endif  // ${guard}
 `;
 
@@ -81,7 +81,7 @@ ${includes.map((i) => `#include ${i}`).join('\n')}${includes.length ? '\n\n' : '
       ...(has('arith') ? [`CHECK((${q}{1} + ${q}{2}).value() == 3);`] : []),
     ];
     return [
-      { add: `src/${type}.h`, template: header },
+      { add: `${type}.h`, template: header },
       ...testActions(withTest, type, `${type}.h`, checks, ['type_traits']),
     ];
   },

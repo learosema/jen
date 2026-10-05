@@ -8,7 +8,7 @@
  */
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import type { Action, Helpers } from '@codejen/jen';
+import type { Action, Context, Find, Helpers } from '@codejen/jen';
 import pack from './src/index.ts';
 
 const words = (s: string): string[] => s.replace(/([a-z0-9])([A-Z])/g, '$1 $2').split(/[\s_\-./]+/).filter(Boolean);
@@ -25,53 +25,90 @@ const helpers: Helpers = {
   constant: (s) => words(s).map((w) => w.toUpperCase()).join('_'),
 };
 
+/**
+ * A stand-in for the Context jen passes in: a project whose files (path → contents)
+ * are `files`. Only cpp:shader looks at it; the rest return paths relative to where
+ * jen puts files (or `/…` from the project root) and `{ find }` targets, which jen
+ * resolves – its own tests cover that, so these assert the actions as returned.
+ */
+function ctx(files: Record<string, string> = {}, destDir = 'src', cwd = '.'): Context {
+  const paths = Object.keys(files);
+  const dirOf = (f: string): string => (f.includes('/') ? f.slice(0, f.lastIndexOf('/')) : '.');
+  return {
+    root: '/project',
+    cwd,
+    destDir,
+    exists: (p) => paths.includes(p),
+    isDir: (p) => paths.some((f) => f.startsWith(`${p}/`)),
+    read: (p) => files[p] ?? null,
+    readdir: () => [],
+    findUp: (name, text, from = '.') => {
+      for (let d = from; ; d = dirOf(d)) {
+        const f = d === '.' ? name : `${d}/${name}`;
+        if (f in files && (text === undefined || files[f].includes(text))) return f;
+        if (d === '.') return null;
+      }
+    },
+    grep: (name, text) =>
+      paths.filter((f) => (typeof name === 'string' ? f.split('/').pop() === name : name.test(f)) && (text === undefined || files[f].includes(text))),
+  };
+}
+
+/** A project started from cpp:sdl3: both markers in place. */
+const STARTED = { 'src/CMakeLists.txt': '# jen:sources\n# jen:link\n# jen:embed\n# jen:app\n', '/tests/CMakeLists.txt': '# jen:tests\n' };
+
 function planClass(answers: Record<string, string | boolean>): Action[] {
   const defaults = { namespace: '', moveOnly: false, resource: 'Resource*', nullValue: 'nullptr', destroy: 'destroy' };
-  return pack.class.actions({ ...defaults, ...answers }, helpers);
+  return pack.class.actions({ ...defaults, ...answers }, helpers, ctx(STARTED));
 }
 
 function planHandle(name: string, namespace = ''): { add: string; template: string }[] {
-  return pack.handle.actions({ name, namespace }, helpers) as { add: string; template: string }[];
+  return pack.handle.actions({ name, namespace }, helpers, ctx(STARTED)) as { add: string; template: string }[];
 }
 
 function planScopeExit(name: string, namespace = ''): { add: string; template: string }[] {
-  return pack.scopeexit.actions({ name, namespace }, helpers) as { add: string; template: string }[];
+  return pack.scopeexit.actions({ name, namespace }, helpers, ctx(STARTED)) as { add: string; template: string }[];
 }
 
 function planR0(answers: Record<string, string>): { add: string; template: string }[] {
-  return pack.r0.actions({ namespace: '', ...answers }, helpers) as { add: string; template: string }[];
+  return pack.r0.actions({ namespace: '', ...answers }, helpers, ctx(STARTED)) as { add: string; template: string }[];
 }
 
-function planShader(answers: Record<string, string>): Action[] {
-  return pack.shader.actions({ stage: 'both', ...answers }, helpers);
+/** `file` as jen hands a path param over: from the project root, with a leading `/`. */
+function planShader(answers: Record<string, string>, files: Record<string, string> = {}, cwd = '.'): Action[] {
+  return pack.shader.actions({ name: '', ...answers }, helpers, ctx({ ...STARTED, 'shaders/tonemap.frag.glsl': '', 'src/blur.glsl': '', ...files }, '.', cwd));
 }
 
 function planSdl3(answers: Record<string, string>): Action[] {
   const defaults = { width: '800', height: '600', bundleId: '', sdlTag: 'release-3.4.14', folderCase: 'kebab', dir: '.' };
-  return pack.sdl3.actions({ ...defaults, ...answers }, helpers);
+  return pack.sdl3.actions({ ...defaults, ...answers }, helpers, ctx(STARTED, '.'));
 }
 
 function planSdl3Opengl(answers: Record<string, string>): Action[] {
   const defaults = { width: '800', height: '600', bundleId: '', sdlTag: 'release-3.4.14', folderCase: 'kebab', dir: '.' };
-  return pack['sdl3-opengl'].actions({ ...defaults, ...answers }, helpers);
+  return pack['sdl3-opengl'].actions({ ...defaults, ...answers }, helpers, ctx(STARTED, '.'));
 }
 
 const template = (a: Action): string => ('template' in a ? a.template : '');
 const adds = (actions: Action[]): string[] => actions.filter((a): a is { add: string; template: string } => 'add' in a).map((a) => a.add);
-const inserts = (actions: Action[]): { insert: string; before: string; line: string }[] =>
-  actions.filter((a): a is { insert: string; before: string; line: string } => 'insert' in a);
+type Insert = { insert: string | Find; before: string; line?: string; path?: string };
+const inserts = (actions: Action[]): Insert[] => actions.filter((a) => 'insert' in a) as Insert[];
+/** An insert into the nearest CMakeLists.txt with `marker`, listing `path` there. */
+const wired = (marker: string, path: string): Insert => ({ insert: { find: 'CMakeLists.txt' }, before: marker, path });
+/** An insert of `line` into the nearest CMakeLists.txt with `marker`. */
+const atMarker = (marker: string, line: string): Insert => ({ insert: { find: 'CMakeLists.txt' }, before: marker, line });
 const byAdd = (actions: Action[], path: string): string =>
   template(actions.find((a): a is { add: string; template: string } => 'add' in a && a.add === path) ?? { add: '', template: '' });
 
 describe('class', () => {
-  it('writes the header and source under src/, named after the pascal-cased class name', () => {
+  it('writes the header and source, named after the pascal-cased class name', () => {
     const actions = planClass({ name: 'rigid-body' });
-    assert.deepEqual(adds(actions), ['src/RigidBody.h', 'src/RigidBody.cpp']);
+    assert.deepEqual(adds(actions), ['RigidBody.h', 'RigidBody.cpp']);
   });
 
-  it('wires the new source into src/CMakeLists.txt at the # jen:sources marker', () => {
+  it('wires the new source into the nearest CMakeLists.txt at the # jen:sources marker', () => {
     const actions = planClass({ name: 'RigidBody' });
-    assert.deepEqual(inserts(actions), [{ insert: 'src/CMakeLists.txt', before: '# jen:sources', line: '  RigidBody.cpp' }]);
+    assert.deepEqual(inserts(actions), [wired('# jen:sources', 'RigidBody.cpp')]);
   });
 
   it('uses an include guard derived from the name', () => {
@@ -127,9 +164,9 @@ describe('class', () => {
       assert.match(template(source), /if \(handle_ != 0\) glDeleteTextures\(handle_\);/);
     });
 
-    it('still wires the source into src/CMakeLists.txt', () => {
+    it('still wires the source in', () => {
       const actions = planClass({ name: 'Texture', moveOnly: true });
-      assert.deepEqual(inserts(actions), [{ insert: 'src/CMakeLists.txt', before: '# jen:sources', line: '  Texture.cpp' }]);
+      assert.deepEqual(inserts(actions), [wired('# jen:sources', 'Texture.cpp')]);
     });
   });
 });
@@ -137,7 +174,7 @@ describe('class', () => {
 describe('cpp:handle', () => {
   it('names the header after the pascal-cased name, under src/', () => {
     const [header] = planHandle('handle');
-    assert.equal(header.add, 'src/Handle.h');
+    assert.equal(header.add, 'Handle.h');
   });
 
   it('is a header-only template constrained by Deleter invocability', () => {
@@ -157,7 +194,7 @@ describe('cpp:handle', () => {
 describe('cpp:scopeexit', () => {
   it('names the header after the pascal-cased name, under src/', () => {
     const [header] = planScopeExit('scope-exit');
-    assert.equal(header.add, 'src/ScopeExit.h');
+    assert.equal(header.add, 'ScopeExit.h');
   });
 
   it('requires a nothrow-invocable callable and runs it on destruction unless released', () => {
@@ -171,7 +208,7 @@ describe('cpp:scopeexit', () => {
 describe('cpp:r0', () => {
   it('names the header after the pascal-cased class name, under src/', () => {
     const [header] = planR0({ name: 'person', members: 'std::string name, int age' });
-    assert.equal(header.add, 'src/Person.h');
+    assert.equal(header.add, 'Person.h');
   });
 
   it('generates a constructor with a member-init list from --members', () => {
@@ -194,42 +231,42 @@ describe('cpp:r0', () => {
 });
 
 describe('cpp:shader', () => {
-  it('writes a kebab-cased vertex/fragment pair under src/ by default', () => {
-    const actions = planShader({ name: 'Tonemap' });
-    assert.deepEqual(adds(actions), ['cmake/embed-glsl.cmake', 'src/tonemap.vert.glsl', 'src/tonemap.frag.glsl']);
+  it('embeds an existing shader and writes no shader file of its own', () => {
+    const actions = planShader({ file: '/shaders/tonemap.frag.glsl' });
+    assert.deepEqual(adds(actions), ['/cmake/embed-glsl.cmake']);
   });
 
-  it('wires both stages into src/CMakeLists.txt at the # jen:shaders marker', () => {
-    const actions = planShader({ name: 'Tonemap' });
+  it('wires it in at # jen:embed, by a path relative to that CMakeLists.txt', () => {
+    const actions = planShader({ file: '/shaders/tonemap.frag.glsl' });
     assert.deepEqual(inserts(actions), [
-      {
-        insert: 'src/CMakeLists.txt',
-        before: '# jen:shaders',
-        line: 'embed_glsl("tonemap.vert.glsl" tonemapVertexShader)\nembed_glsl("tonemap.frag.glsl" tonemapFragmentShader)',
-      },
+      { insert: '/src/CMakeLists.txt', before: '# jen:embed', line: 'include(${PROJECT_SOURCE_DIR}/cmake/embed-glsl.cmake)' },
+      { insert: '/src/CMakeLists.txt', before: '# jen:embed', line: 'embed_glsl("../shaders/tonemap.frag.glsl" tonemapFragmentShader)' },
     ]);
+  });
+
+  it('prefers a CMakeLists.txt with the marker next to the shader', () => {
+    const actions = planShader({ file: '/shaders/tonemap.frag.glsl' }, { 'shaders/CMakeLists.txt': '# jen:embed\n' });
+    assert.equal(inserts(actions)[1].insert, '/shaders/CMakeLists.txt');
+    assert.equal(inserts(actions)[1].line, 'embed_glsl("tonemap.frag.glsl" tonemapFragmentShader)');
+  });
+
+  it('names the variable after the file and its stage, or --name', () => {
+    assert.match(inserts(planShader({ file: '/shaders/tonemap.frag.glsl' }))[1].line ?? '', /tonemapFragmentShader\)$/);
+    assert.match(inserts(planShader({ file: '/src/blur.glsl' }))[1].line ?? '', /embed_glsl\("blur\.glsl" blurShader\)$/);
+    assert.match(inserts(planShader({ file: '/shaders/tonemap.frag.glsl', name: 'post' }))[1].line ?? '', / post\)$/);
   });
 
   it('ships the embed_glsl() CMake helper unmodified', () => {
-    const actions = planShader({ name: 'Tonemap' });
-    assert.match(byAdd(actions, 'cmake/embed-glsl.cmake'), /function\(embed_glsl INPUT_FILE VARIABLE_NAME\)/);
+    const actions = planShader({ file: '/shaders/tonemap.frag.glsl' });
+    assert.match(byAdd(actions, '/cmake/embed-glsl.cmake'), /function\(embed_glsl INPUT_FILE VARIABLE_NAME\)/);
   });
 
-  it('--stage=vert writes only the vertex shader', () => {
-    const actions = planShader({ name: 'Tonemap', stage: 'vert' });
-    assert.deepEqual(adds(actions), ['cmake/embed-glsl.cmake', 'src/tonemap.vert.glsl']);
-    assert.deepEqual(inserts(actions), [
-      { insert: 'src/CMakeLists.txt', before: '# jen:shaders', line: 'embed_glsl("tonemap.vert.glsl" tonemapVertexShader)' },
-    ]);
+  it('fails clearly when the shader does not exist yet, pointing at glsl:frag', () => {
+    assert.throws(() => planShader({ file: '/shaders/nope.frag.glsl' }), /not found.*glsl:frag/);
   });
 
-  it('--stage=frag writes only the fragment shader', () => {
-    const actions = planShader({ name: 'Tonemap', stage: 'frag' });
-    assert.deepEqual(adds(actions), ['cmake/embed-glsl.cmake', 'src/tonemap.frag.glsl']);
-  });
-
-  it('fails clearly on an unknown --stage', () => {
-    assert.throws(() => planShader({ name: 'Tonemap', stage: 'geom' }), /--stage/);
+  it('fails clearly without a # jen:embed marker', () => {
+    assert.throws(() => pack.shader.actions({ name: '', file: '/a.glsl' }, helpers, ctx({ 'a.glsl': '' })), /# jen:embed/);
   });
 });
 
@@ -355,12 +392,11 @@ describe('sdl3-opengl', () => {
     assert.match(byAdd(actions, 'vendor/CMakeLists.txt'), /add_subdirectory\(glad\)/);
   });
 
-  it('embeds the bundled quad demo shaders and leaves both jen markers in src/CMakeLists.txt', () => {
+  it('embeds the bundled quad demo shaders and leaves the jen markers in src/CMakeLists.txt', () => {
     const actions = planSdl3Opengl({ name: 'MyGame' });
     const cmake = byAdd(actions, 'src/CMakeLists.txt');
     assert.match(cmake, /embed_glsl\("quad\.vert\.glsl" quadVertexShader\)/);
     assert.match(cmake, /embed_glsl\("quad\.frag\.glsl" quadFragmentShader\)/);
-    assert.match(cmake, /# jen:shaders/);
     assert.match(cmake, /# jen:sources/);
     assert.match(cmake, /target_link_libraries\(my-game-core PUBLIC SDL3::SDL3 glad\)/);
   });
@@ -390,7 +426,7 @@ describe('sdl3-opengl', () => {
 
 type Plan = (answers: Record<string, string | boolean>) => Action[];
 const plan = (id: string, answers: Record<string, string | boolean>, defaults: Record<string, string | boolean> = {}): Action[] =>
-  pack[id].actions({ namespace: '', withTest: false, ...defaults, ...answers }, helpers);
+  pack[id].actions({ namespace: '', withTest: false, ...defaults, ...answers }, helpers, ctx(STARTED));
 
 const planInterface: Plan = (a) => plan('interface', a, { methods: '', impl: '' });
 const planStruct: Plan = (a) => plan('struct', a, { compare: false });
@@ -400,7 +436,7 @@ const planPimpl: Plan = (a) => plan('pimpl', a);
 const planVariant: Plan = (a) => plan('variant', a);
 
 describe('--withTest', () => {
-  it('adds tests/<Name>_test.cpp and wires it in at # jen:tests, on every type generator', () => {
+  it('adds <Name>_test.cpp next to the header and wires it in at # jen:tests, on every type generator', () => {
     const cases: [Action[], string][] = [
       [planClass({ name: 'Foo', withTest: true }), 'Foo'],
       [planR0Test({ name: 'Foo', members: 'int a' }), 'Foo'],
@@ -412,32 +448,32 @@ describe('--withTest', () => {
       [planInterface({ name: 'Foo', withTest: true }), 'Foo'],
     ];
     for (const [actions, name] of cases) {
-      assert.ok(adds(actions).includes(`tests/${name}_test.cpp`));
-      assert.ok(inserts(actions).some((i) => i.before === '# jen:tests' && i.line === `  ${name}_test.cpp`));
+      assert.ok(adds(actions).includes(`${name}_test.cpp`));
+      assert.deepEqual(inserts(actions).at(-1), wired('# jen:tests', `${name}_test.cpp`));
     }
   });
 
   it('is off by default', () => {
-    assert.ok(!adds(planClass({ name: 'Foo' })).some((p) => p.startsWith('tests/')));
+    assert.ok(!adds(planClass({ name: 'Foo' })).some((p) => p.endsWith('_test.cpp')));
     assert.ok(!inserts(planStruct({ name: 'Foo', members: 'int a' })).some((i) => i.before === '# jen:tests'));
   });
 
   it('checks the properties the generator promises', () => {
-    const moveOnly = byAdd(planClass({ name: 'Foo', moveOnly: true, withTest: true }), 'tests/Foo_test.cpp');
+    const moveOnly = byAdd(planClass({ name: 'Foo', moveOnly: true, withTest: true }), 'Foo_test.cpp');
     assert.match(moveOnly, /#include <doctest\/doctest\.h>/);
     assert.match(moveOnly, /#include "Foo\.h"/);
     assert.match(moveOnly, /!std::is_copy_constructible_v<Foo>/);
-    assert.match(byAdd(planStruct({ name: 'Foo', members: 'int a', withTest: true }), 'tests/Foo_test.cpp'), /is_aggregate_v<Foo>/);
+    assert.match(byAdd(planStruct({ name: 'Foo', members: 'int a', withTest: true }), 'Foo_test.cpp'), /is_aggregate_v<Foo>/);
   });
 });
 
 function planR0Test(answers: Record<string, string>): Action[] {
-  return pack.r0.actions({ namespace: '', compare: false, ...answers, withTest: true }, helpers);
+  return pack.r0.actions({ namespace: '', compare: false, ...answers, withTest: true }, helpers, ctx(STARTED));
 }
 
 describe('cpp:r0 --compare', () => {
   it('defaults <=> as a member', () => {
-    const [header] = pack.r0.actions({ name: 'P', members: 'int a', namespace: '', compare: true, withTest: false }, helpers);
+    const [header] = pack.r0.actions({ name: 'P', members: 'int a', namespace: '', compare: true, withTest: false }, helpers, ctx(STARTED));
     assert.match(template(header), /#include <compare>/);
     assert.match(template(header), /auto operator<=>\(const P&\) const = default;/);
   });
@@ -447,7 +483,7 @@ describe('cpp:interface', () => {
   const methods = 'void draw(), int size() const, std::map<int, int> find(int key, int def = 3) const';
 
   it('has a virtual defaulted destructor, protected copy/move and pure virtual methods', () => {
-    const header = byAdd(planInterface({ name: 'Drawable', methods }), 'src/Drawable.h');
+    const header = byAdd(planInterface({ name: 'Drawable', methods }), 'Drawable.h');
     assert.match(header, /virtual ~Drawable\(\) = default;/);
     assert.match(header, /virtual void draw\(\) = 0;/);
     assert.match(header, /virtual int size\(\) const = 0;/);
@@ -455,18 +491,18 @@ describe('cpp:interface', () => {
     assert.match(header, / protected:\n[^]*Drawable\(const Drawable&\) = default;/);
   });
 
-  it('--impl scaffolds a final class with overrides, wired into src/CMakeLists.txt', () => {
+  it('--impl scaffolds a final class with overrides, wired in', () => {
     const actions = planInterface({ name: 'Drawable', methods, impl: 'SpriteDrawable' });
-    assert.deepEqual(adds(actions), ['src/Drawable.h', 'src/SpriteDrawable.h', 'src/SpriteDrawable.cpp']);
-    assert.deepEqual(inserts(actions), [{ insert: 'src/CMakeLists.txt', before: '# jen:sources', line: '  SpriteDrawable.cpp' }]);
-    const header = byAdd(actions, 'src/SpriteDrawable.h');
+    assert.deepEqual(adds(actions), ['Drawable.h', 'SpriteDrawable.h', 'SpriteDrawable.cpp']);
+    assert.deepEqual(inserts(actions), [wired('# jen:sources', 'SpriteDrawable.cpp')]);
+    const header = byAdd(actions, 'SpriteDrawable.h');
     assert.match(header, /class SpriteDrawable final : public Drawable/);
     assert.match(header, /void draw\(\) override;/);
     assert.match(header, /int size\(\) const override;/);
   });
 
   it('defines stubs without repeating default arguments, marking params unused', () => {
-    const source = byAdd(planInterface({ name: 'Drawable', methods, impl: 'Sprite' }), 'src/Sprite.cpp');
+    const source = byAdd(planInterface({ name: 'Drawable', methods, impl: 'Sprite' }), 'Sprite.cpp');
     assert.match(source, /void Sprite::draw\(\) \{\}/);
     assert.match(source, /int Sprite::size\(\) const \{ return \{\}; \}/);
     assert.match(source, /Sprite::find\(\[\[maybe_unused\]\] int key, \[\[maybe_unused\]\] int def\) const/);
@@ -474,8 +510,8 @@ describe('cpp:interface', () => {
 
   it('wraps everything in the namespace', () => {
     const actions = planInterface({ name: 'Drawable', methods: 'void draw()', impl: 'Sprite', namespace: 'gfx' });
-    assert.match(byAdd(actions, 'src/Drawable.h'), /namespace gfx \{[^]*\} {2}\/\/ namespace gfx/);
-    assert.match(byAdd(actions, 'src/Sprite.cpp'), /namespace gfx \{[^]*void Sprite::draw\(\) \{\}/);
+    assert.match(byAdd(actions, 'Drawable.h'), /namespace gfx \{[^]*\} {2}\/\/ namespace gfx/);
+    assert.match(byAdd(actions, 'Sprite.cpp'), /namespace gfx \{[^]*void Sprite::draw\(\) \{\}/);
   });
 
   it('fails clearly on a malformed method', () => {
@@ -485,7 +521,7 @@ describe('cpp:interface', () => {
 
 describe('cpp:struct', () => {
   it('generates public members with default initializers, value-initializing bare ones', () => {
-    const header = byAdd(planStruct({ name: 'Config', members: 'int width = 800, std::array<int, 3> rgb{1, 2, 3}, float scale' }), 'src/Config.h');
+    const header = byAdd(planStruct({ name: 'Config', members: 'int width = 800, std::array<int, 3> rgb{1, 2, 3}, float scale' }), 'Config.h');
     assert.match(header, /struct Config \{/);
     assert.match(header, / {2}int width = 800;/);
     assert.match(header, / {2}std::array<int, 3> rgb\{1, 2, 3\};/);
@@ -493,7 +529,7 @@ describe('cpp:struct', () => {
   });
 
   it('--compare adds a defaulted <=>', () => {
-    const header = byAdd(planStruct({ name: 'Config', members: 'int a', compare: true }), 'src/Config.h');
+    const header = byAdd(planStruct({ name: 'Config', members: 'int a', compare: true }), 'Config.h');
     assert.match(header, /#include <compare>/);
     assert.match(header, /auto operator<=>\(const Config&\) const = default;/);
   });
@@ -505,7 +541,7 @@ describe('cpp:struct', () => {
 
 describe('cpp:strong', () => {
   it('has an explicit constructor and a value() accessor', () => {
-    const header = byAdd(planStrong({ name: 'Pixels', underlying: 'int' }), 'src/Pixels.h');
+    const header = byAdd(planStrong({ name: 'Pixels', underlying: 'int' }), 'Pixels.h');
     assert.match(header, /constexpr explicit Pixels\(int value\) noexcept : value_\{value\} \{\}/);
     assert.match(header, /int value_\{\};/);
     assert.match(header, /auto operator<=>\(const Pixels&\) const = default;/);
@@ -513,7 +549,7 @@ describe('cpp:strong', () => {
   });
 
   it('--ops=arith,hash adds arithmetic and a std::hash specialization', () => {
-    const header = byAdd(planStrong({ name: 'Pixels', underlying: 'int', ops: 'arith,hash', namespace: 'gfx' }), 'src/Pixels.h');
+    const header = byAdd(planStrong({ name: 'Pixels', underlying: 'int', ops: 'arith,hash', namespace: 'gfx' }), 'Pixels.h');
     assert.match(header, /operator\+=\(Pixels rhs\)/);
     assert.match(header, /struct std::hash<gfx::Pixels>/);
     assert.doesNotMatch(header, /<=>/);
@@ -526,7 +562,7 @@ describe('cpp:strong', () => {
 
 describe('cpp:enum', () => {
   it('generates the enum class, to_string() without a default case, and a formatter', () => {
-    const header = byAdd(planEnum({ name: 'game-state', values: 'idle, running, paused' }), 'src/GameState.h');
+    const header = byAdd(planEnum({ name: 'game-state', values: 'idle, running, paused' }), 'GameState.h');
     assert.match(header, /enum class GameState \{\n {2}Idle,\n {2}Running,\n {2}Paused,\n\};/);
     assert.match(header, /case GameState::Running:\n {6}return "Running";/);
     assert.doesNotMatch(header, /default:/);
@@ -535,14 +571,14 @@ describe('cpp:enum', () => {
   });
 
   it('--std=20 swaps std::unreachable() for std::abort()', () => {
-    const header = byAdd(planEnum({ name: 'State', values: 'a', std: '20' }), 'src/State.h');
+    const header = byAdd(planEnum({ name: 'State', values: 'a', std: '20' }), 'State.h');
     assert.match(header, /std::abort\(\);/);
     assert.match(header, /#include <cstdlib>/);
     assert.doesNotMatch(header, /std::unreachable\(\);/);
   });
 
   it('qualifies the formatter with the namespace', () => {
-    const header = byAdd(planEnum({ name: 'State', values: 'a', namespace: 'game' }), 'src/State.h');
+    const header = byAdd(planEnum({ name: 'State', values: 'a', namespace: 'game' }), 'State.h');
     assert.match(header, /std::formatter<game::State>/);
     assert.match(header, /game::to_string\(value\)/);
   });
@@ -556,10 +592,10 @@ describe('cpp:enum', () => {
 describe('cpp:pimpl', () => {
   it('keeps Impl incomplete in the header and defaults the special members in the .cpp', () => {
     const actions = planPimpl({ name: 'Renderer' });
-    assert.deepEqual(adds(actions), ['src/Renderer.h', 'src/Renderer.cpp']);
-    assert.deepEqual(inserts(actions), [{ insert: 'src/CMakeLists.txt', before: '# jen:sources', line: '  Renderer.cpp' }]);
-    assert.match(byAdd(actions, 'src/Renderer.h'), /struct Impl;\n {2}std::unique_ptr<Impl> impl_;/);
-    const source = byAdd(actions, 'src/Renderer.cpp');
+    assert.deepEqual(adds(actions), ['Renderer.h', 'Renderer.cpp']);
+    assert.deepEqual(inserts(actions), [wired('# jen:sources', 'Renderer.cpp')]);
+    assert.match(byAdd(actions, 'Renderer.h'), /struct Impl;\n {2}std::unique_ptr<Impl> impl_;/);
+    const source = byAdd(actions, 'Renderer.cpp');
     assert.match(source, /Renderer::~Renderer\(\) = default;/);
     assert.match(source, /Renderer::Renderer\(Renderer&&\) noexcept = default;/);
   });
@@ -568,45 +604,45 @@ describe('cpp:pimpl', () => {
 describe('cpp:variant', () => {
   it('generates a struct per case, the variant alias and a shared overloaded.h', () => {
     const actions = planVariant({ name: 'Event', cases: 'key-down, KeyUp, Resize' });
-    assert.deepEqual(adds(actions), ['src/overloaded.h', 'src/Event.h']);
-    const header = byAdd(actions, 'src/Event.h');
+    assert.deepEqual(adds(actions), ['overloaded.h', 'Event.h']);
+    const header = byAdd(actions, 'Event.h');
     assert.match(header, /struct KeyDown \{\};/);
     assert.match(header, /using Event = std::variant<KeyDown, KeyUp, Resize>;/);
-    assert.match(byAdd(actions, 'src/overloaded.h'), /struct overloaded : Ts\.\.\./);
+    assert.match(byAdd(actions, 'overloaded.h'), /struct overloaded : Ts\.\.\./);
   });
 });
 
 // ─── tooling, profiling, packaging, resources ───────────────────────────────
 
 const planTool = (id: string, answers: Record<string, string | boolean> = {}, defaults: Record<string, string | boolean> = {}): Action[] =>
-  pack[id].actions({ ...defaults, ...answers }, helpers);
+  pack[id].actions({ ...defaults, ...answers }, helpers, ctx(STARTED));
 
 describe('cpp:tidy', () => {
   it('enables the guideline checks, with the noisy ones disabled', () => {
     const actions = planTool('tidy', {}, { cmake: true });
-    const yaml = byAdd(actions, '.clang-tidy');
+    const yaml = byAdd(actions, '/.clang-tidy');
     for (const check of ['cppcoreguidelines-\\*', 'modernize-\\*', 'bugprone-\\*', 'performance-\\*', '-cppcoreguidelines-avoid-magic-numbers']) {
       assert.match(yaml, new RegExp(check));
     }
   });
 
   it('keeps the Checks block free of comments, which YAML would read as content', () => {
-    const yaml = byAdd(planTool('tidy', {}, { cmake: true }), '.clang-tidy');
+    const yaml = byAdd(planTool('tidy', {}, { cmake: true }), '/.clang-tidy');
     const block = yaml.slice(yaml.indexOf('Checks: >'), yaml.indexOf('WarningsAsErrors'));
     assert.doesNotMatch(block, /#/);
   });
 
   it('wires an opt-in CLANG_TIDY option in at # jen:options, unless --cmake=false', () => {
     const actions = planTool('tidy', {}, { cmake: true });
-    assert.match(byAdd(actions, 'cmake/tidy.cmake'), /CMAKE_CXX_CLANG_TIDY/);
-    assert.deepEqual(inserts(actions), [{ insert: 'CMakeLists.txt', before: '# jen:options', line: 'include(cmake/tidy.cmake)' }]);
-    assert.deepEqual(adds(planTool('tidy', { cmake: false })), ['.clang-tidy']);
+    assert.match(byAdd(actions, '/cmake/tidy.cmake'), /CMAKE_CXX_CLANG_TIDY/);
+    assert.deepEqual(inserts(actions), [{ insert: '/CMakeLists.txt', before: '# jen:options', line: 'include(cmake/tidy.cmake)' }]);
+    assert.deepEqual(adds(planTool('tidy', { cmake: false })), ['/.clang-tidy']);
   });
 });
 
 describe('cpp:format', () => {
   it('writes a .clang-format matching the generated style', () => {
-    const yaml = byAdd(planTool('format', {}, { basedOn: 'Google', indent: '2', columnLimit: '120' }), '.clang-format');
+    const yaml = byAdd(planTool('format', {}, { basedOn: 'Google', indent: '2', columnLimit: '120' }), '/.clang-format');
     assert.match(yaml, /BasedOnStyle: Google/);
     assert.match(yaml, /IndentWidth: 2/);
     assert.match(yaml, /ColumnLimit: 120/);
@@ -615,7 +651,7 @@ describe('cpp:format', () => {
 
 describe('cpp:presets', () => {
   it('writes valid JSON with debug, release, asan and ubsan presets', () => {
-    const json = JSON.parse(byAdd(planTool('presets'), 'CMakePresets.json'));
+    const json = JSON.parse(byAdd(planTool('presets'), '/CMakePresets.json'));
     const names = json.configurePresets.map((p: { name: string }) => p.name);
     assert.deepEqual(names, ['base', 'debug', 'release', 'asan', 'ubsan']);
     assert.equal(json.configurePresets[0].binaryDir, '${sourceDir}/build/${presetName}');
@@ -628,7 +664,7 @@ describe('cpp:presets', () => {
 describe('cpp:warnings', () => {
   it('defines an INTERFACE target with GCC/Clang and MSVC flags, and links it via # jen:link', () => {
     const actions = planTool('warnings', {}, { werror: false });
-    const cmake = byAdd(actions, 'cmake/warnings.cmake');
+    const cmake = byAdd(actions, '/cmake/warnings.cmake');
     assert.match(cmake, /add_library\(project_warnings INTERFACE\)/);
     assert.match(cmake, /-Wall -Wextra -Wpedantic -Wconversion -Wshadow>/);
     assert.match(cmake, /\/W4 \/permissive->/);
@@ -636,7 +672,7 @@ describe('cpp:warnings', () => {
   });
 
   it('--werror adds -Werror and /WX', () => {
-    const cmake = byAdd(planTool('warnings', { werror: true }), 'cmake/warnings.cmake');
+    const cmake = byAdd(planTool('warnings', { werror: true }), '/cmake/warnings.cmake');
     assert.match(cmake, /-Werror>/);
     assert.match(cmake, /\/WX>/);
   });
@@ -646,14 +682,14 @@ describe('cpp:compiler', () => {
   const compiler = (answers: Record<string, string | boolean> = {}): Action[] => planTool('compiler', answers, { hardening: true });
 
   it('turns compiler extensions off and exports compile_commands.json', () => {
-    const cmake = byAdd(compiler(), 'cmake/compiler.cmake');
+    const cmake = byAdd(compiler(), '/cmake/compiler.cmake');
     assert.match(cmake, /set\(CMAKE_CXX_EXTENSIONS OFF\)/);
     assert.match(cmake, /set\(CMAKE_CXX_STANDARD_REQUIRED ON\)/);
     assert.match(cmake, /set\(CMAKE_EXPORT_COMPILE_COMMANDS ON\)/);
   });
 
   it('maps warnings to the guideline they enforce', () => {
-    const cmake = byAdd(compiler(), 'cmake/compiler.cmake');
+    const cmake = byAdd(compiler(), '/cmake/compiler.cmake');
     assert.match(cmake, /-Wnon-virtual-dtor\s+# C\.35/);
     assert.match(cmake, /-Wsuggest-override\s+# C\.128/);
     assert.match(cmake, /-Wold-style-cast\s+# ES\.49/);
@@ -661,15 +697,15 @@ describe('cpp:compiler', () => {
   });
 
   it('adds hardening, which --hardening=false drops', () => {
-    assert.match(byAdd(compiler(), 'cmake/compiler.cmake'), /_GLIBCXX_ASSERTIONS/);
-    assert.match(byAdd(compiler(), 'cmake/compiler.cmake'), /-fstack-protector-strong/);
-    assert.doesNotMatch(byAdd(compiler({ hardening: false }), 'cmake/compiler.cmake'), /_GLIBCXX_ASSERTIONS|stack-protector/);
+    assert.match(byAdd(compiler(), '/cmake/compiler.cmake'), /_GLIBCXX_ASSERTIONS/);
+    assert.match(byAdd(compiler(), '/cmake/compiler.cmake'), /-fstack-protector-strong/);
+    assert.doesNotMatch(byAdd(compiler({ hardening: false }), '/cmake/compiler.cmake'), /_GLIBCXX_ASSERTIONS|stack-protector/);
   });
 
   it('links project_options privately into the core library via # jen:link', () => {
-    assert.deepEqual(inserts(compiler()).map((i) => [i.insert, i.before, i.line]), [
-      ['CMakeLists.txt', '# jen:options', 'include(cmake/compiler.cmake)'],
-      ['src/CMakeLists.txt', '# jen:link', 'target_link_libraries(${PROJECT_NAME}-core PRIVATE project_options)'],
+    assert.deepEqual(inserts(compiler()), [
+      { insert: '/CMakeLists.txt', before: '# jen:options', line: 'include(cmake/compiler.cmake)' },
+      atMarker('# jen:link', 'target_link_libraries(${PROJECT_NAME}-core PRIVATE project_options)'),
     ]);
   });
 });
@@ -678,35 +714,41 @@ describe('cpp:doctest', () => {
   const actions = planTool('doctest', {}, { doctestTag: 'v2.4.12' });
 
   it('writes tests/ with a doctest main and a tests target linked against the core library', () => {
-    assert.deepEqual(adds(actions), ['tests/CMakeLists.txt', 'tests/main.cpp']);
-    assert.match(byAdd(actions, 'tests/main.cpp'), /DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN/);
-    const cmake = byAdd(actions, 'tests/CMakeLists.txt');
+    assert.deepEqual(adds(actions), ['/tests/CMakeLists.txt', '/tests/main.cpp']);
+    assert.match(byAdd(actions, '/tests/main.cpp'), /DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN/);
+    const cmake = byAdd(actions, '/tests/CMakeLists.txt');
     assert.match(cmake, /GIT_TAG v2\.4\.12/);
     assert.match(cmake, /target_link_libraries\(tests PRIVATE \$\{PROJECT_NAME\}-core doctest::doctest\)/);
     assert.match(cmake, /doctest_discover_tests\(tests\)/);
   });
 
   it('sets up the # jen:tests marker and enables testing from the root', () => {
-    assert.match(byAdd(actions, 'tests/CMakeLists.txt'), /main\.cpp\n {2}# jen:tests/);
-    assert.deepEqual(inserts(actions), [{ insert: 'CMakeLists.txt', before: '# jen:subdirs', line: 'enable_testing()\nadd_subdirectory(tests)' }]);
+    assert.match(byAdd(actions, '/tests/CMakeLists.txt'), /main\.cpp\n {2}# jen:tests/);
+    assert.deepEqual(inserts(actions), [{ insert: '/CMakeLists.txt', before: '# jen:subdirs', line: 'enable_testing()\nadd_subdirectory(tests)' }]);
   });
 });
 
 describe('cpp:tracy', () => {
   const tracy = (answers: Record<string, string | boolean> = {}): Action[] =>
-    planTool('tracy', answers, { gpu: false, file: 'src/app.cpp', tracyTag: 'v0.11.1' });
+    planTool('tracy', answers, { gpu: false, file: '/src/app.cpp', tracyTag: 'v0.11.1' });
 
   it('adds a PROFILING option (default OFF) that drives TRACY_ENABLE, and links TracyClient', () => {
     const actions = tracy();
-    const cmake = byAdd(actions, 'cmake/tracy.cmake');
+    const cmake = byAdd(actions, '/cmake/tracy.cmake');
     assert.match(cmake, /option\(PROFILING "Enable Tracy profiling" OFF\)/);
     assert.match(cmake, /set\(TRACY_ENABLE \$\{PROFILING\} CACHE BOOL/);
     assert.match(cmake, /GIT_TAG v0\.11\.1/);
-    assert.ok(inserts(actions).some((i) => i.line.includes('Tracy::TracyClient') && i.before === '# jen:link'));
+    assert.ok(inserts(actions).some((i) => i.line?.includes('Tracy::TracyClient') && i.before === '# jen:link'));
+  });
+
+  it('finds the app source by its marker unless --file says which', () => {
+    const found = inserts(tracy({ file: '' })).filter((i) => i.before.startsWith('//'));
+    assert.ok(found.every((i) => JSON.stringify(i.insert) === JSON.stringify({ find: /\.cpp$/, containing: '// jen:includes' })));
+    assert.equal(String((found[0].insert as Find).find), '/\\.cpp$/');
   });
 
   it('marks the frame end', () => {
-    const app = inserts(tracy()).filter((i) => i.insert === 'src/app.cpp');
+    const app = inserts(tracy()).filter((i) => i.insert === '/src/app.cpp');
     assert.deepEqual(app.map((i) => [i.before, i.line]), [
       ['// jen:includes', '#include <tracy/Tracy.hpp>'],
       ['// jen:frame-end', 'FrameMark;'],
@@ -745,7 +787,7 @@ describe('cpp:cpack', () => {
 
   it('--staticSdl sets SDL_STATIC up front and skips the runtime install', () => {
     const actions = cpack({ staticSdl: true });
-    assert.ok(inserts(actions).some((i) => i.before === '# jen:options' && i.line.includes('set(SDL_STATIC ON)')));
+    assert.ok(inserts(actions).some((i) => i.before === '# jen:options' && i.line?.includes('set(SDL_STATIC ON)')));
     assert.doesNotMatch(install(actions), /IMPORTED_RUNTIME_ARTIFACTS/);
   });
 
@@ -753,7 +795,7 @@ describe('cpp:cpack', () => {
     const actions = cpack({ bundleId: 'lgbt.lea.game' });
     assert.match(install(actions), /set\(BUNDLE_ID "lgbt\.lea\.game"\)/);
     assert.match(install(actions), /MACOSX_BUNDLE TRUE/);
-    assert.match(byAdd(actions, 'cmake/Info.plist.in'), /\$\{MACOSX_BUNDLE_GUI_IDENTIFIER\}/);
+    assert.match(byAdd(actions, '/cmake/Info.plist.in'), /\$\{MACOSX_BUNDLE_GUI_IDENTIFIER\}/);
   });
 });
 
@@ -763,9 +805,9 @@ describe('cpp:embed', () => {
 
   it('ships the build-time embedding scripts and inserts embed_file() at # jen:embed', () => {
     const actions = embed({ file: 'assets/tiles.png', name: 'tiles-png' });
-    assert.match(byAdd(actions, 'cmake/embed.cmake'), /function\(embed_file target file name\)/);
-    assert.match(byAdd(actions, 'cmake/embed.cmake'), /add_custom_command/);
-    assert.match(byAdd(actions, 'cmake/embed-file.cmake'), /file\(READ "\$\{IN\}" hex HEX\)/);
+    assert.match(byAdd(actions, '/cmake/embed.cmake'), /function\(embed_file target file name\)/);
+    assert.match(byAdd(actions, '/cmake/embed.cmake'), /add_custom_command/);
+    assert.match(byAdd(actions, '/cmake/embed-file.cmake'), /file\(READ "\$\{IN\}" hex HEX\)/);
     assert.deepEqual(inserts(actions).map((i) => [i.before, i.line]), [
       ['# jen:embed', 'include(${PROJECT_SOURCE_DIR}/cmake/embed.cmake)'],
       ['# jen:embed', 'embed_file(${PROJECT_NAME}-core assets/tiles.png tilesPng)'],
@@ -785,19 +827,19 @@ describe('cpp:embed', () => {
 describe('cpp:icon', () => {
   it('writes a .rc next to the icon and wires the Windows and macOS icons in at # jen:app', () => {
     const actions = planTool('icon', {}, { ico: 'resources/app.ico', icns: 'resources/app.icns' });
-    assert.equal(byAdd(actions, 'resources/app.rc'), 'IDI_ICON1 ICON "app.ico"\n');
+    assert.equal(byAdd(actions, '/resources/app.rc'), 'IDI_ICON1 ICON "app.ico"\n');
     const [cmake] = inserts(actions);
     assert.equal(cmake.before, '# jen:app');
-    assert.match(cmake.line, /if\(WIN32\)/);
-    assert.match(cmake.line, /MACOSX_PACKAGE_LOCATION Resources/);
-    assert.match(cmake.line, /MACOSX_BUNDLE_ICON_FILE app\.icns/);
+    assert.match(cmake.line ?? '', /if\(WIN32\)/);
+    assert.match(cmake.line ?? '', /MACOSX_PACKAGE_LOCATION Resources/);
+    assert.match(cmake.line ?? '', /MACOSX_BUNDLE_ICON_FILE app\.icns/);
   });
 });
 
 // ─── more starters ──────────────────────────────────────────────────────────
 
 describe('cpp:app', () => {
-  const actions = pack.app.actions({ name: 'MyTool', folderCase: 'kebab', dir: '.' }, helpers);
+  const actions = pack.app.actions({ name: 'MyTool', folderCase: 'kebab', dir: '.' }, helpers, ctx(STARTED, '.'));
 
   it('has a core library and a thin executable, without SDL or vendor/', () => {
     assert.deepEqual(adds(actions), ['CMakeLists.txt', 'src/CMakeLists.txt', 'src/main.cpp', 'src/app.h', 'src/app.cpp']);
@@ -818,7 +860,7 @@ describe('cpp:app', () => {
 });
 
 describe('cpp:lib', () => {
-  const actions = pack.lib.actions({ name: 'MyLib', folderCase: 'kebab', dir: '.' }, helpers);
+  const actions = pack.lib.actions({ name: 'MyLib', folderCase: 'kebab', dir: '.' }, helpers, ctx(STARTED, '.'));
 
   it('puts the public header in include/<name>/ with an export header', () => {
     assert.deepEqual(adds(actions), [
@@ -844,7 +886,7 @@ describe('cpp:lib', () => {
 });
 
 describe('cpp:module', () => {
-  const actions = pack.module.actions({ name: 'MyMod', folderCase: 'kebab', dir: '.' }, helpers);
+  const actions = pack.module.actions({ name: 'MyMod', folderCase: 'kebab', dir: '.' }, helpers, ctx(STARTED, '.'));
 
   it('requires CMake 3.28 and puts the .cppm in a CXX_MODULES file set', () => {
     assert.match(byAdd(actions, 'CMakeLists.txt'), /cmake_minimum_required\(VERSION 3\.28\)/);
@@ -857,3 +899,25 @@ describe('cpp:module', () => {
   });
 });
 
+
+describe('std includes', () => {
+  const classAnswers = { namespace: '', moveOnly: false, resource: 'Resource*', nullValue: 'nullptr', destroy: 'destroy', name: 'Socket' };
+
+  it('includes the standard headers for the std:: types it was given', () => {
+    const strong = byAdd(pack.strong.actions({ name: 'Seed', underlying: 'std::uint64_t', ops: '', namespace: '' }, helpers, ctx()), 'Seed.h');
+    assert.match(strong, /#include <cstdint>/);
+    const struct = byAdd(pack.struct.actions({ name: 'Person', members: 'std::string name, std::vector<int> scores', compare: false, namespace: '' }, helpers, ctx()), 'Person.h');
+    assert.match(struct, /#include <string>\n#include <vector>/);
+    const r0 = byAdd(pack.r0.actions({ name: 'Tag', members: 'std::string_view label', namespace: '', compare: true }, helpers, ctx()), 'Tag.h');
+    assert.match(r0, /#include <compare>\n#include <utility>\n#include <string_view>/);
+    const iface = byAdd(pack.interface.actions({ name: 'Source', methods: 'std::optional<int> next(), void feed(std::span<const int> xs)', namespace: '', impl: '' }, helpers, ctx()), 'Source.h');
+    assert.match(iface, /#include <optional>\n#include <span>/);
+    const moveOnly = byAdd(pack.class.actions({ ...classAnswers, moveOnly: true, resource: 'std::FILE*' }, helpers, ctx(STARTED)), 'Socket.h');
+    assert.match(moveOnly, /#include <utility>/);
+  });
+
+  it('does not add includes for types that are not std::', () => {
+    const struct = byAdd(pack.struct.actions({ name: 'P', members: 'int x, MyType y', compare: false, namespace: '' }, helpers, ctx()), 'P.h');
+    assert.doesNotMatch(struct, /#include/);
+  });
+});

@@ -3,16 +3,16 @@
  * https://github.com/learosema/my-cpp-snippets) plus SDL3 app starters
  * (following https://github.com/learosema/learn-sdl).
  *
- * All generators write into `src/`. `cpp:class` wires new sources into
- * `src/CMakeLists.txt` at a `# jen:sources` marker, and `cpp:shader` wires
- * new shaders into the same file's `embed_glsl()` calls at a `# jen:shaders`
- * marker – both markers come from the `sdl3`/`sdl3-opengl` starters below.
+ * Additions write where jen puts files: the current directory, or --dir.
+ * `cpp:class` wires new sources into the nearest CMakeLists.txt with a `# jen:sources`
+ * marker, and `cpp:shader` embeds an existing GLSL file at `# jen:embed` – both
+ * markers come from the starters below.
  *
  *   jen cpp:class      --name=Foo [--moveOnly] […]        header/source class, plain or move-only RAII (Rule of Five)
  *   jen cpp:handle     --name=Handle                       generic Handle<T, Deleter, Null> template (header-only)
  *   jen cpp:scopeexit  --name=ScopeExit                     scope-guard template (header-only)
  *   jen cpp:r0         --name=Foo --members="T a, U b"      Rule of Zero class from ctor params
- *   jen cpp:shader     --name=Tonemap [--stage=vert|frag]   GLSL shader pair, embedded via cmake/embed-glsl.cmake
+ *   jen cpp:shader     --file=shaders/tonemap.frag.glsl     embed an existing GLSL file via cmake/embed-glsl.cmake
  *   jen cpp:sdl3       --name=MyGame                        SDL3 callbacks app starter (vendored FetchContent SDL3)
  *   jen cpp:sdl3-opengl --name=MyGame                       SDL3 + OpenGL (glad) app starter with a shader-quad demo
  *

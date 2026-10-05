@@ -51,11 +51,11 @@ const tidyGenerator: Generator = {
     cmake: { default: true },
   },
   actions: ({ cmake }) => [
-    { add: '.clang-tidy', template: CLANG_TIDY },
+    { add: '/.clang-tidy', template: CLANG_TIDY },
     ...(cmake
       ? [
-          { add: 'cmake/tidy.cmake', template: TIDY_CMAKE },
-          { insert: 'CMakeLists.txt', before: '# jen:options', line: 'include(cmake/tidy.cmake)' },
+          { add: '/cmake/tidy.cmake', template: TIDY_CMAKE },
+          { insert: '/CMakeLists.txt', before: '# jen:options', line: 'include(cmake/tidy.cmake)' },
         ]
       : []),
   ],

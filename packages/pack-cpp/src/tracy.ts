@@ -35,15 +35,16 @@ const tracyGenerator: Generator = {
     'add the Tracy profiler (PROFILING option, FetchContent) and a FrameMark at the app starter\'s frame end; --gpu for OpenGL GPU zones',
   params: {
     gpu: { default: false },
-    file: { default: 'src/app.cpp' },
+    file: { path: true, default: '' },
     tracyTag: { default: TRACY_TAG_DEFAULT },
   },
   actions: ({ gpu, file, tracyTag }) => {
-    const app = String(file);
+    // the app source carrying the starter's markers, unless --file (relative to the cwd) says which
+    const app = String(file) || { find: /\.cpp$/, containing: '// jen:includes' };
     const actions: Action[] = [
-      { add: 'cmake/tracy.cmake', template: tracyCMake(String(tracyTag)) },
-      { insert: 'CMakeLists.txt', before: '# jen:options', line: 'include(cmake/tracy.cmake)' },
-      { insert: 'src/CMakeLists.txt', before: '# jen:link', line: 'target_link_libraries(${PROJECT_NAME}-core PUBLIC Tracy::TracyClient)' },
+      { add: '/cmake/tracy.cmake', template: tracyCMake(String(tracyTag)) },
+      { insert: '/CMakeLists.txt', before: '# jen:options', line: 'include(cmake/tracy.cmake)' },
+      { insert: { find: 'CMakeLists.txt' }, before: '# jen:link', line: 'target_link_libraries(${PROJECT_NAME}-core PUBLIC Tracy::TracyClient)' },
       { insert: app, before: '// jen:includes', line: '#include <tracy/Tracy.hpp>' },
     ];
     if (gpu) {

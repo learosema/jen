@@ -43,9 +43,9 @@ const doctestGenerator: Generator = {
     doctestTag: { default: DOCTEST_TAG_DEFAULT },
   },
   actions: ({ doctestTag }) => [
-    { add: 'tests/CMakeLists.txt', template: testsCMake(String(doctestTag)) },
-    { add: 'tests/main.cpp', template: MAIN_CPP },
-    { insert: 'CMakeLists.txt', before: '# jen:subdirs', line: 'enable_testing()\nadd_subdirectory(tests)' },
+    { add: '/tests/CMakeLists.txt', template: testsCMake(String(doctestTag)) },
+    { add: '/tests/main.cpp', template: MAIN_CPP },
+    { insert: '/CMakeLists.txt', before: '# jen:subdirs', line: 'enable_testing()\nadd_subdirectory(tests)' },
   ],
 };
 

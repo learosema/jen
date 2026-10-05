@@ -4,7 +4,7 @@
  * methods from --methods. --impl also scaffolds a `final` derived class.
  */
 import type { Action, Generator } from '@codejen/jen';
-import { fail, inNamespace, qualified, splitTopLevel, testActions } from './util.ts';
+import { fail, inNamespace, includeBlock, qualified, splitTopLevel, stdIncludes, testActions } from './util.ts';
 
 interface Method {
   /** Everything before the name: return type and attributes. */
@@ -70,11 +70,11 @@ ${pure.length ? '\n' + pure.map((l) => `  ${l}`).join('\n') + '\n' : ''}
     const header = `#ifndef ${guard}
 #define ${guard}
 
-${inNamespace(ns, ifaceBody)}
+${includeBlock(stdIncludes(String(methods)))}${inNamespace(ns, ifaceBody)}
 #endif  // ${guard}
 `;
 
-    const actions: Action[] = [{ add: `src/${iface}.h`, template: header }];
+    const actions: Action[] = [{ add: `${iface}.h`, template: header }];
     const checks = [`CHECK(std::is_abstract_v<${qualified(ns, iface)}>);`];
     const testIncludes = ['type_traits'];
 
@@ -105,9 +105,9 @@ ${inNamespace(ns, implBody)}
 
 ${inNamespace(ns, definitions + '\n')}`;
       actions.push(
-        { add: `src/${implName}.h`, template: implHeader },
-        { add: `src/${implName}.cpp`, template: implSource },
-        { insert: 'src/CMakeLists.txt', before: '# jen:sources', line: `  ${implName}.cpp` },
+        { add: `${implName}.h`, template: implHeader },
+        { add: `${implName}.cpp`, template: implSource },
+        { insert: { find: 'CMakeLists.txt' }, before: '# jen:sources', path: `${implName}.cpp` },
       );
       checks.push(`CHECK(std::is_base_of_v<${qualified(ns, iface)}, ${qualified(ns, implName)}>);`);
     }

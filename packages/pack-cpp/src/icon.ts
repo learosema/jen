@@ -29,8 +29,8 @@ elseif(APPLE)
 endif()`;
 
     return [
-      { add: rcPath, template: rc },
-      { insert: 'src/CMakeLists.txt', before: '# jen:app', line: cmake },
+      { add: `/${rcPath}`, template: rc },
+      { insert: { find: 'CMakeLists.txt' }, before: '# jen:app', line: cmake },
     ];
   },
 };

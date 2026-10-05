@@ -53,8 +53,8 @@ ${inNamespace(ns, body)}
 
     const q = qualified(ns, type);
     return [
-      { add: 'src/overloaded.h', template: OVERLOADED_H },
-      { add: `src/${type}.h`, template: header },
+      { add: 'overloaded.h', template: OVERLOADED_H },
+      { add: `${type}.h`, template: header },
       ...testActions(withTest, type, `${type}.h`, [`CHECK(std::variant_size_v<${q}> == ${items.length});`], ['variant']),
     ];
   },

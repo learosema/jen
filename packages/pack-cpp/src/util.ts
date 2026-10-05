@@ -102,10 +102,49 @@ export function qualified(namespace: string, type: string): string {
   return namespace ? `${namespace}::${type}` : type;
 }
 
+/** Standard header for each `std::` name a user may put in a type: `std::uint64_t` needs <cstdint>, `std::vector` <vector>. */
+const STD_HEADERS: Record<string, string> = {
+  ...Object.fromEntries(
+    ['int8_t', 'int16_t', 'int32_t', 'int64_t', 'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t', 'intptr_t', 'uintptr_t', 'intmax_t', 'uintmax_t'].map((n) => [n, 'cstdint']),
+  ),
+  size_t: 'cstddef',
+  ptrdiff_t: 'cstddef',
+  byte: 'cstddef',
+  nullptr_t: 'cstddef',
+  unique_ptr: 'memory',
+  shared_ptr: 'memory',
+  weak_ptr: 'memory',
+  function: 'functional',
+  pair: 'utility',
+  ...Object.fromEntries(
+    ['string', 'string_view', 'vector', 'array', 'map', 'unordered_map', 'set', 'unordered_set', 'deque', 'list', 'queue', 'stack', 'bitset', 'optional', 'variant', 'span', 'tuple', 'any', 'chrono', 'filesystem', 'complex', 'atomic', 'mutex', 'thread', 'expected'].map((n) => [n, n]),
+  ),
+};
+
 /**
- * The `--withTest` bundle shared by the type generators: `tests/<Name>_test.cpp`
- * wired into tests/CMakeLists.txt at the `# jen:tests` marker (set up by
- * `cpp:doctest`; skipped with a note if that marker isn't there yet).
+ * The `#include`s (`<cstdint>`, `<vector>` …) for the `std::` types named in `texts` – member
+ * types, an underlying type, method signatures – so the header compiles on its own.
+ */
+export function stdIncludes(...texts: string[]): string[] {
+  const headers = new Set<string>();
+  for (const text of texts) {
+    for (const [, name] of text.matchAll(/\bstd::(\w+)/g)) {
+      if (STD_HEADERS[name]) headers.add(`<${STD_HEADERS[name]}>`);
+    }
+  }
+  return [...headers].sort();
+}
+
+/** `#include` lines for `lists` merged, without duplicates, in first-seen order, followed by a blank line; empty for none. */
+export function includeBlock(...lists: string[][]): string {
+  const all = [...new Set(lists.flat())];
+  return all.length ? `${all.map((i) => `#include ${i}`).join('\n')}\n\n` : '';
+}
+
+/**
+ * The `--withTest` bundle shared by the type generators: `<Name>_test.cpp` next
+ * to the header, wired into the CMakeLists.txt with the `# jen:tests` marker (set
+ * up by `cpp:doctest`; skipped with a note if there is none yet).
  */
 export function testActions(
   enabled: unknown,
@@ -123,7 +162,7 @@ ${checks.map((c) => `  ${c}`).join('\n')}
 }
 `;
   return [
-    { add: `tests/${name}_test.cpp`, template: body },
-    { insert: 'tests/CMakeLists.txt', before: '# jen:tests', line: `  ${name}_test.cpp` },
+    { add: `${name}_test.cpp`, template: body },
+    { insert: { find: 'CMakeLists.txt' }, before: '# jen:tests', path: `${name}_test.cpp` },
   ];
 }
