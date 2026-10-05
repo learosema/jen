@@ -13,5 +13,11 @@
     "packages/pack-glsl": {
       "component": "pack-glsl"
     }
-  }
+  },
+  "plugins": [
+    {
+      "type": "node-workspace",
+      "merge": false
+    }
+  ]
 }
