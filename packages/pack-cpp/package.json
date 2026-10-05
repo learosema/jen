@@ -33,6 +33,9 @@
   ],
   "author": "",
   "license": "ISC",
+  "peerDependencies": {
+    "@codejen/jen": "^2.0.0"
+  },
   "devDependencies": {
     "@codejen/jen": "^2.0.0",
     "@types/node": "^26.6.3",
