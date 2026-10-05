@@ -58,7 +58,7 @@ Ask for a `glsl:` generator without the pack installed and jen fetches `@codejen
 
 ## Where files go {#where}
 
-Generators write into the folder you run them in. Run at the project root, they use `shaders`, so `glsl:frag --name=Clouds` writes `shaders/clouds.frag.glsl` without a `cd`. `--dir` writes somewhere else, and `--into` and `--file` are relative to the current directory. `glsl:webgl` makes a new project folder in the current directory instead, with the shader in `shaders/` inside it (`--shaderDir` renames that). The [home page]({{ '/#where' | relative_url }}) has the general rules.
+Generators write into the folder you run them in, or `--dir`: from the project root, `glsl:frag --name=Clouds --dir=shaders` writes `shaders/clouds.frag.glsl`. `--into` and `--file` are relative to the current directory. `glsl:webgl` makes a new project folder in the current directory instead, with the shader in `shaders/` inside it (`--shaderDir` renames that). The [home page]({{ '/#where' | relative_url }}) has the general rules.
 
 ## Starters {#starters}
 
@@ -99,7 +99,7 @@ A vertex shader: `--kind=quad` (default) takes a full-screen quad at attribute l
 `name` | — | required
 `kind` | `quad` | `vert` only: `quad`, `triangle` or `mesh`
 `version` | `300es` | `300es`, `330` or `410`
-`dir` | — | where the shader goes, relative to the current directory; else the current directory, or `shaders` at the project root
+`dir` | — | where the shader goes, relative to the current directory; else the current directory
 {% endcapture %}
 {% include cards.html rows=rows label="default" heading="Params" %}
 
@@ -115,7 +115,7 @@ Switches a shader between dialects by rewriting only its header: the `#version` 
 
 GLSL has no `#include`, so the pack ships its functions as plain, attributed `.glsl` files. With `--into=<shader>`, jen inserts the ones you pick, plus everything they need, above a `// jen:functions` marker. If the shader has none yet, the marker goes in before its first function, so your own code below can call them. Anything already in the file is skipped: run a generator twice, or two generators sharing a helper, and nothing is duplicated.
 
-Without `--into`, every function becomes its own file under `lib/` in the shader folder (`shaders/lib/` from the project root), for setups with an include mechanism (vite-plugin-glsl, glslify, three.js). Most generators also take `--name` for a ready-to-run preview shader.
+Without `--into`, every function becomes its own file under `lib/` where the files go (`shaders/lib/` with `--dir=shaders`), for setups with an include mechanism (vite-plugin-glsl, glslify, three.js). Most generators also take `--name` for a ready-to-run preview shader.
 
 ### `glsl:noise` {#glsl-noise}
 
