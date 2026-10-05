@@ -2,6 +2,22 @@
 
 > Renamed from `@lea.rosema/jen` to `@codejen/jen` and republished as 1.0.0. The history below (up to 1.1.0) is `@lea.rosema/jen`'s; `@lea.rosema/jen` is deprecated in favor of this package.
 
+## [2.0.0](https://github.com/learosema/jen/compare/jen-v1.2.0...jen-v2.0.0) (2026-10-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* **jen:** remove --where, make --dir surprise-free
+
+### Features
+
+* **jen:** remove --where, make --dir surprise-free ([72f0834](https://github.com/learosema/jen/commit/72f083403e699ad17732d966dc865e3ba4e8dfce))
+
+
+### Bug Fixes
+
+* **jen:** run Yeoman generators in the CWD ([b147400](https://github.com/learosema/jen/commit/b1474001723ddfbc6341a5191a97d6396aa59d4d))
+
 ## [1.2.0](https://github.com/learosema/jen/compare/jen-v1.1.0...jen-v1.2.0) (2026-10-04)
 
 
