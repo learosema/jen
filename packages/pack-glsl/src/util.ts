@@ -11,13 +11,12 @@ const utilGenerator: Generator = {
   description: 'add GLSL helpers',
   params: {
     fns: { default: '' },
-    into: { default: '' },
-    dir: { default: 'shaders' },
+    into: { path: true, default: '' },
   },
-  actions: ({ fns, into, dir }) =>
+  actions: ({ fns, into }) =>
     chunkActions(pickChunks('util', parseList(String(fns)), '--fns', 'glsl:util'), {
       into: String(into),
-      dir: String(dir),
+      dir: '',
     }),
 };
 

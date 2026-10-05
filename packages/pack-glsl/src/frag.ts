@@ -5,19 +5,18 @@
  * <shader-canvas> and cpp:sdl3-opengl alike.
  */
 import type { Generator } from '@codejen/jen';
-import { inFolder, readPackFile } from './common.ts';
+import { readPackFile } from './common.ts';
 import { parseVersion, withHeader } from './dialect.ts';
 
 const fragGenerator: Generator = {
   description: 'create a full-screen GLSL fragment shader starter',
   params: {
     name: {},
-    dir: { default: 'shaders' },
     version: { default: '300es' },
   },
-  actions: ({ name, dir, version }, { kebab }) => [
+  actions: ({ name, version }, { kebab }) => [
     {
-      add: inFolder(String(dir), `${kebab(String(name))}.frag.glsl`),
+      add: `${kebab(String(name))}.frag.glsl`,
       template: withHeader(parseVersion(version), readPackFile('starters/frag.glsl')),
     },
   ],

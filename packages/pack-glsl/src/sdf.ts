@@ -13,7 +13,7 @@
  */
 import type { Action, Generator } from '@codejen/jen';
 import { chunkActions, chunkIds, pickChunks } from './chunks.ts';
-import { fail, inFolder, parseList } from './common.ts';
+import { fail, parseList } from './common.ts';
 import { parseVersion, withHeader } from './dialect.ts';
 import { raymarchStarter } from './raymarch.ts';
 
@@ -81,12 +81,11 @@ const sdfGenerator: Generator = {
     shapes: { default: '' },
     ops: { default: '' },
     effects: { default: '' },
-    into: { default: '' },
-    dir: { default: 'shaders' },
+    into: { path: true, default: '' },
     name: { default: '' },
     version: { default: '300es' },
   },
-  actions: ({ dim, shapes, ops, effects, into, dir, name, version }, { kebab }) => {
+  actions: ({ dim, shapes, ops, effects, into, name, version }, { kebab }) => {
     const d = String(dim);
     if (d !== '2' && d !== '3') fail(`glsl:sdf --dim: expected "2" or "3", got "${d}"`);
     if (name && into) fail('glsl:sdf: use either --name (new preview shader) or --into (existing shader), not both');
@@ -110,7 +109,7 @@ const sdfGenerator: Generator = {
       ...pick('sdfop', opList, '--ops'),
       ...pick('sdffx', effectList, '--effects'),
     ];
-    if (!name) return chunkActions(ids, { into: String(into), dir: String(dir) });
+    if (!name) return chunkActions(ids, { into: String(into), dir: '' });
 
     const samples = d === '2' ? SAMPLES_2D : SAMPLES_3D;
     // In the order given; `all` in the documented order (the samples' keys).
@@ -118,7 +117,7 @@ const sdfGenerator: Generator = {
     if (!picked.some((s) => samples[s])) {
       fail(`glsl:sdf --name: the preview needs at least one of --shapes=${Object.keys(samples).join(', ')}`);
     }
-    const file = inFolder(String(dir), `${kebab(String(name))}.frag.glsl`);
+    const file = `${kebab(String(name))}.frag.glsl`;
     const v = parseVersion(version);
 
     if (d === '3') {

@@ -35,6 +35,8 @@ function apply(actions: Action[], files: Map<string, string>): void {
     if ('add' in a) {
       if (!files.has(a.add)) files.set(a.add, a.template);
     } else if ('insert' in a) {
+      // the GLSL generators insert into a shader they name, with a plain line
+      if (typeof a.insert !== 'string' || !('line' in a)) throw new Error('docs-assets: only plain inserts are supported');
       const lines = (files.get(a.insert) ?? '').split('\n');
       const block = a.line.split('\n');
       if (lines.some((_, k) => block.every((b, j) => lines[k + j]?.trim() === b.trim()))) continue;
@@ -51,7 +53,7 @@ function apply(actions: Action[], files: Map<string, string>): void {
 function run(files: Map<string, string>, generator: string, answers: Record<string, string | boolean>): void {
   const g = pack[generator];
   const defaults = Object.fromEntries(Object.entries(g.params ?? {}).map(([k, p]) => [k, p.default]));
-  apply(g.actions({ ...defaults, dir: '.', ...answers }, helpers), files);
+  apply(g.actions({ ...defaults, ...answers }, helpers, {} as never), files); // they don't look at the project
 }
 
 const files = new Map<string, string>();

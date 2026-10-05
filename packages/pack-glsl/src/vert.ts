@@ -8,7 +8,7 @@
  * All three output vUV.
  */
 import type { Generator } from '@codejen/jen';
-import { fail, inFolder, readPackFile } from './common.ts';
+import { fail, readPackFile } from './common.ts';
 import { parseVersion, withHeader } from './dialect.ts';
 
 const KINDS = ['quad', 'triangle', 'mesh'];
@@ -18,15 +18,14 @@ const vertGenerator: Generator = {
   params: {
     name: {},
     kind: { default: 'quad' },
-    dir: { default: 'shaders' },
     version: { default: '300es' },
   },
-  actions: ({ name, kind, dir, version }, { kebab }) => {
+  actions: ({ name, kind, version }, { kebab }) => {
     const k = String(kind);
     if (!KINDS.includes(k)) fail(`glsl:vert --kind: expected one of ${KINDS.map((x) => `"${x}"`).join(', ')}, got "${k}"`);
     return [
       {
-        add: inFolder(String(dir), `${kebab(String(name))}.vert.glsl`),
+        add: `${kebab(String(name))}.vert.glsl`,
         template: withHeader(parseVersion(version), readPackFile(`starters/vert-${k}.glsl`)),
       },
     ];

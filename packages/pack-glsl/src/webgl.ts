@@ -55,16 +55,18 @@ const webglGenerator: Generator = {
   params: {
     name: {},
     dir: { default: '.' },
+    shaderDir: { default: 'shaders' },
     tag: { default: 'shader-canvas' },
     inline: { default: false },
   },
-  actions: ({ name, dir, tag, inline }, { kebab, pascal }) => {
+  actions: ({ name, dir, shaderDir, tag, inline }, { kebab, pascal }) => {
     const t = String(tag);
     if (!/^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/.test(t)) {
       fail(`glsl:webgl --tag: "${t}" is not a valid custom element name (lowercase, with a hyphen, e.g. "shader-canvas")`);
     }
     const folder = String(dir);
-    const base = kebab(String(name));
+    const at = (file: string): string => inFolder(folder, file);
+    const shaderFile = inFolder(String(shaderDir), `${kebab(String(name))}.frag.glsl`);
     const title = pascal(String(name));
     const script = `${t}.js`;
     const frag = withHeader('300es', readPackFile('starters/frag.glsl'));
@@ -73,13 +75,13 @@ const webglGenerator: Generator = {
       ? `    <${t}>\n      <script type="x-shader/x-fragment">\n${indent(frag, '        ')}\n      </script>\n    </${t}>`
       : `    <!-- Fetching shaders needs a local web server, e.g. \`npx serve\` or \`python3 -m http.server\`. -->\n` +
         `    <!-- \`live\` recompiles whenever the file changes. -->\n` +
-        `    <${t} src="shaders/${base}.frag.glsl" live></${t}>`;
+        `    <${t} src="${shaderFile}" live></${t}>`;
 
     const actions: Action[] = [
-      { add: inFolder(folder, 'index.html'), template: page(title, t, script, element) },
-      { add: inFolder(folder, script), template: componentSource(t) },
+      { add: at('index.html'), template: page(title, t, script, element) },
+      { add: at(script), template: componentSource(t) },
     ];
-    if (!inline) actions.push({ add: inFolder(folder, `shaders/${base}.frag.glsl`), template: frag });
+    if (!inline) actions.push({ add: at(shaderFile), template: frag });
     return actions;
   },
 };

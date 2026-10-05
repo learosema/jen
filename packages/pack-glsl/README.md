@@ -14,6 +14,7 @@ npm install --save-dev @codejen/pack-glsl   # or: npm install -g @codejen/jen @c
 jen glsl:frag --name=Clouds                                    # shaders/clouds.frag.glsl
 jen glsl:util --fns=rot2,remap --into=shaders/clouds.frag.glsl # insert helpers before main()
 jen glsl:port --file=shaders/clouds.frag.glsl --to=410         # ready for cpp:sdl3-opengl
+jen cpp:shader --file=shaders/clouds.frag.glsl                 # (pack-cpp) embed it in the CMake build
 ```
 
 ## WebGL playground
@@ -90,11 +91,17 @@ jen glsl:matrix --fns=rotate,look-at --into=shaders/mesh.vert.glsl
 
 ## How functions get into your shader
 
-GLSL has no `#include`, so functions ship as plain `.glsl` files under `glsl/`. With `--into=<shader>`, jen inserts the ones you pick – plus whatever they depend on – above a `// jen:functions` marker line. If your shader has none yet, the marker is added before its first function, so the inserted functions come before your own code that calls them (a raymarched `scene()`, say). Later runs add below what's already there. Anything already in the file is skipped, so running a generator twice, or two generators sharing a helper, never duplicates code. Without `--into`, each function is written as its own file under `<dir>/lib/` (default `shaders/lib/`) for setups with an include mechanism (vite-plugin-glsl, glslify, three.js, …).
+GLSL has no `#include`, so functions ship as plain `.glsl` files under `glsl/`. With `--into=<shader>`, jen inserts the ones you pick – plus whatever they depend on – above a `// jen:functions` marker line. If your shader has none yet, the marker is added before its first function, so the inserted functions come before your own code that calls them (a raymarched `scene()`, say). Later runs add below what's already there. Anything already in the file is skipped, so running a generator twice, or two generators sharing a helper, never duplicates code. Without `--into`, each function is written as its own file under `lib/` where the files go (`--dir`) for setups with an include mechanism (vite-plugin-glsl, glslify, three.js, …).
 
 Inserted code is matched by its exact text: if you edit an inserted function and run a generator needing it again, it gets inserted a second time.
 
 `--into` needs jen 1.2 or newer (for inserting before the first function).
+
+## Where files go
+
+The generators write into the current directory; `--dir=<path>` writes somewhere else. `--into` and `--file` are relative to the current directory too.
+
+`glsl:webgl` creates a new project folder in the current directory (`--dir` names it), and `--shaderDir` names the shader subfolder inside it.
 
 ## Licenses
 

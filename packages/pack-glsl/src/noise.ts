@@ -14,7 +14,7 @@
  */
 import type { Action, Generator } from '@codejen/jen';
 import { NOISE_BASES, chunkActions } from './chunks.ts';
-import { fail, inFolder } from './common.ts';
+import { fail } from './common.ts';
 import { parseVersion, withHeader } from './dialect.ts';
 
 const FRACTALS = ['fbm', 'turbulence', 'ridged', 'warp'];
@@ -72,13 +72,12 @@ const noiseGenerator: Generator = {
     kind: { default: '' },
     dim: { default: '2' },
     base: { default: 'simplex' },
-    into: { default: '' },
-    dir: { default: 'shaders' },
+    into: { path: true, default: '' },
     name: { default: '' },
     tile: { default: false },
     version: { default: '300es' },
   },
-  actions: ({ kind, dim, base, into, dir, name, tile, version }, { kebab }) => {
+  actions: ({ kind, dim, base, into, name, tile, version }, { kebab }) => {
     const k = String(kind);
     const valid = KINDS.map((x) => `"${x}"`).join(', ');
     if (!k) fail(`glsl:noise --kind: pick one of ${valid}`);
@@ -90,11 +89,11 @@ const noiseGenerator: Generator = {
     if (name && into) fail('glsl:noise: use either --name (new preview shader) or --into (existing shader), not both');
 
     const ids = [chunkFor(k, d, b)];
-    if (!name) return chunkActions(ids, { into: String(into), dir: String(dir) });
+    if (!name) return chunkActions(ids, { into: String(into), dir: '' });
 
-    const file = inFolder(String(dir), `${kebab(String(name))}.frag.glsl`);
+    const file = `${kebab(String(name))}.frag.glsl`;
     const preview: Action = { add: file, template: withHeader(parseVersion(version), previewShader(k, d, b, Boolean(tile))) };
-    return [preview, ...chunkActions(ids, { into: file, dir: String(dir) })];
+    return [preview, ...chunkActions(ids, { into: file, dir: '' })];
   },
 };
 

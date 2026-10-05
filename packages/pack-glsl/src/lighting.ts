@@ -22,10 +22,9 @@ const lightingGenerator: Generator = {
   params: {
     models: { default: '' },
     tonemap: { default: '' },
-    into: { default: '' },
-    dir: { default: 'shaders' },
+    into: { path: true, default: '' },
   },
-  actions: ({ models, tonemap, into, dir }) => {
+  actions: ({ models, tonemap, into }) => {
     const modelList = parseList(String(models));
     const tonemapList = parseList(String(tonemap));
     const modelNames = chunkIds('lighting')
@@ -43,7 +42,7 @@ const lightingGenerator: Generator = {
       if (!id) fail(`glsl:lighting --tonemap: unknown "${name}" – valid: ${Object.keys(TONEMAP_NAMES).join(', ')} (or "all")`);
       ids.push(id);
     }
-    return chunkActions(ids, { into: String(into), dir: String(dir) });
+    return chunkActions(ids, { into: String(into), dir: '' });
   },
 };
 

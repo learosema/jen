@@ -15,7 +15,7 @@
  */
 import type { Action, Generator } from '@codejen/jen';
 import { chunkActions } from './chunks.ts';
-import { fail, inFolder } from './common.ts';
+import { fail } from './common.ts';
 import { parseVersion, withHeader } from './dialect.ts';
 import type { Version } from './dialect.ts';
 
@@ -113,9 +113,9 @@ void main() {
 `;
 }
 
-function preview(dir: string, base: string, kind: string, version: Version): Action[] {
-  const vert = inFolder(dir, `${base}.vert.glsl`);
-  const frag = inFolder(dir, `${base}.frag.glsl`);
+function preview(base: string, kind: string, version: Version): Action[] {
+  const vert = `${base}.vert.glsl`;
+  const frag = `${base}.frag.glsl`;
   return [
     { add: vert, template: withHeader(version, vertexShader(kind)) },
     ...chunkActions(KINDS[kind], { into: vert, dir: '' }),
@@ -128,19 +128,18 @@ const displaceGenerator: Generator = {
   description: 'displace surfaces in the vertex shader with correct normals',
   params: {
     kind: { default: 'noise' },
-    into: { default: '' },
-    dir: { default: 'shaders' },
+    into: { path: true, default: '' },
     name: { default: '' },
     version: { default: '300es' },
   },
-  actions: ({ kind, into, dir, name, version }, { kebab }) => {
+  actions: ({ kind, into, name, version }, { kebab }) => {
     const k = String(kind);
     if (!KINDS[k]) fail(`glsl:displace --kind: expected one of ${Object.keys(KINDS).map((x) => `"${x}"`).join(', ')}, got "${k}"`);
     if (name && into) fail('glsl:displace: use either --name (new preview pair) or --into (existing vertex shader), not both');
-    if (name) return preview(String(dir), kebab(String(name)), k, parseVersion(version));
+    if (name) return preview(kebab(String(name)), k, parseVersion(version));
     // --into/files: just the building blocks; your displacement() decides the shape.
     const ids = k === 'waves' ? ['vertex/gerstner'] : ['vertex/displace'];
-    return chunkActions(ids, { into: String(into), dir: String(dir) });
+    return chunkActions(ids, { into: String(into), dir: '' });
   },
 };
 
