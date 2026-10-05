@@ -25,11 +25,11 @@ const embedGenerator: Generator = {
     const targetName = String(target) || '${PROJECT_NAME}-core';
 
     return [
-      { add: 'cmake/embed-file.cmake', template: readAsset('embed-file.cmake') },
-      { add: 'cmake/embed.cmake', template: readAsset('embed.cmake') },
-      { insert: 'src/CMakeLists.txt', before: '# jen:embed', line: 'include(${PROJECT_SOURCE_DIR}/cmake/embed.cmake)' },
+      { add: '/cmake/embed-file.cmake', template: readAsset('embed-file.cmake') },
+      { add: '/cmake/embed.cmake', template: readAsset('embed.cmake') },
+      { insert: { find: 'CMakeLists.txt' }, before: '# jen:embed', line: 'include(${PROJECT_SOURCE_DIR}/cmake/embed.cmake)' },
       {
-        insert: 'src/CMakeLists.txt',
+        insert: { find: 'CMakeLists.txt' },
         before: '# jen:embed',
         line: `embed_file(${targetName} ${String(file)} ${variable})`,
       },

@@ -20,7 +20,7 @@ LineEnding: LF
 InsertNewlineAtEOF: true
 Standard: Latest
 `;
-    return [{ add: '.clang-format', template: clangFormat }];
+    return [{ add: '/.clang-format', template: clangFormat }];
   },
 };
 

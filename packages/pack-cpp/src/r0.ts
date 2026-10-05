@@ -1,6 +1,6 @@
 /** `cpp:r0`: a Rule of Zero class with members generated from constructor params (header-only). */
 import type { Generator } from '@codejen/jen';
-import { fail, nsWrap, parseMembers, qualified, testActions } from './util.ts';
+import { fail, includeBlock, nsWrap, parseMembers, qualified, stdIncludes, testActions } from './util.ts';
 
 const r0Generator: Generator = {
   description: 'create a Rule of Zero class: members generated from constructor params, no special member functions (header-only)',
@@ -25,9 +25,7 @@ const r0Generator: Generator = {
     const header = `#ifndef ${guard}
 #define ${guard}
 
-${compare ? '#include <compare>\n' : ''}#include <utility>
-
-${open}${indent}class ${className} {
+${includeBlock(compare ? ['<compare>'] : [], ['<utility>'], stdIncludes(String(members)))}${open}${indent}class ${className} {
 ${indent} public:
 ${indent}  explicit ${className}(${ctorParams})
 ${indent}      : ${initList} {}
@@ -39,7 +37,7 @@ ${indent}};${close}
 `;
 
     const checks = [`CHECK(std::is_move_constructible_v<${qualified(String(namespace), className)}>);`];
-    return [{ add: `src/${className}.h`, template: header }, ...testActions(withTest, className, `${className}.h`, checks, ['type_traits'])];
+    return [{ add: `${className}.h`, template: header }, ...testActions(withTest, className, `${className}.h`, checks, ['type_traits'])];
   },
 };
 

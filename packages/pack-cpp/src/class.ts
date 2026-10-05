@@ -1,10 +1,10 @@
 /**
  * `cpp:class`: a plain or move-only RAII (Rule of Five) header/source class, written
- * into src/ and wired into src/CMakeLists.txt's sources list at a `# jen:sources`
- * marker (see the app-starter generators for where that marker comes from).
+ * where jen puts files and wired into the nearest CMakeLists.txt's sources list at a
+ * `# jen:sources` marker (see the app-starter generators for where that marker comes from).
  */
 import type { Generator } from '@codejen/jen';
-import { nsWrap, qualified, testActions } from './util.ts';
+import { includeBlock, nsWrap, qualified, stdIncludes, testActions } from './util.ts';
 
 /** Plain default-constructible class: declared ctor/dtor, defined empty in the source. */
 function plainClass(className: string, guard: string, indent: string, open: string, close: string) {
@@ -42,9 +42,7 @@ function moveOnlyClass(
   const header = `#ifndef ${guard}
 #define ${guard}
 
-#include <utility>
-
-${open}${indent}class ${className} {
+${includeBlock(['<utility>'], stdIncludes(resourceType))}${open}${indent}class ${className} {
 ${indent} public:
 ${indent}  ${className}() noexcept = default;
 ${indent}  explicit ${className}(${resourceType} handle) noexcept : handle_{handle} {}
@@ -85,7 +83,7 @@ ${indent}}${close}`;
 
 const classGenerator: Generator = {
   description:
-    'create a C++ class in src/ (header + source), wired into src/CMakeLists.txt; --moveOnly for a Rule-of-Five RAII wrapper, --withTest for a doctest case',
+    'create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources; --moveOnly for a Rule-of-Five RAII wrapper, --withTest for a doctest case',
   params: {
     name: {},
     namespace: { default: '' },
@@ -110,9 +108,9 @@ const classGenerator: Generator = {
       : [`CHECK(std::is_default_constructible_v<${q}>);`];
 
     return [
-      { add: `src/${className}.h`, template: header },
-      { add: `src/${className}.cpp`, template: source },
-      { insert: 'src/CMakeLists.txt', before: '# jen:sources', line: `  ${className}.cpp` },
+      { add: `${className}.h`, template: header },
+      { add: `${className}.cpp`, template: source },
+      { insert: { find: 'CMakeLists.txt' }, before: '# jen:sources', path: `${className}.cpp` },
       ...testActions(withTest, className, `${className}.h`, checks, ['type_traits']),
     ];
   },

@@ -36,7 +36,7 @@ const presetsGenerator: Generator = {
         output: { outputOnFailure: true },
       })),
     };
-    return [{ add: 'CMakePresets.json', template: `${JSON.stringify(presets, null, 2)}\n` }];
+    return [{ add: '/CMakePresets.json', template: `${JSON.stringify(presets, null, 2)}\n` }];
   },
 };
 

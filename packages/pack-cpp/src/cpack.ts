@@ -108,17 +108,17 @@ const cpackGenerator: Generator = {
     const bundle = String(bundleId) || 'com.example.${PROJECT_NAME}';
     const who = String(maintainer) || '${PROJECT_NAME} maintainers';
     return [
-      { add: 'cmake/Info.plist.in', template: INFO_PLIST },
+      { add: '/cmake/Info.plist.in', template: INFO_PLIST },
       // set up before the install rules that read the variable
       ...(staticSdl
-        ? [{ insert: 'CMakeLists.txt', before: '# jen:options', line: 'set(SDL_STATIC ON)\nset(SDL_SHARED OFF)' }]
+        ? [{ insert: '/CMakeLists.txt', before: '# jen:options', line: 'set(SDL_STATIC ON)\nset(SDL_SHARED OFF)' }]
         : []),
       {
-        insert: 'CMakeLists.txt',
+        insert: '/CMakeLists.txt',
         before: '# jen:install',
         line: installRules(stripTrailingSlashes(String(assets)), Boolean(staticSdl)).replace('BUNDLE_ID_PLACEHOLDER', bundle),
       },
-      { insert: 'CMakeLists.txt', before: '# jen:cpack', line: cpackSettings(who) },
+      { insert: '/CMakeLists.txt', before: '# jen:cpack', line: cpackSettings(who) },
     ];
   },
 };

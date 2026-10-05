@@ -7,7 +7,7 @@ import type { Generator } from '@codejen/jen';
 import { inNamespace, qualified, testActions } from './util.ts';
 
 const pimplGenerator: Generator = {
-  description: 'create a pimpl class: unique_ptr<Impl>, special members defaulted in the .cpp; wired into src/CMakeLists.txt',
+  description: 'create a pimpl class: unique_ptr<Impl>, special members defaulted in the .cpp; wired into the CMakeLists.txt with # jen:sources',
   params: {
     name: {},
     namespace: { default: '' },
@@ -64,9 +64,9 @@ ${inNamespace(ns, sourceBody)}`;
       `CHECK(std::is_nothrow_move_constructible_v<${q}>);`,
     ];
     return [
-      { add: `src/${type}.h`, template: header },
-      { add: `src/${type}.cpp`, template: source },
-      { insert: 'src/CMakeLists.txt', before: '# jen:sources', line: `  ${type}.cpp` },
+      { add: `${type}.h`, template: header },
+      { add: `${type}.cpp`, template: source },
+      { insert: { find: 'CMakeLists.txt' }, before: '# jen:sources', path: `${type}.cpp` },
       ...testActions(withTest, type, `${type}.h`, checks, ['type_traits']),
     ];
   },

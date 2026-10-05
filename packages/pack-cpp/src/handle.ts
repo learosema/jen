@@ -51,7 +51,7 @@ ${indent}};${close}
 #endif  // ${guard}
 `;
 
-    return [{ add: `src/${className}.h`, template: header }];
+    return [{ add: `${className}.h`, template: header }];
   },
 };
 

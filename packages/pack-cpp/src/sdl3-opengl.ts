@@ -4,7 +4,7 @@
  * https://github.com/learosema/learn-sdl's 06_opengl example: SDL3 owns the
  * window/context, glad loads the GL function pointers, and
  * cmake/embed-glsl.cmake turns the .glsl sources into inline C strings at
- * configure time (see `cpp:shader` for adding more later). The code lives in
+ * configure time (see `cpp:shader` for embedding more later). The code lives in
  * a `<name>-core` library, with src/main.cpp as the only file of the thin
  * executable (see starter.ts for the markers this leaves behind).
  */
@@ -307,7 +307,7 @@ const sdl3OpenglGenerator: Generator = {
         template: srcCMake(kebabName, {
           sources: ['shader-utils.cpp', 'app.cpp'],
           libs: 'SDL3::SDL3 glad',
-          preamble: 'embed_glsl("quad.vert.glsl" quadVertexShader)\nembed_glsl("quad.frag.glsl" quadFragmentShader)\n# jen:shaders\n',
+          preamble: 'embed_glsl("quad.vert.glsl" quadVertexShader)\nembed_glsl("quad.frag.glsl" quadFragmentShader)\n',
         }),
       },
       { add: at('src/main.cpp'), template: sdlMainCpp(className) },
