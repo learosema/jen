@@ -34,7 +34,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@codejen/jen": "^1.0.0",
+    "@codejen/jen": "^2.0.0",
     "@types/node": "^26.6.3",
     "typescript": "^6.0.3"
   }
