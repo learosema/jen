@@ -27,7 +27,7 @@
  */
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
-import type { Action } from './core.ts';
+import type { Placed } from './core.ts';
 import { fail } from './core.ts';
 
 /** The priorities jen actually drains, in order. install/end are never run – see module doc. */
@@ -117,7 +117,7 @@ function toArgv(given: Record<string, unknown>, positionals: string[]): string[]
  * of a yeoman-environment for it to run, and returns the files it would
  * write as jen actions – ready for jen's own plan()/apply().
  */
-export async function runYeoman(GeneratorClass: YeomanGeneratorClass, resolved: string, ctx: YeomanRunContext): Promise<Action[]> {
+export async function runYeoman(GeneratorClass: YeomanGeneratorClass, resolved: string, ctx: YeomanRunContext): Promise<Placed[]> {
   const require = createRequire(resolved);
   const memFs = (await import(pathToFileURL(require.resolve('mem-fs')).href)) as { create(): MemFsStore };
   const sharedFs = memFs.create();
@@ -166,7 +166,7 @@ export async function runYeoman(GeneratorClass: YeomanGeneratorClass, resolved: 
   });
   await generator.run();
 
-  const actions: Action[] = [];
+  const actions: Placed[] = [];
   for (const file of sharedFs.all()) {
     if (file.state === 'modified') actions.push({ add: file.path, template: (file.contents ?? Buffer.alloc(0)).toString('utf8') });
     else if (file.state === 'deleted') actions.push({ delete: file.path });

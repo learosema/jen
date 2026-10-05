@@ -14,9 +14,30 @@ import { ROOT } from './location.ts';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Answers = Record<string, any>;
 
-/** A parameter's default also decides its type: boolean default → boolean, otherwise string. */
-export type Params = Record<string, { default?: string | boolean }>;
+/**
+ * A parameter's default also decides its type: boolean default → boolean, otherwise string.
+ * `path: true` marks a path the user types relative to where they stand; the generator
+ * gets it ready to use as an action path (`/…`, from the project root), or `''` if not given.
+ */
+export type Params = Record<string, { default?: string | boolean; path?: boolean }>;
 
+/**
+ * An existing file for jen to find, instead of a path: the nearest file named `find`
+ * (or matching it) that contains `containing`, in the destination or a folder above
+ * it, else the shallowest such file anywhere in the project. For `insert`,
+ * `containing` defaults to the marker.
+ */
+export interface Find {
+  find: string | RegExp;
+  containing?: string;
+}
+
+/**
+ * Paths in actions are relative to where the files go – the current directory,
+ * or `--dir` – so a generator never decides where its files land. A path
+ * starting with `/` is relative to the project root instead. Nothing outside the
+ * project root is touched.
+ */
 export type Action =
   /** Create a file. Skipped if it exists (unless force / --force). */
   | { add: string; template: string; force?: boolean }
@@ -25,16 +46,26 @@ export type Action =
    * `before`, or the first line matching it if it's a RegExp. A single line
    * reuses the marker's own indentation exactly; a `\n`-joined block is
    * re-rendered in the file's indent style, keeping the block's relative
-   * nesting. No duplicates.
+   * nesting. No duplicates. With `path` instead of `line`, the line is the
+   * path of that file, relative to the folder of the file inserted into –
+   * how a build file lists its sources.
    */
-  | { insert: string; before: string | RegExp; line: string }
+  | ({ insert: string | Find; before: string | RegExp } & ({ line: string } | { path: string }))
   /**
    * Search and replace via RegExp. Also handy for removing lines. A
    * multi-line `replace` is reindented to match the first match's line.
    */
-  | { modify: string; pattern: RegExp; replace: string }
-  /** Delete a file. Only inside the project root; directories are refused. */
+  | { modify: string | Find; pattern: RegExp; replace: string }
+  /** Delete a file. Directories are refused. */
   | { delete: string };
+
+/** An action with its file resolved – a path from the project root – or skipped with a note. */
+export type Placed =
+  | { add: string; template: string; force?: boolean }
+  | { insert: string; before: string | RegExp; line: string }
+  | { modify: string; pattern: RegExp; replace: string }
+  | { delete: string }
+  | { skip: string; note: string };
 
 export interface Helpers {
   pascal(s: string): string;
@@ -44,10 +75,37 @@ export interface Helpers {
   constant(s: string): string;
 }
 
+/** Read-only view of the project below its root. Paths are relative to the root (a leading `/` is ignored) and use `/`. */
+export interface Probe {
+  exists(path: string): boolean;
+  isDir(path: string): boolean;
+  /** File contents, or null if it can't be read. */
+  read(path: string): string | null;
+  /** Entry names of a directory, sorted; empty if there is none. */
+  readdir(path: string): string[];
+  /** The nearest file called `name` (containing `text`, if given) in `from` or a parent directory up to the root. */
+  findUp(name: string, text?: string, from?: string): string | null;
+  /** Files below the root (a few levels deep, skipping node_modules, build output …) named `name` and containing `text`; shallowest first. */
+  grep(name: string | RegExp, text?: string): string[];
+}
+
+/**
+ * What `actions` may know about the project, besides the answers – rarely
+ * needed: action paths, `Find` targets and `path` params cover the usual cases.
+ */
+export interface Context extends Probe {
+  /** Absolute project root. */
+  root: string;
+  /** The current directory, relative to the root (`.` at the root). */
+  cwd: string;
+  /** Where the files go, relative to the root: `--dir`, else the current directory. Action paths are relative to it. */
+  destDir: string;
+}
+
 export interface Generator {
   description?: string;
   params?: Params;
-  actions(answers: Answers, helpers: Helpers): Action[];
+  actions(answers: Answers, helpers: Helpers, ctx: Context): Action[];
 }
 
 /** Default export of a jen pack: generator name → generator. */
@@ -91,11 +149,12 @@ const isInside = (root: string, f: string): boolean => {
 };
 
 /**
- * Computes all changes in memory without touching the disk.
+ * Computes all changes in memory without touching the disk. Files outside the
+ * project root (and `extraRoots`, e.g. the user directory for built-ins) are skipped.
  * `changes` holds the final state of every affected file (null = delete),
  * so several actions on the same file (e.g. add, then insert) build on each other.
  */
-export async function plan(actions: Action[], force: boolean) {
+export async function plan(actions: Placed[], force: boolean, extraRoots: string[] = []) {
   const steps: Step[] = [];
   const changes = new Map<string, string | null>();
   const added = new Set<string>();
@@ -103,8 +162,18 @@ export async function plan(actions: Action[], force: boolean) {
     changes.has(f) ? (changes.get(f) ?? null) : isFile(f) ? await readFile(f, 'utf8') : null;
 
   for (const a of actions) {
+    if ('skip' in a) {
+      steps.push({ mark: '?', file: resolve(ROOT, a.skip), note: a.note });
+      continue;
+    }
+
+    const file = resolve(ROOT, 'add' in a ? a.add : 'delete' in a ? a.delete : 'insert' in a ? a.insert : a.modify);
+    if (![ROOT, ...extraRoots].some((root) => isInside(root, file))) {
+      steps.push({ mark: '?', file, note: 'outside the project, skipped' });
+      continue;
+    }
+
     if ('add' in a) {
-      const file = resolve(ROOT, a.add);
       const exists = (await read(file)) !== null;
       if (exists && !(a.force || force)) {
         steps.push({ mark: '=', file, note: 'exists, skipped' });
@@ -117,10 +186,7 @@ export async function plan(actions: Action[], force: boolean) {
     }
 
     if ('delete' in a) {
-      const file = resolve(ROOT, a.delete);
-      if (!isInside(ROOT, file)) {
-        steps.push({ mark: '?', file, note: 'outside the project, skipped' });
-      } else if (existsSync(file) && !changes.has(file) && !isFile(file)) {
+      if (existsSync(file) && !changes.has(file) && !isFile(file)) {
         steps.push({ mark: '?', file, note: 'is a directory, skipped' });
       } else if ((await read(file)) === null) {
         steps.push({ mark: '=', file, note: 'does not exist' });
@@ -131,7 +197,6 @@ export async function plan(actions: Action[], force: boolean) {
       continue;
     }
 
-    const file = resolve(ROOT, 'insert' in a ? a.insert : a.modify);
     const text = await read(file);
     if (text === null) {
       steps.push({ mark: '?', file, note: 'file missing, skipped' });

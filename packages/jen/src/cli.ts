@@ -25,20 +25,22 @@
  * throwaway directory, runs it once, and removes it again – it replaces the
  * whole search path above for that one run.
  *
- * Paths in actions are relative to the project root (the directory
- * containing .jen/), or to the current directory if there is no .jen/.
- * --where/-w overrides the project root for a single run.
+ * Generators decide what to create, jen decides where: paths in actions are
+ * relative to the current directory (--dir overrides), `/…` to the project
+ * root – the parent of the nearest .jen/, else the nearest directory with a
+ * package.json or .git, else the current directory.
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { delimiter, dirname, join, resolve, sep } from 'node:path';
+import { delimiter, dirname, join, relative, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs, styleText } from 'node:util';
+import { buildContext, placeActions, resolvePathParams } from './context.ts';
 import { apply, dim, fail, helpers, plan, printPlan } from './core.ts';
-import type { Action, Answers, Generator, Pack, Params } from './core.ts';
-import { PROJECT_JEN, ROOT, USER_DIR, setRoot } from './location.ts';
+import type { Answers, Generator, Pack, Params, Placed } from './core.ts';
+import { PROJECT, PROJECT_JEN, ROOT, USER_DIR } from './location.ts';
 import type { YeomanGeneratorClass } from './yeoman.ts';
 import { runYeoman } from './yeoman.ts';
 
@@ -62,7 +64,8 @@ export default {
     name: {},
   },
   actions: ({ name }, { pascal }) => [
-    { add: \`src/\${pascal(name)}.txt\`, template: \`Hello \${name}!\\n\` },
+    // paths are relative to where you run jen (or --dir); '/…' is the project root
+    { add: \`\${pascal(name)}.txt\`, template: \`Hello \${name}!\\n\` },
   ],
 };
 `,
@@ -82,7 +85,7 @@ interface ActionsGenerator extends Generator {
 interface RunnableYeoman {
   kind: 'yeoman';
   description?: string;
-  run(given: Record<string, unknown>, positionals: string[]): Promise<Action[]>;
+  run(given: Record<string, unknown>, positionals: string[]): Promise<Placed[]>;
 }
 
 type LoadedGenerator = ActionsGenerator | RunnableYeoman;
@@ -426,7 +429,7 @@ const HELP = `jen – the code jen(erator)
   --list,    -l   list all generators and where they come from
   --dry-run, -n   only show the plan
   --force,   -f   overwrite existing files
-  --where,   -w   generate into this directory instead of the project root
+  --dir           where the files go instead of the current directory
   --from          fetch a pack or Yeoman generator via npm, run it once, then remove it
   --help,    -h   show this help
 
@@ -438,7 +441,6 @@ const FLAGS = {
   list: { type: 'boolean', short: 'l' },
   'dry-run': { type: 'boolean', short: 'n' },
   force: { type: 'boolean', short: 'f' },
-  where: { type: 'string', short: 'w' },
   from: { type: 'string' },
   help: { type: 'boolean', short: 'h' },
 } as const;
@@ -446,7 +448,6 @@ const FLAGS = {
 export async function main(): Promise<void> {
   const { values, positionals } = parseArgs({ allowPositionals: true, strict: false, options: FLAGS });
   if (values.help) return void console.log(HELP);
-  if (values.where) setRoot(resolve(process.cwd(), String(values.where)));
 
   let fetched = values.from ? await fetchFrom(String(values.from)) : undefined;
   try {
@@ -467,13 +468,32 @@ export async function main(): Promise<void> {
       fetched = { entries: [], cleanup: fallback.cleanup };
     }
     const gen = await entry.load();
+    // --where was removed: fail rather than quietly write into the cwd, unless it's the generator's own param
+    if ('w' in values || ('where' in values && !(gen.kind === 'actions' && 'where' in (gen.params ?? {})))) {
+      fail('--where/-w was removed – cd into the directory and run jen there.');
+    }
     console.log(dim(`${qualified(entry)} (${entry.source})${gen.description ? ` – ${gen.description}` : ''}`));
 
     const given = Object.fromEntries(Object.entries(values).filter(([k]) => !(k in FLAGS)));
-    const actions =
-      gen.kind === 'yeoman' ? await gen.run(given, positionals.slice(1)) : gen.actions(resolveParams(gen.params ?? {}, given), helpers);
+    const notes: string[] = [];
+    let actions: Placed[];
+    if (gen.kind === 'yeoman') {
+      actions = await gen.run(given, positionals.slice(1));
+    } else {
+      const cwd = process.cwd();
+      if (PROJECT && PROJECT.root !== cwd) notes.push(`root: ${relative(cwd, PROJECT.root)} (${PROJECT.marker})`);
+      // --dir is the same flag everywhere, unless the generator has a param of that name itself
+      const params = { dir: { default: '' }, ...gen.params };
+      const answers = resolveParams(params, given);
+      const ctx = buildContext('dir' in (gen.params ?? {}) ? '' : String(answers.dir), ROOT, cwd);
+      resolvePathParams(gen.params ?? {}, answers, ctx);
+      const raw = gen.actions(answers, helpers, ctx);
+      // built-ins are jen's own: they write to absolute paths, e.g. the user directory
+      actions = entry.source === 'built-in' ? (raw as Placed[]) : placeActions(raw, ctx);
+    }
+    for (const n of notes) console.log(dim(`  ${n}`));
 
-    const { steps, changes } = await plan(actions, Boolean(values.force));
+    const { steps, changes } = await plan(actions, Boolean(values.force), entry.source === 'built-in' ? [USER_DIR] : []);
     console.log();
     printPlan(steps);
     if (changes.size === 0) return void console.log('\nNothing to do.');
