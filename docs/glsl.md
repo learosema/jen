@@ -14,6 +14,9 @@ toc:
       - { title: Globally, id: install-global }
       - { title: Locally, id: install-local }
       - { title: Not at all, id: install-npx }
+  - title: Where files go
+    links:
+      - { title: Files and the project root, id: where }
   - title: Starters
     links:
       - { title: "glsl:webgl", id: glsl-webgl }
@@ -53,6 +56,10 @@ Ask for a `glsl:` generator without the pack installed and jen fetches `@codejen
 
 {% include terminal.html id="glsl_install_npx" %}
 
+## Where files go {#where}
+
+Generators write into the folder you run them in. Run at the project root, they use `shaders`, so `glsl:frag --name=Clouds` writes `shaders/clouds.frag.glsl` without a `cd`. `--dir` writes somewhere else, and `--into` and `--file` are relative to the current directory. `glsl:webgl` makes a new project folder in the current directory instead, with the shader in `shaders/` inside it (`--shaderDir` renames that). The [home page]({{ '/#where' | relative_url }}) has the general rules.
+
 ## Starters {#starters}
 
 Shaders default to WebGL2's GLSL ES 3.00, so you can prototype in the browser first. Everything compiles as desktop GLSL 3.30 and 4.10 core too: pass `--version=410`, or switch an existing shader with [`glsl:port`](#glsl-port). The starters use the uniforms every jen host feeds – `uTime`, `uResolution`, `uMouse` – so the same file runs in `<shader-canvas>` and in `cpp:sdl3-opengl`.
@@ -71,7 +78,8 @@ A playground without a build step: an `index.html`, the [`<shader-canvas>`](http
 `name` | — | required; the shader's name (`Clouds` becomes `shaders/clouds.frag.glsl`)
 `inline` | `false` | put the shader into the page instead, so it opens straight from disk without a server
 `tag` | `shader-canvas` | another element name, if `shader-canvas` collides with something
-`dir` | `.` | where the page goes
+`dir` | `.` | the new project folder, inside the current directory
+`shaderDir` | `shaders` | the shader's folder inside it
 {% endcapture %}
 {% include cards.html rows=rows label="default" heading="Params" %}
 
@@ -91,13 +99,13 @@ A vertex shader: `--kind=quad` (default) takes a full-screen quad at attribute l
 `name` | — | required
 `kind` | `quad` | `vert` only: `quad`, `triangle` or `mesh`
 `version` | `300es` | `300es`, `330` or `410`
-`dir` | `shaders` | where the shader goes
+`dir` | — | where the shader goes, relative to the current directory; else the current directory, or `shaders` at the project root
 {% endcapture %}
 {% include cards.html rows=rows label="default" heading="Params" %}
 
 ### `glsl:port` {#glsl-port}
 
-Switches a shader between dialects by rewriting only its header: the `#version` line and the default precisions. For moving a WebGL prototype into `cpp:sdl3-opengl`, and back.
+Switches a shader between dialects by rewriting only its header: the `#version` line and the default precisions. For moving a WebGL prototype into `cpp:sdl3-opengl`, and back. To compile such a shader into a C++ build, `cpp:shader --file=shaders/clouds.frag.glsl` from the [cpp pack]({{ '/recipes.html#cpp-shader' | relative_url }}) embeds it as a C string.
 
 {% include terminal.html id="glsl_port" %}
 
@@ -107,7 +115,7 @@ Switches a shader between dialects by rewriting only its header: the `#version` 
 
 GLSL has no `#include`, so the pack ships its functions as plain, attributed `.glsl` files. With `--into=<shader>`, jen inserts the ones you pick, plus everything they need, above a `// jen:functions` marker. If the shader has none yet, the marker goes in before its first function, so your own code below can call them. Anything already in the file is skipped: run a generator twice, or two generators sharing a helper, and nothing is duplicated.
 
-Without `--into`, every function becomes its own file under `shaders/lib/`, for setups with an include mechanism (vite-plugin-glsl, glslify, three.js). Most generators also take `--name` for a ready-to-run preview shader.
+Without `--into`, every function becomes its own file under `lib/` in the shader folder (`shaders/lib/` from the project root), for setups with an include mechanism (vite-plugin-glsl, glslify, three.js). Most generators also take `--name` for a ready-to-run preview shader.
 
 ### `glsl:noise` {#glsl-noise}
 
@@ -136,7 +144,7 @@ Fractals are written once and renamed for the base you pick – `simplexFbm`, `p
 `base` | `simplex` | the noise under a fractal
 `dim` | `2` | `2` or `3`
 `tile` | `false` | `--name` only: draw the period 2×2
-`into` | — | the shader to insert into; else files in `shaders/lib/`
+`into` | — | the shader to insert into, relative to the current directory; else files in `lib/` next to where the shaders go
 `name` | — | instead: a preview shader
 {% endcapture %}
 {% include cards.html rows=rows label="default" heading="Params" %}
