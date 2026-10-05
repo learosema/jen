@@ -379,9 +379,8 @@ together_tooling:
 
 where:
   - "$ cd my-game"
-  - "$ jen cpp:class --name=Camera"
+  - "$ jen cpp:class --name=Camera --dir=src"
   - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources; --moveOnly for a Rule-of-Five RAII wrapper, --withTest for a doctest case"
-  - "  # files → src (default at the project root)"
   - ""
   - "  + src/Camera.h"
   - "  + src/Camera.cpp"

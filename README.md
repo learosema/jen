@@ -5,7 +5,7 @@
 jen takes parameters from the command line (or their defaults), prints exactly what it does to your files. Generators are plain JavaScript or TypeScript modules, templates are template literals, and the whole thing is a single file with no dependencies beyond Node itself.
 
 ```
-$ jen class --name=rigid_body --moveOnly
+$ jen class --name=rigid_body --moveOnly --dir=src
 class (project) – C++ class
 
   + src/RigidBody.h
@@ -53,7 +53,7 @@ This creates `.jen/hello.mjs` in the current directory. Run it:
 jen hello --name=world
 ```
 
-and you'll get `src/World.txt` saying hello. Open `.jen/hello.mjs` and make it your own.
+and you'll get `World.txt` saying hello. Open `.jen/hello.mjs` and make it your own.
 
 ## Writing generators
 
@@ -65,15 +65,14 @@ export const description = "C++ class";
 
 export const params = {
   name: {},
-  dir: { default: "src" },
   moveOnly: { default: false },
 };
 
-export const actions = ({ name, dir, moveOnly }, { pascal }) => {
+export const actions = ({ name, moveOnly }, { pascal }) => {
   const Name = pascal(name);
   return [
     {
-      add: `${dir}/${Name}.h`,
+      add: `${Name}.h`,
       template: `#pragma once
 
 class ${Name} {
@@ -94,13 +93,13 @@ private:
 `,
     },
     {
-      add: `${dir}/${Name}.cpp`,
+      add: `${Name}.cpp`,
       template: `#include "${Name}.h"\n\n${Name}::${Name}() = default;\n`,
     },
     {
-      insert: `${dir}/CMakeLists.txt`,
+      insert: { find: "CMakeLists.txt" },
       before: "# scaffold:sources",
-      line: `${Name}.cpp`,
+      path: `${Name}.cpp`,
     },
   ];
 };
@@ -118,11 +117,14 @@ A param is just a name and an optional `default`:
 
 ```js
 export const params = {
-  name: {},                 // required – jen fails with a clear message if it's missing
-  dir: { default: "src" },  // string, used as-is when not given
+  name: {},                     // required – jen fails with a clear message if it's missing
+  namespace: { default: "" },   // string, used as-is when not given
   moveOnly: { default: false }, // boolean – its default's type decides how the CLI value is parsed
+  into: { path: true, default: "" }, // a path the user types, relative to where they stand
 };
 ```
+
+A `path: true` param reaches `actions()` ready to use as an action path (`/shaders/main.glsl`, from the project root), however deep in the project the user typed it. jen fails if it points outside the project.
 
 Every param is answered from the command line with `--<name>=<value>`. Boolean params also work as a bare flag without a value (`--moveOnly`), and accept `1`, `true`, `y` and `yes` when given explicitly (`--moveOnly=yes`). A param with no `default` is required; if it's missing, jen stops before planning anything and lists what's missing.
 
@@ -131,11 +133,13 @@ There's no prompting, no `validate`, no `select` with choices – if a generator
 ### Actions
 
 - **add** – `{ add, template, force? }`: Creates a file. Existing files are skipped unless `force` or `--force` is set.
-- **insert** – `{ insert, before, line }`: Inserts `line` before the first line containing the marker `before` (or, if `before` is a `RegExp`, the first line matching it), using the marker's indentation. Skipped if the line is already present.
+- **insert** – `{ insert, before, line }`: Inserts `line` before the first line containing the marker `before` (or, if `before` is a `RegExp`, the first line matching it), using the marker's indentation. Skipped if the line is already present. With `path` instead of `line`, the inserted line is that file's path relative to the file being inserted into – how a build file lists its sources.
 - **modify** – `{ modify, pattern, replace }`: Search and replace with a `RegExp`. Also the way to remove lines.
-- **delete** – `{ delete }`: Deletes a file. Only works inside the project root, and never on directories.
+- **delete** – `{ delete }`: Deletes a file, never a directory.
 
-All paths are relative to the **project root**: the directory containing `.jen/`, or the current directory if there is none. Actions on the same file build on each other, so you can `add` a file and `insert` into it in the same run.
+**A generator says what to create; jen decides where.** Paths are relative to where the files go: the current directory, or `--dir`. A path starting with `/` is relative to the project root instead. Nothing outside the project root is ever touched. Actions on the same file build on each other, so you can `add` a file and `insert` into it in the same run.
+
+To change a file that already exists somewhere in the project, let jen find it instead of guessing its path: `insert` and `modify` take `{ find, containing? }` as their target. jen uses the nearest file with that name (or matching that `RegExp`) that contains `containing` – for `insert`, the marker by default – in the destination or a folder above it, otherwise the shallowest one anywhere in the project. If there is none, the action is skipped with a note.
 
 A marker for `insert` is just a comment in the target file:
 
@@ -171,28 +175,15 @@ With `'rigid body'` as input:
 - `kebab` – `rigid-body`
 - `constant` – `RIGID_BODY`
 
-### Where files go, in generators
+### Context
 
-Declare a `dest` and your generator puts its files where jen says: the current directory, `--dir`, or the `dest` folder when run at the project root. Paths in its actions are then relative to that, and a path starting with `/` is relative to the project root:
+Most generators never need it, but the third argument to `actions()` tells a generator about the project it runs in – for the rare case where the content of a file depends on where things are:
 
-```js
-// .jen/class.mjs
-export const dest = "src"; // the folder at the project root; "." for none
-export const params = { name: {} };
-
-export const actions = ({ name }, { pascal }) => [
-  { add: `${pascal(name)}.h`, template: `class ${pascal(name)} {};\n` },
-  { insert: "/CMakeLists.txt", before: "# jen:sources", line: `  ${pascal(name)}.cpp` },
-];
-```
-
-Without `dest`, paths are relative to the project root, as before, so existing generators keep working. If a generator declares its own `dir` param, jen leaves `--dir` to it.
-
-The third argument to `actions()` tells a generator about the project it runs in:
-
-- `ctx.destDir` – the destination directory, relative to the project root.
+- `ctx.destDir` – where the files go, relative to the project root.
 - `ctx.root` and `ctx.cwd` – the absolute project root, and the current directory relative to it.
-- `ctx.exists(path)`, `ctx.read(path)`, `ctx.findUp(name, text?)` and `ctx.grep(name, text?)` – a read-only look at the project, with paths relative to the root. Handy for finding a file with a marker to insert into (remember the leading `/` when you use the result as an action path).
+- `ctx.exists(path)`, `ctx.read(path)`, `ctx.findUp(name, text?)` and `ctx.grep(name, text?)` – a read-only look at the project, with paths relative to the root.
+
+If a generator declares its own `dir` param, jen leaves `--dir` to it.
 
 ### Undoing things
 
@@ -203,10 +194,10 @@ The third argument to `actions()` tells a generator about the project it runs in
 export const params = { name: {} };
 
 export const actions = ({ name }, { pascal }) => [
-  { delete: `src/${pascal(name)}.h` },
-  { delete: `src/${pascal(name)}.cpp` },
+  { delete: `${pascal(name)}.h` },
+  { delete: `${pascal(name)}.cpp` },
   {
-    modify: "src/CMakeLists.txt",
+    modify: { find: "CMakeLists.txt", containing: "# scaffold:sources" },
     pattern: new RegExp(`^\\s*${pascal(name)}\\.cpp\\n`, "m"),
     replace: "",
   },
@@ -217,19 +208,17 @@ export const actions = ({ name }, { pascal }) => [
 
 jen never prompts, and it doesn't guess either. There are two simple rules.
 
-**Files go where you are standing.** A generator that scaffolds a class, a shader or a single file writes it into the current directory. App starters (`cpp:sdl3`, `glsl:webgl`, …) create a new folder in the current directory and put everything there. `--dir=<path>` (relative to the current directory) writes somewhere else instead.
+**Files go where you are standing.** A generator that scaffolds a class, a shader or a single file writes it into the current directory. App starters (`cpp:sdl3`, `glsl:webgl`, …) create a new folder in the current directory and put everything there. `--dir=<path>` (relative to the current directory) writes somewhere else instead, so `jen cpp:class --name=Foo --dir=src/main/cpp` writes `src/main/cpp/Foo.h`. Generators don't pick folders themselves.
 
-A generator may name a default folder (`src`, `shaders`, …) that applies only when you run it at the project root, so `jen cpp:class --name=Foo` at the root still writes `src/Foo.h`. Anywhere else the current directory wins.
+**The project root** is the boundary: jen never touches anything outside it. jen finds it by walking up from the current directory: the parent of the nearest `.jen/`, otherwise the nearest directory with a `package.json` or a `.git`, otherwise the current directory. Files a generator wires into, such as a `CMakeLists.txt` with a marker, are found within it – the nearest one above where the files go, which is how a class made in `src/net/` still lands in the right `CMakeLists.txt`.
 
-**The project root** is only for the project's own files. jen finds it by walking up from the current directory: the parent of the nearest `.jen/`, otherwise the nearest directory with a `package.json` or a `.git`, otherwise the current directory. Paths in actions are relative to it, which is how a generator in a subfolder can still edit the root `CMakeLists.txt`. `--where` sets the root for a single run.
-
-The plan notes what jen decided, for example `root: .. (package.json)` or `files → src (default at the project root)`.
+The plan notes what jen decided, for example `root: .. (package.json)`.
 
 ## Where jen looks for generators
 
 jen searches these locations in order. The first match wins, so a project generator can override a personal or built-in one of the same name:
 
-1. **Project:** `.jen/`, searched upwards from the current directory (just like `.git`).
+1. **Project:** `.jen/`, searched upwards from the current directory (just like `.git`), but no further than the repository (the first directory with a `.git`) or your home directory. Generators in it run as code, so jen skips a `.jen/` that you don't own or that anyone can write to, and says so.
 2. **User:** `$XDG_CONFIG_HOME/jen`, `~/.config/jen`, or `%APPDATA%\jen` on Windows.
 3. **`$JEN_PATH`:** additional directories, separated like `PATH`.
 4. **Packs:** dependencies in `package.json` named `jen-pack-*` or `@scope/pack-*`, project `package.json` first, then the user directory's, then packs installed globally (`npm install -g`).
@@ -342,7 +331,6 @@ jen [generator] [--param=value …] [options]
   --list,    -l   list all generators and where they come from
   --dry-run, -n   only show the plan
   --force,   -f   overwrite existing files
-  --where,   -w   generate into this directory instead of the project root
   --dir           where the files go instead of the current directory
   --from          fetch a pack or Yeoman generator via npm, run it once, then remove it
   --help,    -h   show this help
@@ -350,11 +338,11 @@ jen [generator] [--param=value …] [options]
 
 Without a generator name, jen lists all available generators and exits with code 1.
 
-Params always use the `=` form (`--name=Foo`). The option names `list`, `dry-run`, `force`, `where`, `from` and `help` are reserved, so don't use them as param names.
+Params always use the `=` form (`--name=Foo`). The option names `list`, `dry-run`, `force`, `from` and `help` are reserved, so don't use them as param names.
 
-All action paths are relative to the project root, found from the current directory (see [Project root and destination](#project-root-and-destination)). `--where`/`-w` overrides that root for a single run, so you can scaffold into another directory without `cd`-ing there first — generators are still looked up from where you actually are.
+Files go into the current directory (see [Project root and destination](#project-root-and-destination)). To generate somewhere else, `cd` there first, or use `--dir` within the project.
 
-The plan notes where jen got a location from, for example `root: .. (package.json)` or `--dir → src/net (current directory)`.
+The plan notes where jen found the project root, for example `root: .. (package.json)`.
 
 The plan uses these marks:
 
@@ -377,7 +365,7 @@ jen ships its types, so JavaScript generators get autocompletion and type checki
 export default {
   params: { name: {} },
   actions: ({ name }, { pascal }) => [
-    { add: `src/${pascal(name)}.txt`, template: name },
+    { add: `${pascal(name)}.txt`, template: name },
   ],
 };
 ```

@@ -65,9 +65,9 @@ Where files go
 jen never prompts, and it doesn't guess either. Two rules cover it:
 
 - **Files go where you're standing.** Run a generator in a folder and its files land there. App starters make a new folder and put everything in it. `--dir=<path>` writes somewhere else.
-- **A generator can name a home folder.** At the project root, `cpp:class` writes into `src` and `glsl:frag` into `shaders`, so the common case needs no `cd`.
+- **Generators say what, jen says where.** A generator never picks a folder. Files it wires into, like a `CMakeLists.txt` with a marker, jen finds: the nearest one above where the files go.
 
-The project root, found by walking up to the nearest `.jen/`, `package.json` or `.git`, is for the project's own files. That is how a class made in `src/net/` still gets wired into the right `CMakeLists.txt`.
+The project root, found by walking up to the nearest `.jen/`, `package.json` or `.git`, is the boundary: nothing outside it is touched. That is how a class made in `src/net/` still gets wired into the right `CMakeLists.txt`.
 
 </div>
 {% include terminal.html id="where" title="~/projects/my-game" %}
@@ -120,10 +120,10 @@ Publish to npm as `jen-pack-<name>` or `@scope/pack-<name>`. Anyone with it in `
 </div>
 </div>
 
-jen looks in `.jen/` (searched upwards, like `.git`), then your user config, `$JEN_PATH`, installed packs (local or global), and built-ins. First match wins; `jen --list` shows what shadows what. Full reference in the [README](https://github.com/learosema/jen#writing-generators).
+jen looks in `.jen/` (searched upwards like `.git`, but not past the repository or your home folder, and only if it's yours), then your user config, `$JEN_PATH`, installed packs (local or global), and built-ins. First match wins; `jen --list` shows what shadows what. Full reference in the [README](https://github.com/learosema/jen#writing-generators).
 {: .sub}
 
-Declare a `dest` and the paths in your actions are relative to where the files go; start one with `/` for the project root.
+Paths in your actions are relative to where the files go; start one with `/` for the project root. To wire into an existing file, let jen find it: `{ insert: { find: 'CMakeLists.txt' }, before: '# jen:sources', path: 'Foo.cpp' }`.
 {: .sub}
 
 </section>

@@ -8,7 +8,7 @@
  */
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -44,15 +44,16 @@ function fixture(files: Record<string, string> = {}): string {
 interface RunOptions {
   cwd: string;
   userDir?: string;
+  home?: string;
 }
 
-function jen(args: string[], { cwd, userDir }: RunOptions) {
+function jen(args: string[], { cwd, userDir, home }: RunOptions) {
   const xdg = userDir ?? fixture();
   const result = spawnSync(process.execPath, [JEN, ...args], {
     cwd,
     encoding: 'utf8',
     timeout: 10_000,
-    env: { ...process.env, XDG_CONFIG_HOME: xdg, JEN_PATH: '', JEN_NO_FETCH: '1', NO_COLOR: '1', FORCE_COLOR: '0' },
+    env: { ...process.env, ...(home && { HOME: home }), XDG_CONFIG_HOME: xdg, JEN_PATH: '', JEN_NO_FETCH: '1', NO_COLOR: '1', FORCE_COLOR: '0' },
   });
   return { code: result.status, stdout: result.stdout, stderr: result.stderr };
 }
@@ -226,22 +227,23 @@ describe('add + insert', () => {
   });
 });
 
-describe('--where', () => {
-  it('generates into a different destination folder', () => {
+describe('--where (removed)', () => {
+  it('fails instead of generating into the current directory', () => {
     const dir = cppProject();
-    const target = fixture();
-    const r = jen(['class', '--name=foo', `--where=${target}`], { cwd: dir });
-    assert.equal(r.code, 0, r.stderr);
-    assert.equal(read(target, 'src/Foo.h'), 'class Foo {};\n');
+    for (const flag of [`--where=${fixture()}`, '-w']) {
+      const r = jen(['class', '--name=foo', flag], { cwd: dir });
+      assert.equal(r.code, 1);
+      assert.match(r.stderr, /--where\/-w was removed/);
+    }
     assert.equal(existsSync(join(dir, 'src/Foo.h')), false);
   });
 
-  it('also works as the short flag -w', () => {
-    const dir = cppProject();
-    const target = fixture();
-    const r = jen(['class', '--name=foo', '-w', target], { cwd: dir });
+  it('is still available as a generator\'s own param', () => {
+    const dir = fixture({ '.jen/at.mjs': `export const params = { where: {} };
+export const actions = ({ where }) => [{ add: 'at.txt', template: where }];` });
+    const r = jen(['at', '--where=home'], { cwd: dir });
     assert.equal(r.code, 0, r.stderr);
-    assert.equal(read(target, 'src/Foo.h'), 'class Foo {};\n');
+    assert.equal(read(dir, 'at.txt'), 'home');
   });
 });
 
@@ -315,7 +317,8 @@ describe('delete', () => {
     });
     const r = jen(['evil'], { cwd: dir });
     assert.equal(r.code, 0, r.stderr);
-    assert.equal((r.stdout.match(/outside the project/g) ?? []).length, 3);
+    // an absolute path is from the project root, so it can't leave it either
+    assert.equal((r.stdout.match(/outside the project/g) ?? []).length, 2);
     assert.match(r.stdout, /is a directory/);
     assert.equal(read(outside, 'keep.txt'), 'stays');
     assert.ok(existsSync(join(dir, 'sub/a.txt')));
@@ -495,9 +498,9 @@ describe('multi-line insert/modify', () => {
 // ─── Search path ────────────────────────────────────────────────────────────
 
 describe('search path', () => {
-  it('finds .jen/ from a subdirectory, paths relative to the project root', () => {
+  it('finds .jen/ from a subdirectory', () => {
     const dir = cppProject({ 'src/deep/er/.keep': '' });
-    const r = jen(['class', '--name=foo'], { cwd: join(dir, 'src/deep/er') });
+    const r = jen(['class', '--name=foo', '--dir=../..'], { cwd: join(dir, 'src/deep/er') });
     assert.equal(r.code, 0, r.stderr);
     assert.ok(existsSync(join(dir, 'src/Foo.h')));
   });
@@ -813,7 +816,7 @@ describe('Built-in "generator"', () => {
 
     const run = jen(['my-gen', '--name=world'], { cwd: dir });
     assert.equal(run.code, 0, run.stderr);
-    assert.equal(read(dir, 'src/World.txt'), 'Hello world!\n');
+    assert.equal(read(dir, 'World.txt'), 'Hello world!\n');
   });
 
   it('creates a generator in the user directory', () => {
@@ -822,5 +825,179 @@ describe('Built-in "generator"', () => {
     jen(['generator', '--name=mine', '--location=user'], { cwd: dir, userDir });
     assert.ok(existsSync(join(userDir, 'jen/mine.mjs')));
     assert.match(jen(['--list'], { cwd: dir, userDir }).stdout, /mine\s+user/);
+  });
+});
+
+// ─── Project root & destination ─────────────────────────────────────────────
+
+const HERE_GEN = `
+export const params = { name: {} };
+export const actions = ({ name }, { pascal }, ctx) => [
+  { add: \`\${pascal(name)}.h\`, template: ctx.destDir + ' ' + ctx.cwd + '\\n' },
+  { add: \`\${pascal(name)}.cpp\`, template: '\\n' },
+  { add: '/notes/' + name + '.txt', template: '\\n' },
+  { insert: { find: 'CMakeLists.txt' }, before: '# jen:sources', path: \`\${pascal(name)}.cpp\` },
+];
+`;
+
+const OWN_DIR_GEN = `
+export const params = { name: {}, dir: { default: 'out' } };
+export const actions = ({ name, dir }, _h, ctx) => [{ add: dir + '/' + name + '.txt', template: ctx.destDir + '\\n' }];
+`;
+
+const SOURCES = 'add_library(app\n  # jen:sources\n)\n';
+
+const project = (files: Record<string, string> = {}) =>
+  fixture({ 'package.json': '{}', '.jen/here.mjs': HERE_GEN, '.jen/owndir.mjs': OWN_DIR_GEN, ...files });
+
+describe('project root', () => {
+  it('walks up from a subfolder; a path starting with / is relative to it', () => {
+    const dir = project({ 'docs/.keep': '' });
+    const r = jen(['here', '--name=foo'], { cwd: join(dir, 'docs') });
+    assert.equal(r.code, 0, r.stderr);
+    assert.ok(existsSync(join(dir, 'notes/foo.txt')));
+    assert.match(r.stdout, /root: \.\. \(\.jen\)/);
+  });
+
+  it('finds the root by package.json or .git when there is no .jen/', () => {
+    const user = fixture({ 'jen/here.mjs': HERE_GEN });
+    const viaPkg = fixture({ 'package.json': '{}', 'a/b/.keep': '' });
+    assert.equal(jen(['here', '--name=foo'], { cwd: join(viaPkg, 'a/b'), userDir: user }).code, 0);
+    assert.ok(existsSync(join(viaPkg, 'notes/foo.txt')));
+    const viaGit = fixture({ '.git/HEAD': '', 'a/.keep': '' });
+    assert.equal(jen(['here', '--name=foo'], { cwd: join(viaGit, 'a'), userDir: user }).code, 0);
+    assert.ok(existsSync(join(viaGit, 'notes/foo.txt')));
+  });
+
+  it('does not look for .jen/ above the repository', () => {
+    const outer = project({ 'repo/.git/HEAD': '', 'repo/a/.keep': '' });
+    const r = jen(['here', '--name=foo'], { cwd: join(outer, 'repo/a') });
+    assert.equal(r.code, 1);
+    assert.ok(!existsSync(join(outer, 'foo.txt')));
+  });
+
+  it('does not look for .jen/ above the home directory', () => {
+    const outer = project({ 'home/a/.keep': '' });
+    const r = jen(['here', '--name=foo'], { cwd: join(outer, 'home/a'), home: join(outer, 'home') });
+    assert.equal(r.code, 1);
+    assert.ok(!existsSync(join(outer, 'foo.txt')));
+  });
+
+  it('ignores a world-writable .jen/', { skip: process.platform === 'win32' }, () => {
+    const dir = project();
+    chmodSync(join(dir, '.jen'), 0o777);
+    const r = jen(['here', '--name=foo'], { cwd: dir });
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /ignoring .*\.jen: not owned by you, or writable by others/);
+    assert.ok(!existsSync(join(dir, 'foo.txt')));
+  });
+
+});
+
+describe('destination', () => {
+  it('is the current directory, at the project root too', () => {
+    const dir = project({ 'src/net/.keep': '' });
+    jen(['here', '--name=a'], { cwd: dir });
+    assert.equal(read(dir, 'A.h').trim(), '. .');
+    jen(['here', '--name=b'], { cwd: join(dir, 'src/net') });
+    assert.equal(read(dir, 'src/net/B.h').trim(), 'src/net src/net');
+  });
+
+  it('--dir is relative to the current directory', () => {
+    const dir = project({ 'docs/.keep': '' });
+    jen(['here', '--name=foo', '--dir=../src/main/cpp'], { cwd: join(dir, 'docs') });
+    assert.equal(read(dir, 'src/main/cpp/Foo.h').trim(), 'src/main/cpp docs');
+  });
+
+  it('refuses a --dir outside the project', () => {
+    const r = jen(['here', '--name=foo', '--dir=../../elsewhere'], { cwd: project() });
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /outside the project root/);
+  });
+
+  it('leaves a generator\'s own dir param alone', () => {
+    const dir = project();
+    const r = jen(['owndir', '--name=a', '--dir=custom'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(read(dir, 'custom/a.txt').trim(), '.');
+  });
+
+  it('touches nothing outside the project', () => {
+    const dir = fixture({
+      '.jen/out.mjs': `export const actions = () => [
+        { add: '../escaped.txt', template: 'x' },
+        { add: '/../escaped.txt', template: 'x' },
+        { add: 'ok.txt', template: 'ok' },
+      ];`,
+    });
+    const r = jen(['out'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal((r.stdout.match(/outside the project/g) ?? []).length, 2);
+    assert.ok(!existsSync(join(dir, '../escaped.txt')));
+    assert.equal(read(dir, 'ok.txt'), 'ok');
+  });
+});
+
+describe('find targets', () => {
+  it('insert into the nearest file with the marker, with path relative to it', () => {
+    const dir = project({ 'src/CMakeLists.txt': SOURCES, 'src/net/.keep': '' });
+    const r = jen(['here', '--name=socket'], { cwd: join(dir, 'src/net') });
+    assert.equal(r.code, 0, r.stderr);
+    assert.ok(existsSync(join(dir, 'src/net/Socket.cpp')));
+    assert.equal(read(dir, 'src/CMakeLists.txt'), 'add_library(app\n  net/Socket.cpp\n  # jen:sources\n)\n');
+  });
+
+  it('prefers a nearer file, and skips one without the marker', () => {
+    const dir = project({ 'src/CMakeLists.txt': SOURCES, 'src/net/CMakeLists.txt': SOURCES, 'src/net/tls/CMakeLists.txt': 'nothing\n' });
+    jen(['here', '--name=tls'], { cwd: join(dir, 'src/net/tls') });
+    assert.equal(read(dir, 'src/net/CMakeLists.txt'), 'add_library(app\n  tls/Tls.cpp\n  # jen:sources\n)\n');
+    assert.equal(read(dir, 'src/CMakeLists.txt'), SOURCES);
+  });
+
+  it('falls back to the shallowest one anywhere in the project', () => {
+    const dir = project({ 'lib/CMakeLists.txt': SOURCES, 'docs/.keep': '' });
+    jen(['here', '--name=foo'], { cwd: join(dir, 'docs') });
+    assert.equal(read(dir, 'lib/CMakeLists.txt'), 'add_library(app\n  ../docs/Foo.cpp\n  # jen:sources\n)\n');
+  });
+
+  it('skips with a note when there is none', () => {
+    const dir = project();
+    const r = jen(['here', '--name=foo'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /no CMakeLists\.txt containing "# jen:sources" found, skipped/);
+    assert.ok(existsSync(join(dir, 'Foo.h')));
+  });
+
+  it('takes a RegExp name and an explicit containing, e.g. for modify', () => {
+    const dir = fixture({
+      'src/app.cpp': '// jen:includes\nint main() {}\n',
+      'src/other.cpp': 'int x;\n',
+      '.jen/inc.mjs': `export const actions = () => [
+        { modify: { find: /\\.cpp$/, containing: '// jen:includes' }, pattern: /^/, replace: '#include <tracy>\\n' },
+      ];`,
+    });
+    const r = jen(['inc'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(read(dir, 'src/app.cpp'), '#include <tracy>\n// jen:includes\nint main() {}\n');
+    assert.equal(read(dir, 'src/other.cpp'), 'int x;\n');
+  });
+});
+
+describe('path params', () => {
+  const INTO_GEN = `export const params = { into: { path: true, default: '' } };
+export const actions = ({ into }) => [{ insert: into, before: '// jen:functions', line: 'float f();' }];`;
+
+  it('are relative to the current directory, ready to use as an action path', () => {
+    const dir = fixture({ 'package.json': '{}', '.jen/into.mjs': INTO_GEN, 'shaders/main.glsl': '// jen:functions\n' });
+    const r = jen(['into', '--into=main.glsl'], { cwd: join(dir, 'shaders') });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(read(dir, 'shaders/main.glsl'), 'float f();\n// jen:functions\n');
+  });
+
+  it('fail outside the project', () => {
+    const dir = fixture({ 'package.json': '{}', '.jen/into.mjs': INTO_GEN });
+    const r = jen(['into', '--into=../../x.glsl'], { cwd: dir });
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /--into=\.\.\/\.\.\/x\.glsl is outside the project root/);
   });
 });
