@@ -1,6 +1,6 @@
 {
   "name": "@codejen/pack-glsl",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "jen pack for GLSL: shader starters, SDF/raymarching, noise and lighting snippets (MIT-licensed, attributed)",
   "type": "module",
   "main": "./dist/index.js",
@@ -40,7 +40,7 @@
   "author": "Lea Rosema",
   "license": "MIT-0 AND MIT",
   "devDependencies": {
-    "@codejen/jen": "^2.0.0",
+    "@codejen/jen": "^3.0.0",
     "@types/node": "^26.6.3",
     "typescript": "^6.0.3"
   }

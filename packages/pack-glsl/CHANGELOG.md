@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.0.1](https://github.com/learosema/jen/compare/pack-glsl-v2.0.0...pack-glsl-v2.0.1) (2026-10-05)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @codejen/jen bumped from ^2.0.0 to ^3.0.0
+
 ## [2.0.0](https://github.com/learosema/jen/compare/pack-glsl-v1.0.0...pack-glsl-v2.0.0) (2026-10-05)
 
 
