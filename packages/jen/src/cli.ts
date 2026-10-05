@@ -243,7 +243,7 @@ async function yeomanSource(name: string, bases = defaultBases()): Promise<Entry
           kind: 'yeoman',
           description: 'Yeoman generator',
           run: (given, positionals) =>
-            runYeoman(GeneratorClass, file, { given, positionals, root: ROOT, namespace: `${shortName}:app` }),
+            runYeoman(GeneratorClass, file, { given, positionals, root: process.cwd(), namespace: `${shortName}:app` }),
         }),
       },
     ];
