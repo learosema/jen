@@ -1,6 +1,6 @@
 {
   "name": "@codejen/pack-cpp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "jen pack for C++: class/shader scaffolding in src/, plus SDL3 (+ OpenGL) app starters",
   "type": "module",
   "main": "./dist/index.js",
