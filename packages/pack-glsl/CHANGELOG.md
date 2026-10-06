@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/learosema/jen/compare/pack-glsl-v2.0.0...pack-glsl-v2.0.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* **pack-glsl:** declare @codejen/jen ^2.0.0 as a peer dependency ([28180c9](https://github.com/learosema/jen/commit/28180c9c51aebfbe506d2f9ad754d4fbc3502ca7))
+
 ## [2.0.0](https://github.com/learosema/jen/compare/pack-glsl-v1.0.0...pack-glsl-v2.0.0) (2026-10-05)
 
 
