@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/learosema/jen/compare/pack-cpp-v1.0.0...pack-cpp-v1.0.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* **pack-cpp:** declare @codejen/jen ^2.0.0 as a peer dependency ([801a610](https://github.com/learosema/jen/commit/801a61052cf214d65bd2c8cf44c1bc17403dc2ed))
+
 ## [1.0.0](https://github.com/learosema/jen/compare/pack-cpp-v0.2.0...pack-cpp-v1.0.0) (2026-10-05)
 
 
