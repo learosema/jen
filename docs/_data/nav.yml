@@ -6,11 +6,13 @@ header:
   - { title: write your own, url: "/#write" }
   - { title: cpp recipes, url: "/recipes.html" }
   - { title: glsl recipes, url: "/glsl.html" }
+  - { title: web recipes, url: "/web.html" }
   - { title: github, url: "https://github.com/learosema/jen" }
   - { title: npm, url: "https://www.npmjs.com/package/@codejen/jen" }
 
 footer:
   - { title: cpp pack recipes, url: "/recipes.html" }
   - { title: glsl pack recipes, url: "/glsl.html" }
+  - { title: web pack recipes, url: "/web.html" }
   - { title: GitHub, url: "https://github.com/learosema/jen" }
   - { title: npm, url: "https://www.npmjs.com/package/@codejen/jen" }

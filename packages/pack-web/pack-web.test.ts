@@ -12,7 +12,10 @@ import pack from './src/index.ts';
 import { DISTANCE_RATIO, SHADES, contrast, hexToOklch, luminance, parseColor, targetLuminance } from './src/color.ts';
 import { groupsFor, paletteCss, rolesFor, verify } from './src/palette.ts';
 import { buttonCss } from './src/button.ts';
-import { BASE, LAYERS, RESET } from './src/base.ts';
+import { BASE, RESET } from './src/base.ts';
+import { LAYERS } from './src/entry.ts';
+import { COMPOSITIONS } from './src/compositions.ts';
+import { fluid } from './src/fluid.ts';
 
 const helpers = {} as Helpers;
 
@@ -100,6 +103,7 @@ describe('web:palette', () => {
     assert.match(css, /--color-surface: light-dark\(var\(--color-neutral-1\), var\(--color-neutral-6\)\);/);
     assert.match(css, /--color-primary: light-dark\(var\(--color-primary-5\), var\(--color-primary-2\)\);/);
     assert.match(css, /--color-primary-large: light-dark\(var\(--color-primary-4\), var\(--color-primary-3\)\);/);
+    assert.match(css, /--color-primary-subtle: light-dark\(#[0-9a-f]{6}, #[0-9a-f]{6}\);/, 'tints between shades are literal colors');
     assert.match(css, /@supports not \(color: light-dark\(#000, #fff\)\)/);
     assert.match(css, /`jen web:palette --primary=#5b5bd6 --secondary=330`/);
     assert.doesNotMatch(css, PX);
@@ -116,10 +120,10 @@ describe('web:palette', () => {
   it('wires itself into the nearest entry point, relative to it', () => {
     const files = { 'src/css/styles.css': '@import url("base.css");\n/* jen:imports */\n', 'styles.css': '/* jen:imports */\n' };
     assert.deepEqual(inserts(run('palette', { primary: '#00f' }, context(files, 'src/css/tokens'))), [
-      { insert: '/src/css/styles.css', before: 'jen:imports', line: '@import url("tokens/palette.css");' },
+      { insert: '/src/css/styles.css', before: 'jen:imports', line: '@import "./tokens/palette.css";' },
     ]);
     assert.deepEqual(inserts(run('palette', { primary: '#00f' }, context(files, 'lib'))), [
-      { insert: '/styles.css', before: 'jen:imports', line: '@import url("lib/palette.css");' },
+      { insert: '/styles.css', before: 'jen:imports', line: '@import "./lib/palette.css";' },
     ]);
   });
 
@@ -135,7 +139,7 @@ describe('web:base', () => {
     assert.deepEqual(added(actions), ['styles.css', 'reset.css', 'base.css']);
     const entry = template(actions, 'styles.css');
     assert.match(entry, new RegExp(`@layer ${LAYERS.join(', ')};`));
-    assert.match(entry, /@import url\("base.css"\);\n\/\* jen:imports \*\/\n$/);
+    assert.match(entry, /@import "\.\/base.css";\n\/\* jen:imports \*\/\n$/);
     assert.equal(entry.split('jen:imports').length, 2, 'the marker appears once, so inserts land below the comment');
   });
 
@@ -144,7 +148,7 @@ describe('web:base', () => {
     assert.deepEqual(added(actions), ['reset.css', 'base.css']);
     assert.deepEqual(
       inserts(actions).map((a) => 'line' in a && a.line),
-      ['@import url("css/reset.css");', '@import url("css/base.css");'],
+      ['@import "./css/reset.css";', '@import "./css/base.css";'],
     );
   });
 
@@ -168,7 +172,7 @@ describe('web:button', () => {
     assert.match(css, /\.button--danger \{/);
     assert.doesNotMatch(css, /\.button--secondary/);
     assert.match(css, /@layer blocks/);
-    assert.deepEqual(inserts(actions), [{ insert: '/css/styles.css', before: 'jen:imports', line: '@import url("button.css");' }]);
+    assert.deepEqual(inserts(actions), [{ insert: '/css/styles.css', before: 'jen:imports', line: '@import "./button.css";' }]);
   });
 
   it('only uses role tokens the palette defines, and no px', () => {
@@ -178,5 +182,172 @@ describe('web:button', () => {
     for (const [, token] of css.matchAll(/var\((--color-[a-z0-9-]+)\)/g)) assert.match(palette, new RegExp(`${token}:`), token);
     assert.doesNotMatch(css, PX);
     assert.match(css, /border-radius: 100vmax;/);
+  });
+});
+
+describe('web:fluid', () => {
+  const css = (answers: Answers = {}) => template(run('fluid', answers, context({})), 'fluid.css');
+
+  it('matches Utopia for its default scale', () => {
+    assert.match(css(), /--step-0: clamp\(1\.125rem, 1\.0815rem \+ 0\.2174vi, 1\.25rem\);/);
+    assert.match(css(), /--step--2: clamp\(/);
+    assert.match(css(), /--space-s-m: clamp\(1\.125rem, /);
+    assert.match(css(), /--space-s-l: /);
+    assert.doesNotMatch(css(), PX);
+  });
+
+  it('handles shrinking sizes and flat ones', () => {
+    assert.equal(fluid(20, 80, 2, 1), 'clamp(1rem, 2.3333rem - 1.6667vi, 2rem)');
+    assert.equal(fluid(20, 80, 1, 1), 'clamp(1rem, 1rem, 1rem)');
+  });
+
+  it('refuses px, inverted ranges and growth that breaks zoom', () => {
+    assert.throws(() => css({ minWidth: '320px' }), /use rem/);
+    assert.throws(() => css({ minWidth: '80', maxWidth: '20' }), /must be below/);
+    assert.throws(() => css({ maxSize: '4' }), /WCAG 1\.4\.4/);
+    assert.doesNotThrow(() => css({ minWidth: '20rem', maxWidth: '90rem' }));
+  });
+});
+
+describe('web:compositions', () => {
+  it('writes all compositions, or those --only names', () => {
+    const all = template(run('compositions', {}, context({})), 'compositions.css');
+    for (const name of Object.keys(COMPOSITIONS)) assert.match(all, new RegExp(`\\.${name}\\b`));
+    assert.match(all, /@layer compositions/);
+    assert.doesNotMatch(all, PX);
+    const some = template(run('compositions', { only: 'cluster, flow' }, context({})), 'compositions.css');
+    assert.match(some, /\.flow > \* \+ \*/);
+    assert.doesNotMatch(some, /\.sidebar/);
+    assert.throws(() => run('compositions', { only: 'stack' }, context({})), /unknown "stack"/);
+  });
+});
+
+describe('web:utilities', () => {
+  const palette = paletteCss({ primary: '#5b5bd6', contrast: 'aaa' });
+  const fluidCss = template(run('fluid', {}, context({})), 'fluid.css');
+
+  it('builds classes from the tokens the project has', () => {
+    const css = template(run('utilities', {}, context({ 'css/palette.css': palette, 'css/fluid.css': fluidCss })), 'utilities.css');
+    assert.match(css, /\.color-text-muted \{\n {4}color: var\(--color-text-muted\);/);
+    assert.match(css, /\.bg-primary-subtle \{/);
+    assert.doesNotMatch(css, /--color-primary-3\b/, 'no utilities for raw shades');
+    assert.match(css, /\.step--1 \{\n {4}font-size: var\(--step--1\);/);
+    assert.match(css, /\.flow-space-s-m \{\n {4}--flow-space: var\(--space-s-m\);/);
+    assert.match(css, /\.visually-hidden/);
+    assert.doesNotMatch(css, PX);
+    const colorsOnly = template(run('utilities', {}, context({ 'palette.css': palette })), 'utilities.css');
+    assert.doesNotMatch(colorsOnly, /\.step-/);
+  });
+
+  it('needs tokens, and steps aside for Tailwind', () => {
+    assert.throws(() => run('utilities', {}, context({})), /run `jen web:palette/);
+    assert.throws(() => run('utilities', {}, context({ 'app.css': '@import "tailwindcss";', 'palette.css': palette })), /Tailwind/);
+  });
+});
+
+describe('web:cube', () => {
+  it('sets up the whole starter with one entry point', () => {
+    const actions = run('cube', {}, context({}));
+    assert.deepEqual(added(actions), ['styles.css', 'reset.css', 'base.css', 'fluid.css', 'compositions.css', 'utilities.css']);
+    const entry = template(actions, 'styles.css');
+    for (const f of added(actions).slice(1)) assert.match(entry, new RegExp(`@import "\\./${f}";`));
+  });
+
+  it('adds the palette and buttons with --primary, and their utilities', () => {
+    const actions = run('cube', { primary: '#5b5bd6', secondary: '330' }, context({}));
+    assert.deepEqual(added(actions), ['styles.css', 'reset.css', 'base.css', 'palette.css', 'fluid.css', 'compositions.css', 'utilities.css', 'button.css']);
+    assert.match(template(actions, 'utilities.css'), /\.bg-secondary \{/);
+    assert.match(template(actions, 'button.css'), /\.button--secondary \{/);
+  });
+
+  it('wires into an existing entry point', () => {
+    const actions = run('cube', {}, context({ 'main.css': '/* jen:imports */' }));
+    assert.ok(!added(actions).includes('styles.css'));
+    assert.equal(inserts(actions).length, 5);
+  });
+});
+
+describe('Tailwind v4', () => {
+  const twEntry = { 'css/styles.css': `@layer ${LAYERS.join(', ')};\n\n@import "./base.css";\n/* jen:imports */\n` };
+
+  it('web:tailwind creates an entry point with Tailwind fitted into the CUBE CSS layers', () => {
+    const entry = template(run('tailwind', {}, context({})), 'styles.css');
+    assert.match(entry, /^@layer theme, reset, tokens, base, compositions, components, utilities, blocks, exceptions;$/m);
+    assert.match(entry, /@import "tailwindcss";\n\/\* jen:imports \*\//);
+  });
+
+  it('web:tailwind converts an existing entry point', () => {
+    const actions = run('tailwind', {}, context(twEntry, 'css'));
+    const [modify, insert] = actions;
+    assert.ok('modify' in modify && modify.pattern.test(twEntry['css/styles.css']));
+    assert.deepEqual(insert, { insert: '/css/styles.css', before: 'jen:imports', line: '@import "tailwindcss";' });
+  });
+
+  it('web:palette writes @theme in a Tailwind project, dropping Tailwind\'s colors', () => {
+    const css = template(run('palette', { primary: '#5b5bd6' }, context({ 'app.css': '@import "tailwindcss";' })), 'palette.css');
+    assert.match(css, /@theme \{\n {2}--color-\*: initial;\n\}/);
+    assert.match(css, /@theme static \{\n {2}--color-primary-1: #[0-9a-f]{6};/);
+    assert.match(css, /^ {2}--color-surface: light-dark\(/m);
+    assert.doesNotMatch(css, /@layer tokens/);
+    assert.match(css, /^@supports not \(color: light-dark/m, 'the fallback stays unlayered to beat @theme');
+    assert.match(paletteCss({ primary: '#5b5bd6', contrast: 'aaa' }, true), /--tailwind`/);
+  });
+
+  it('web:fluid maps its scales into Tailwind\'s namespaces', () => {
+    const css = template(run('fluid', { tailwind: true }, context({})), 'fluid.css');
+    assert.match(css, /@theme inline \{\n {2}--text-step--2: var\(--step--2\);/);
+    assert.match(css, /--spacing-s-m: var\(--space-s-m\);/);
+    assert.doesNotMatch(template(run('fluid', {}, context({})), 'fluid.css'), /@theme/);
+  });
+
+  it('web:cube --tailwind leaves utilities to Tailwind', () => {
+    const actions = run('cube', { primary: '#5b5bd6', tailwind: true }, context({}));
+    assert.ok(!added(actions).includes('utilities.css'));
+    assert.match(template(actions, 'styles.css'), /@import "tailwindcss";/);
+    assert.match(template(actions, 'palette.css'), /@theme static/);
+  });
+});
+
+describe('SmolCSS techniques', () => {
+  const palette = { 'css/palette.css': paletteCss({ primary: '#5b5bd6', contrast: 'aaa' }), 'css/styles.css': '/* jen:imports */' };
+
+  it('web:compositions has the intrinsic grid and container, breakout, overlay, reel and gallery', () => {
+    const css = template(run('compositions', {}, context({})), 'compositions.css');
+    assert.match(css, /repeat\(var\(--grid-placement, auto-fit\), minmax\(min\(/);
+    assert.match(css, /\.wrapper \{\n {4}inline-size: min\(100% - 2 \* /);
+    assert.match(css, /\.breakout > \[data-breakout="full"\]/);
+    assert.match(css, /grid-template-areas: "overlay";/);
+    assert.match(css, /scroll-snap-type: inline mandatory;/);
+    assert.match(css, /\.gallery :is\(img, video\)/);
+  });
+
+  it('web:base has transition tokens that respect reduced motion, :visited and marker icons', () => {
+    assert.match(BASE, /--transition-duration: 0s;/);
+    assert.match(BASE, /a:visited \{/);
+    assert.match(BASE, /content: attr\(data-icon\) "\\00a0";/);
+  });
+
+  it('web:card and web:avatars need a palette and wire themselves in', () => {
+    for (const name of ['card', 'avatars']) {
+      assert.throws(() => run(name, {}, context({})), /run `jen web:palette/);
+      const actions = run(name, {}, context(palette, 'css'));
+      const css = template(actions, `${name}.css`);
+      assert.match(css, /@layer blocks/);
+      assert.doesNotMatch(css, PX);
+      assert.deepEqual(inserts(actions), [{ insert: '/css/styles.css', before: 'jen:imports', line: `@import "./${name}.css";` }]);
+    }
+  });
+
+  it('web:card and web:avatars only use role tokens the palette checks', () => {
+    for (const name of ['card', 'avatars']) {
+      const css = template(run(name, {}, context(palette, 'css')), `${name}.css`);
+      for (const [, token] of css.matchAll(/var\((--color-[a-z0-9-]+)\)/g)) assert.match(palette['css/palette.css'], new RegExp(`${token}:`), token);
+    }
+  });
+
+  it('web:utilities adds .pad-fluid and .unbreakable', () => {
+    const css = template(run('utilities', {}, context(palette)), 'utilities.css');
+    assert.match(css, /\.pad-fluid \{\n {4}padding: clamp\(/);
+    assert.match(css, /\.unbreakable \{/);
   });
 });

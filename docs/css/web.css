@@ -1,0 +1,18 @@
+/* ───────── web recipes: live previews in iframes (docs/web/, made by the pack) ───────── */
+.web-preview { margin: var(--space-l) 0; }
+.web-preview .frames { display: grid; gap: var(--space-m); }
+.web-preview.dual .frames { grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr)); }
+.web-preview iframe {
+  display: block;
+  inline-size: 100%;
+  block-size: var(--h, 12rem);
+  border: thin solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--card);
+}
+.web-preview figcaption {
+  margin-block-start: var(--space-s);
+  font-size: var(--text-label);
+  color: var(--muted);
+}
+.web-preview figcaption code { font-size: inherit; }
