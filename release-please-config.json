@@ -12,6 +12,9 @@
     },
     "packages/pack-glsl": {
       "component": "pack-glsl"
+    },
+    "packages/pack-web": {
+      "component": "pack-web"
     }
   }
 }
