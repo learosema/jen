@@ -1,0 +1,93 @@
+/**
+ * `web:utilities`: CUBE CSS utility classes generated from the project's
+ * tokens, in the `utilities` layer – `.color-*` / `.bg-*` from web:palette's
+ * role tokens (not the raw shades, so pairs stay the checked ones), `.step-*`
+ * font sizes and `.flow-space-*` / `.gutter-*` from web:fluid, plus
+ * `.visually-hidden` and, after SmolCSS (https://smolcss.dev), `.pad-fluid`
+ * and `.unbreakable`.
+ *
+ * Run it after web:palette / web:fluid, and again with --force when they
+ * change. Tailwind projects get their utilities from Tailwind instead.
+ *
+ *   jen web:utilities
+ */
+import type { Context, Generator } from '@codejen/jen';
+import { fail } from './common.ts';
+import { importActions, usesTailwind } from './entry.ts';
+
+export const FILE = 'utilities.css';
+
+export interface Tokens {
+  roles: string[];
+  steps: string[];
+  space: string[];
+}
+
+const CSS = /\.css$/;
+
+const names = (css: string | null | undefined, pattern: RegExp): string[] => [...new Set([...(css ?? '').matchAll(pattern)].map((m) => m[1]))];
+
+/** Role, step and space token names defined in the project. */
+export function projectTokens(ctx: Context): Tokens {
+  if (usesTailwind(ctx)) {
+    fail('web:utilities: this project uses Tailwind, whose utilities take the place of these');
+  }
+  const palette = ctx.grep(CSS, '--color-surface:').map((f) => ctx.read(f))[0];
+  const fluid = ctx.grep(CSS, '--step-0:').map((f) => ctx.read(f))[0];
+  if (!palette && !fluid) fail('web:utilities builds on your tokens – run `jen web:palette --primary=<color>` and/or `jen web:fluid` first');
+  return tokensFrom(palette, fluid);
+}
+
+/** Token names defined in a palette and a fluid stylesheet (either may be missing). */
+export function tokensFrom(palette: string | null | undefined, fluid: string | null | undefined): Tokens {
+  return {
+    roles: names(palette, /--color-([a-z0-9-]+): light-dark\(/g),
+    steps: names(fluid, /--step-(-?\d+):/g),
+    space: names(fluid, /--space-([a-z0-9-]+):/g),
+  };
+}
+
+const rule = (selector: string, decl: string) => `  .${selector} {\n    ${decl};\n  }`;
+
+export function utilitiesCss({ roles, steps, space }: Tokens): string {
+  const rules = [
+    ...roles.map((r) => rule(`color-${r}`, `color: var(--color-${r})`)),
+    ...roles.map((r) => rule(`bg-${r}`, `background-color: var(--color-${r})`)),
+    ...steps.map((n) => rule(`step-${n}`, `font-size: var(--step-${n})`)),
+    ...space.map((s) => rule(`flow-space-${s}`, `--flow-space: var(--space-${s})`)),
+    ...space.map((s) => rule(`gutter-${s}`, `--gutter: var(--space-${s})`)),
+  ];
+  return `/* Utilities from your tokens – regenerate with --force when they change. */
+@layer utilities {
+${rules.join('\n\n')}
+
+  /* Padding that grows with the container, between two space sizes. */
+  .pad-fluid {
+    padding: clamp(var(--space-s, 1rem), 5%, var(--space-xl, 3rem));
+  }
+
+  /* Long words and URLs wrap instead of overflowing; hyphens need a lang attribute. */
+  .unbreakable {
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+
+  /* Hidden visually, still read by screen readers. */
+  .visually-hidden:not(:focus, :active) {
+    position: absolute;
+    inline-size: 0.0625rem;
+    block-size: 0.0625rem;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+`;
+}
+
+const utilitiesGenerator: Generator = {
+  description: 'create utility classes from the palette and fluid tokens',
+  actions: (_answers, _helpers, ctx) => [{ add: FILE, template: utilitiesCss(projectTokens(ctx)) }, ...importActions(ctx, [FILE])],
+};
+
+export default utilitiesGenerator;

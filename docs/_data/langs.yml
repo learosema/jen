@@ -3,6 +3,7 @@
 - { badge: "C++", name: "C++", color: "#00599C", text: "#fff", hex: true }
 - { badge: "▲", name: CMake, color: "#064F8C", text: "#fff" }
 - { badge: GL, name: GLSL, color: "#46708c", text: "#fff" }
+- { badge: CSS, name: CSS, color: "#663399", text: "#fff" }
 - { badge: TS, name: TypeScript, color: "#3178C6", text: "#fff", soon: true }
 - { badge: JS, name: JavaScript, color: "#F7DF1E", text: "#1b1a00", soon: true }
 - { badge: "+", name: anything, more: true }

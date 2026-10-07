@@ -48,6 +48,7 @@ export function buttonCss(colors: string[]): string {
     --button-bg: var(--color-primary);
     --button-bg-hover: var(--color-primary-strong);
     --button-fg: var(--color-on-primary);
+    --button-fg-hover: var(--button-fg);
     /* Transparent, but forced-colors mode (Windows High Contrast) draws it. */
     --button-border: transparent;
 
@@ -66,11 +67,14 @@ export function buttonCss(colors: string[]): string {
     text-align: center;
     text-decoration: none;
     cursor: pointer;
-    transition: background-color 0.15s, translate 0.1s;
+    transition:
+      background-color var(--transition-duration, 0.15s) var(--transition-easing, ease-out),
+      translate var(--transition-duration, 0.15s) var(--transition-easing, ease-out);
   }
 
   .button:hover {
     background: var(--button-bg-hover);
+    color: var(--button-fg-hover);
   }
 
   .button:focus-visible {
@@ -87,6 +91,7 @@ export function buttonCss(colors: string[]): string {
     --button-bg: var(--color-surface-2);
     --button-bg-hover: var(--color-surface-2);
     --button-fg: var(--color-text-muted);
+    --button-fg-hover: var(--color-text-muted);
     --button-border: var(--color-border);
 
     cursor: not-allowed;
@@ -99,11 +104,12 @@ export function buttonCss(colors: string[]): string {
     block-size: 1.25em;
   }
 ${modifiers.map(colorModifier).join('')}
-  /* On the page background: primary text, a primary border, a tinted hover. */
+  /* Primary text on the page; on the tinted hover background it turns -strong to keep its contrast. */
   .button--outline {
     --button-bg: transparent;
     --button-bg-hover: var(--color-primary-subtle);
     --button-fg: var(--color-primary);
+    --button-fg-hover: var(--color-primary-strong);
     --button-border: currentColor;
   }
 
@@ -111,6 +117,7 @@ ${modifiers.map(colorModifier).join('')}
     --button-bg: transparent;
     --button-bg-hover: var(--color-primary-subtle);
     --button-fg: var(--color-primary);
+    --button-fg-hover: var(--color-primary-strong);
   }
 
   .button--pill {

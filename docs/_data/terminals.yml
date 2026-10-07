@@ -531,3 +531,137 @@ glsl_util:
   - "  ~ shaders/clouds.frag.glsl  + // remap · pack-glsl · MIT-0 (+5 more)"
   - ""
   - "✓ 1 written"
+
+# ─── @codejen/pack-web (docs/web.md) ───
+
+web_install_global:
+  - "$ npm install -g @codejen/jen @codejen/pack-web"
+  - "$ jen web:cube --primary=#5b5bd6 --dir=src/css"
+
+web_install_local:
+  - "$ npm install --save-dev @codejen/jen @codejen/pack-web"
+  - "$ npx jen web:cube --primary=#5b5bd6 --dir=src/css"
+
+web_install_npx:
+  - "$ npx @codejen/jen web:cube --primary=#5b5bd6 --dir=src/css"
+
+web_cube:
+  - "$ jen web:cube --primary=#5b5bd6 --secondary=330 --dir=src/css"
+  - "web:cube (pack @codejen/pack-web) – create a CUBE CSS starter: base, fluid scales, compositions, utilities (+ palette and buttons with --primary)"
+  - ""
+  - "  + src/css/styles.css"
+  - "  + src/css/reset.css"
+  - "  + src/css/base.css"
+  - "  + src/css/palette.css"
+  - "  + src/css/fluid.css"
+  - "  + src/css/compositions.css"
+  - "  + src/css/utilities.css"
+  - "  + src/css/button.css"
+  - ""
+  - "✓ 8 written"
+
+web_base:
+  - "$ jen web:base --dir=src/css"
+  - "web:base (pack @codejen/pack-web) – create the stylesheet entry point (CUBE CSS layers), a modern reset and base styles"
+  - ""
+  - "  + src/css/styles.css"
+  - "  + src/css/reset.css"
+  - "  + src/css/base.css"
+  - ""
+  - "✓ 3 written"
+
+web_palette:
+  - "$ jen web:palette --primary=#5b5bd6 --secondary=330 --dir=src/css"
+  - "web:palette (pack @codejen/pack-web) – create a contrast-checked color palette (CSS custom properties)"
+  - ""
+  - "  + src/css/palette.css"
+  - "  ~ src/css/styles.css  + @import \"./palette.css\";"
+  - ""
+  - "✓ 2 written"
+
+web_fluid:
+  - "$ jen web:fluid --dir=src/css"
+  - "web:fluid (pack @codejen/pack-web) – create fluid type and space scales (Utopia-style clamp() tokens)"
+  - ""
+  - "  + src/css/fluid.css"
+  - "  ~ src/css/styles.css  + @import \"./fluid.css\";"
+  - ""
+  - "✓ 2 written"
+
+web_compositions:
+  - "$ jen web:compositions --dir=src/css"
+  - "web:compositions (pack @codejen/pack-web) – create CUBE CSS compositions (flow, cluster, sidebar, grid, wrapper, breakout, reel, …)"
+  - ""
+  - "  + src/css/compositions.css"
+  - "  ~ src/css/styles.css  + @import \"./compositions.css\";"
+  - ""
+  - "✓ 2 written"
+
+web_utilities:
+  - "$ jen web:utilities --dir=src/css"
+  - "web:utilities (pack @codejen/pack-web) – create utility classes from the palette and fluid tokens"
+  - ""
+  - "  + src/css/utilities.css"
+  - "  ~ src/css/styles.css  + @import \"./utilities.css\";"
+  - ""
+  - "✓ 2 written"
+
+web_button:
+  - "$ jen web:button --dir=src/css"
+  - "web:button (pack @codejen/pack-web) – create a contrast-checked .button block on the palette tokens"
+  - ""
+  - "  + src/css/button.css"
+  - "  ~ src/css/styles.css  + @import \"./button.css\";"
+  - ""
+  - "✓ 2 written"
+
+web_card:
+  - "$ jen web:card --dir=src/css"
+  - "web:card (pack @codejen/pack-web) – create a composable .card block on the palette tokens"
+  - ""
+  - "  + src/css/card.css"
+  - "  ~ src/css/styles.css  + @import \"./card.css\";"
+  - ""
+  - "✓ 2 written"
+
+web_avatars:
+  - "$ jen web:avatars --dir=src/css"
+  - "web:avatars (pack @codejen/pack-web) – create an overlapping .avatars list block"
+  - ""
+  - "  + src/css/avatars.css"
+  - "  ~ src/css/styles.css  + @import \"./avatars.css\";"
+  - ""
+  - "✓ 2 written"
+
+web_fluid_zoom:
+  - "$ jen web:fluid --maxSize=3"
+  - "web:fluid (pack @codejen/pack-web) – create fluid type and space scales (Utopia-style clamp() tokens)"
+  - "web:fluid: --step--1 grows from 0.9375rem to 2.4rem, more than 2.5× – zoom couldn't reach 200% text size (WCAG 1.4.4); pick closer sizes or ratios"
+
+web_button_missing:
+  - "$ jen web:button"
+  - "web:button (pack @codejen/pack-web) – create a contrast-checked .button block on the palette tokens"
+  - "web:button needs a palette – run `jen web:palette --primary=<color>` first"
+
+web_tailwind:
+  - "$ jen web:tailwind --dir=src/css"
+  - "web:tailwind (pack @codejen/pack-web) – set up the stylesheet entry point for Tailwind v4 (layers in CUBE CSS order)"
+  - ""
+  - "  + src/css/styles.css"
+  - ""
+  - "✓ 1 written"
+  - ""
+  - "$ jen web:cube --primary=#5b5bd6 --dir=src/css"
+  - "web:cube (pack @codejen/pack-web) – create a CUBE CSS starter: base, fluid scales, compositions, utilities (+ palette and buttons with --primary)"
+  - ""
+  - "  + src/css/reset.css"
+  - "  + src/css/base.css"
+  - "  + src/css/palette.css"
+  - "  + src/css/fluid.css"
+  - "  + src/css/compositions.css"
+  - "  + src/css/button.css"
+  - "  ~ src/css/styles.css  + @import \"./reset.css\";"
+  - "  …"
+  - ""
+  - "✓ 7 written"
+

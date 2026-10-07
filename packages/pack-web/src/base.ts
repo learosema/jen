@@ -8,26 +8,14 @@
  * that marker, reset.css and base.css are wired into it instead.
  *
  * The base styles use the palette's role tokens with system-color fallbacks
- * (Canvas, CanvasText, …), so they work before web:palette has run.
+ * (Canvas, CanvasText, …), so they work before web:palette has run. Some
+ * touches follow SmolCSS (https://smolcss.dev): :visited links, ::marker
+ * icons from data-icon, heading anchors, transition tokens.
  *
  *   jen web:base [--dir=src/css]
  */
 import type { Generator } from '@codejen/jen';
-import { IMPORTS_MARKER, findEntry, importActions, importLine } from './entry.ts';
-
-export const LAYERS = ['reset', 'tokens', 'base', 'compositions', 'utilities', 'blocks', 'exceptions'];
-
-export const ENTRY = 'styles.css';
-
-const entryCss = (files: string[]) => `/*
- * Stylesheet entry point, cascade layers in CUBE CSS order (later layers win).
- * jen generators add their @import lines above the marker at the end.
- */
-@layer ${LAYERS.join(', ')};
-
-${files.map(importLine).join('\n')}
-/* ${IMPORTS_MARKER} */
-`;
+import { wireEntry } from './entry.ts';
 
 export const RESET = `/* Modern reset: border-box sizing, no default margins, sensible media and form defaults. */
 @layer reset {
@@ -134,6 +122,17 @@ export const RESET = `/* Modern reset: border-box sizing, no default margins, se
 
 export const BASE = `/* Base styles for plain elements: palette role tokens, system colors as fallbacks. */
 @layer base {
+  :root {
+    --transition-duration: 0.2s;
+    --transition-easing: ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --transition-duration: 0s;
+    }
+  }
+
   html {
     /* No layout shift when a page starts or stops scrolling. */
     scrollbar-gutter: stable;
@@ -151,6 +150,23 @@ export const BASE = `/* Base styles for plain elements: palette role tokens, sys
     background: var(--color-surface, Canvas);
     color: var(--color-text, CanvasText);
     font-family: system-ui, sans-serif;
+    font-size: var(--step-0, 1rem);
+  }
+
+  h1 {
+    font-size: var(--step-5, 2.5em);
+  }
+
+  h2 {
+    font-size: var(--step-4, 2em);
+  }
+
+  h3 {
+    font-size: var(--step-3, 1.5em);
+  }
+
+  h4 {
+    font-size: var(--step-2, 1.25em);
   }
 
   a {
@@ -161,6 +177,25 @@ export const BASE = `/* Base styles for plain elements: palette role tokens, sys
 
   a:hover {
     text-decoration-thickness: 0.125em;
+  }
+
+  a:visited {
+    color: var(--color-primary-strong, VisitedText);
+  }
+
+  /* Heading anchors: <h2 id="x">Title <a href="#x" aria-label="Link to this section">#</a></h2> */
+  :is(h2, h3, h4) > a[href^="#"] {
+    color: var(--color-text-muted, GrayText);
+    text-decoration: none;
+  }
+
+  :is(h2, h3, h4):target {
+    background: var(--color-primary-subtle, Mark);
+    color: var(--color-text, MarkText);
+  }
+
+  li[data-icon]::marker {
+    content: attr(data-icon) "\\00a0";
   }
 
   :focus-visible {
@@ -194,14 +229,11 @@ export const BASE = `/* Base styles for plain elements: palette role tokens, sys
 
 const baseGenerator: Generator = {
   description: 'create the stylesheet entry point (CUBE CSS layers), a modern reset and base styles',
-  actions: (_answers, _helpers, ctx) => {
-    const files = ['reset.css', 'base.css'];
-    const own = [
+  actions: (_answers, _helpers, ctx) =>
+    wireEntry(ctx, [
       { add: 'reset.css', template: RESET },
       { add: 'base.css', template: BASE },
-    ];
-    return findEntry(ctx) ? [...own, ...importActions(ctx, files)] : [{ add: ENTRY, template: entryCss(files) }, ...own];
-  },
+    ]),
 };
 
 export default baseGenerator;
