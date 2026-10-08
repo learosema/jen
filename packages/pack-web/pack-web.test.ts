@@ -16,8 +16,13 @@ import { BASE, RESET } from './src/base.ts';
 import { LAYERS } from './src/entry.ts';
 import { COMPOSITIONS } from './src/compositions.ts';
 import { fluid } from './src/fluid.ts';
+import { COMMANDS_JS } from './src/html.ts';
+import { fill } from './src/templates.ts';
+import { Script } from 'node:vm';
 
-const helpers = {} as Helpers;
+const words = (s: string): string[] => s.replace(/([a-z0-9])([A-Z])/g, '$1 $2').split(/[\s_\-./]+/).filter(Boolean);
+/** The one jen helper these generators use. */
+const helpers = { kebab: (s: string) => words(s).map((w) => w.toLowerCase()).join('-') } as Helpers;
 
 /** A Context over an in-memory project; `destDir` is where the user stands (or --dir). */
 function context(files: Record<string, string>, destDir = '.'): Context {
@@ -349,5 +354,130 @@ describe('SmolCSS techniques', () => {
     const css = template(run('utilities', {}, context(palette)), 'utilities.css');
     assert.match(css, /\.pad-fluid \{\n {4}padding: clamp\(/);
     assert.match(css, /\.unbreakable \{/);
+  });
+});
+
+describe('platform features', () => {
+  const page = { 'index.html': '<!doctype html>\n<html>\n  <body>\n    <main></main>\n  </body>\n</html>\n', 'css/styles.css': '/* jen:imports */' };
+
+  it('web:dialog writes the block, and with --into the markup plus the command fallback', () => {
+    const actions = run('dialog', { name: 'confirmDelete', into: '/index.html' }, context(page, 'css'));
+    assert.deepEqual(added(actions), ['dialog.css', '/commands.js']);
+    const [markup, script] = inserts(actions).filter((a) => a.insert === '/index.html');
+    assert.ok('line' in markup && markup.line.includes('<button class="button" commandfor="confirm-delete" command="show-modal">Confirm delete</button>'));
+    assert.ok('line' in markup && markup.line.includes('<dialog id="confirm-delete" class="dialog" aria-labelledby="confirm-delete-title" closedby="any">'));
+    assert.deepEqual(markup.before, /<\/body>/);
+    assert.ok('line' in script && script.line === '<script type="module" src="./commands.js"></script>');
+    const css = template(actions, 'dialog.css');
+    assert.match(css, /@starting-style/);
+    assert.match(css, /margin: auto;/);
+    assert.doesNotMatch(css, PX);
+    assert.deepEqual(added(run('dialog', { name: 'x' }, context(page, 'css'))), ['dialog.css'], 'no markup without --into');
+  });
+
+  it('commands.js runs the commands in browsers without the command API', () => {
+    const calls: string[] = [];
+    const target = { showModal: () => calls.push('showModal'), close: (v: string) => calls.push(`close:${v}`), togglePopover: () => calls.push('togglePopover') };
+    let onClick: (e: unknown) => void = () => assert.fail('no listener');
+    class Element {
+      attrs: Record<string, string>;
+      constructor(attrs: Record<string, string>) {
+        this.attrs = attrs;
+      }
+      value = 'ok';
+      getAttribute(name: string) {
+        return this.attrs[name];
+      }
+      closest() {
+        return this;
+      }
+    }
+    const sandbox = {
+      Element,
+      HTMLButtonElement: { prototype: {} },
+      document: { addEventListener: (_: string, fn: (e: unknown) => void) => (onClick = fn), getElementById: () => target },
+    };
+    new Script(COMMANDS_JS).runInNewContext(sandbox);
+    for (const command of ['show-modal', 'close', 'toggle-popover']) onClick({ target: new Element({ commandfor: 'x', command }) });
+    assert.deepEqual(calls, ['showModal', 'close:ok', 'togglePopover']);
+  });
+
+  it('web:popover anchors to its trigger where supported', () => {
+    const actions = run('popover', { name: 'menu', into: '/index.html' }, context(page, 'css'));
+    const css = template(actions, 'popover.css');
+    assert.match(css, /@supports \(position-area: block-end\) \{\n {4}\.popover \{\n {6}inset: auto;/);
+    assert.match(css, /position-try-fallbacks: flip-block, flip-inline;/);
+    assert.doesNotMatch(css, PX);
+    const [markup] = inserts(actions).filter((a) => a.insert === '/index.html');
+    assert.ok('line' in markup && markup.line.includes('popovertarget="menu" style="anchor-name: --menu"'));
+    assert.ok('line' in markup && markup.line.includes('<div id="menu" class="popover" popover style="position-anchor: --menu">'));
+  });
+
+  it('web:scroll hides and moves nothing without support or with reduced motion', () => {
+    const css = template(run('scroll', {}, context(page, 'css')), 'scroll.css');
+    assert.match(css, /^@supports \(animation-timeline: view\(\)\) \{\n {2}@media \(prefers-reduced-motion: no-preference\) \{/m);
+    assert.match(css, /animation-timeline: scroll\(root\);/);
+    assert.doesNotMatch(css, PX);
+    const withPage = run('scroll', { into: '/index.html' }, context(page, 'css'));
+    assert.ok(inserts(withPage).some((a) => 'line' in a && a.line === '<div class="reading-progress" aria-hidden="true"></div>'));
+  });
+
+  it('web:transitions turns on cross-document transitions, sliding with --style=slide', () => {
+    const fade = template(run('transitions', {}, context(page, 'css')), 'transitions.css');
+    assert.match(fade, /@media \(prefers-reduced-motion: no-preference\) \{\n {2}@view-transition \{\n {4}navigation: auto;\n {2}\}\n\}\n$/);
+    const slide = run('transitions', { style: 'slide', spa: true }, context(page, 'css'));
+    assert.match(template(slide, 'transitions.css'), /::view-transition-new\(root\) \{\n {4}animation: view-slide-in/);
+    assert.match(template(slide, 'view-transition.js'), /document\.startViewTransition\(update\)/);
+    assert.throws(() => run('transitions', { style: 'zoom' }, context(page, 'css')), /use fade or slide/);
+  });
+
+  it('the reset keeps the margins dialogs and popovers center with', () => {
+    assert.match(RESET, /dialog,\n {2}\[popover\] \{\n {4}margin: auto;/);
+  });
+});
+
+describe('web:page', () => {
+  const project = {
+    'css/styles.css': '/* jen:imports */',
+    'css/palette.css': paletteCss({ primary: '#5b5bd6', contrast: 'aaa' }),
+    'public/favicon.svg': '<svg/>',
+  };
+
+  it('links the entry point, palette colors and existing icons, relative to the page', () => {
+    const html = template(run('page', { name: 'About', site: 'My Site', script: '/src/main.js' }, context(project, 'pages')), 'about.html');
+    assert.match(html, /^<!doctype html>\n<!-- After the HTML boilerplate by Manuel Matuzović, https:\/\/matuzo\.at\/blog\/html-boilerplate\/ -->\n<html lang="en" class="no-js">/);
+    assert.match(html, /<title>About – My Site<\/title>/);
+    assert.match(html, /classList\.replace\('no-js', 'js'\)/);
+    assert.match(html, /<link rel="stylesheet" href="\.\.\/css\/styles\.css">/);
+    assert.match(html, /<link rel="icon" href="\.\.\/favicon\.svg" type="image\/svg\+xml">/);
+    assert.doesNotMatch(html, /favicon\.ico|apple-touch-icon|manifest/, 'only icons that exist');
+    assert.match(html, /<meta name="theme-color" content="#[0-9a-f]{6}" media="\(prefers-color-scheme: dark\)">/);
+    assert.match(html, /<script type="module" src="\.\.\/src\/main\.js"><\/script>\n {2}<\/body>/);
+    assert.doesNotMatch(html, /canonical|og:url|og:image/, 'no address-bound tags without --url');
+  });
+
+  it('adds canonical, og:url, og:image and og:locale when it knows them', () => {
+    const html = template(run('page', { name: 'index', lang: 'en-GB', url: 'https://example.com/', image: 'og.png', imageAlt: 'A "mountain"' }, context({})), 'index.html');
+    assert.match(html, /<link rel="canonical" href="https:\/\/example\.com\/">/);
+    assert.match(html, /<meta property="og:image" content="https:\/\/example\.com\/og\.png">/);
+    assert.match(html, /<meta property="og:image:alt" content="A &quot;mountain&quot;">/);
+    assert.match(html, /<meta property="og:locale" content="en_GB">/);
+    assert.doesNotMatch(html, /stylesheet|theme-color/, 'nothing to link without an entry point or palette');
+  });
+});
+
+describe('templates', () => {
+  it('fill() drops lines with a null value and indents multi-line values', () => {
+    const text = 'a {\n  {{body}}\n}\n<x y="{{y}}">\n<meta z="{{z}}">\n';
+    assert.equal(fill(text, { body: 'b: 1;\n\nc: 2;', y: '1', z: null }), 'a {\n  b: 1;\n\n  c: 2;\n}\n<x y="1">\n');
+  });
+
+  it('fill() tidies the blank lines dropped lines leave behind', () => {
+    assert.equal(fill('a\n\n{{x}}\n\nb\n', { x: null }), 'a\n\nb\n');
+    assert.equal(fill('<head>\n  <a>\n\n  {{x}}\n</head>\n', { x: null }), '<head>\n  <a>\n</head>\n');
+  });
+
+  it('fill() refuses a placeholder without a value', () => {
+    assert.throws(() => fill('{{missing}}', {}), /\{\{missing\}\} has no value/);
   });
 });

@@ -25,8 +25,8 @@ export default defineConfig(
     },
   },
   {
-    // Browser code shipped by packs (e.g. pack-glsl's <shader-canvas>).
-    files: ['packages/*/web/**/*.js'],
+    // Browser code shipped by packs (pack-glsl's <shader-canvas>, pack-web's templates).
+    files: ['packages/*/web/**/*.js', 'packages/*/templates/**/*.js'],
     languageOptions: {
       globals: {
         ...globals.browser,

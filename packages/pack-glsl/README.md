@@ -2,7 +2,7 @@
 
 A [jen](https://github.com/learosema/jen) pack for GLSL: fragment and vertex shader starters, plus functions you can drop into any shader. WebGL2's GLSL ES 3.00 is the default; everything also compiles as desktop GLSL 3.30 / 4.10 core, and `glsl:port` switches a shader's header when you move a prototype from the browser to C++/OpenGL.
 
-**Documentation: <https://learosema.github.io/jen/recipes.html>**
+**Documentation: <https://learosema.github.io/jen/glsl.html>**
 
 ## Install
 

@@ -6,7 +6,7 @@ description: "Every jen command in @codejen/pack-web: a contrast-checked palette
 eyebrow: "@codejen/pack-web"
 mega: styles
 lede: Every generator, with the command, the output it prints, and the CSS it makes – running live, in light and dark mode.
-sub: Plain CSS on the web platform. WCAG AAA contrast by default, checked before anything is written.
+sub: Plain HTML and CSS on the web platform. WCAG AAA contrast by default, checked before anything is written.
 cta: { text: "Three ways to install ↓", url: "#install" }
 toc:
   - title: Install
@@ -36,6 +36,13 @@ toc:
       - { title: "web:button", id: web-button }
       - { title: "web:card", id: web-card }
       - { title: "web:avatars", id: web-avatars }
+  - title: Pages and platform
+    links:
+      - { title: "web:page", id: web-page }
+      - { title: "web:dialog", id: web-dialog }
+      - { title: "web:popover", id: web-popover }
+      - { title: "web:scroll", id: web-scroll }
+      - { title: "web:transitions", id: web-transitions }
   - title: Tailwind
     links:
       - { title: "web:tailwind", id: web-tailwind }
@@ -67,6 +74,8 @@ Ask for a `web:` generator without the pack installed and jen fetches `@codejen/
 Generators write into the folder you run them in, or `--dir`. Everything meets in one entry point: `styles.css`, made by `web:base` or `web:cube`. It declares the cascade layers in CUBE CSS order – `reset, tokens, base, compositions, utilities, blocks, exceptions` – so a later layer wins over an earlier one whatever the selectors' specificity, and it ends with a `/* jen:imports */` marker. Every other generator adds its `@import` above that marker, with the path relative to the entry point, so running one from a subfolder still wires it in right.
 
 Link `styles.css` from your page, or `import './css/styles.css'` in a Vite project. The [home page]({{ '/#where' | relative_url }}) has the general rules.
+
+The boilerplate the generators write lives as plain `.css`, `.html` and `.js` files in the pack's [`templates/`](https://github.com/learosema/jen/tree/main/packages/pack-web/templates) folder, so it's easy to read and adapt; a few have `{% raw %}{{placeholders}}{% endraw %}` for the parts the generators fill in. Palettes, fluid scales and utilities are computed, so they're made in code.
 
 ## Starter {#starter}
 
@@ -238,6 +247,58 @@ Overlapping round avatars that move apart on hover or focus. Each step is at lea
 
 {% include web-preview.html src="avatars.html" title="Avatars" height="6rem" caption="Hover or tab through them" %}
 
+## Pages and platform features {#platform}
+
+Modern HTML and CSS that used to need JavaScript, each as progressive enhancement: where a browser lacks a feature, the page still works – it just doesn't animate or anchor. Generators that come with markup take `--into=<page.html>` and put it in before `</body>`, so a page needs no marker; run one twice and nothing is duplicated.
+
+### `web:page` {#web-page}
+
+A new page after [Manuel Matuzović's HTML boilerplate](https://matuzo.at/blog/html-boilerplate/): `lang`, a `no-js`/`js` class switched by a module script, the viewport, a title of the form "Page – Site", description and Open Graph tags. On top, it fits the page to your project: the stylesheet link points at the entry point, relative to the page; `theme-color` follows the palette's page colors in light and dark mode; and icons and the manifest are linked only if those files exist, at the root or in `public/`. Canonical, `og:url` and `og:image` need your site's address, so they come with `--url`.
+
+{% include terminal.html id="web_page" %}
+
+{% capture rows %}
+`name` | — | required; the file name (`about` becomes `about.html`)
+`title`, `site` | `About`, — | the title is "title – site"
+`description` | `Page description` | for search results and link previews
+`lang` | `en` | with a region (`en-GB`), it also sets `og:locale`
+`url`, `image`, `imageAlt` | — | the site's address, and the image link previews show
+`script` | — | a module script to load at the end of the body
+{% endcapture %}
+{% include cards.html rows=rows label="default" heading="Params" %}
+
+### `web:dialog` {#web-dialog}
+
+A modal `.dialog` that fades and rises in and out (`@starting-style`) above a dimmed backdrop. The markup opens it with the command API – `<button commandfor="confirm" command="show-modal">` – so no JavaScript is needed; `commands.js` stands in for browsers that don't have the command API yet. `closedby="any"` lets a click outside close it.
+
+{% include terminal.html id="web_dialog" %}
+
+{% include web-preview.html src="dialog.html" title="A dialog" height="18rem" dual=true caption="Press the button" %}
+
+### `web:popover` {#web-popover}
+
+A `.popover` anchored below its trigger with CSS anchor positioning, flipping above or to the other side when there's no room. Without anchor positioning it opens centered, like any popover. The markup uses `popovertarget` and ties trigger and popover together with an anchor name.
+
+{% include terminal.html id="web_popover" %}
+
+{% include web-preview.html src="popover.html" title="A popover" height="11rem" dual=true caption="Press the button" %}
+
+### `web:scroll` {#web-scroll}
+
+Scroll-driven animations, no JavaScript: a `.reading-progress` bar that follows the page's scroll position, `.reveal` for elements that fade in as they scroll into view, and `.parallax`, shifted by `--parallax-shift`. Without support or with reduced motion, nothing is hidden and nothing moves.
+
+{% include terminal.html id="web_scroll" %}
+
+{% include web-preview.html src="scroll.html" title="Scroll-driven animations" height="18rem" caption="Scroll inside the frame" %}
+
+### `web:transitions` {#web-transitions}
+
+Cross-document view transitions between the pages of a site, as the browser's crossfade or `--style=slide` – off with reduced motion, and simply absent where unsupported. `--spa` adds `view-transition.js` for same-document transitions: `transition(() => updateTheDom())`, a plain update where unsupported.
+
+{% include terminal.html id="web_transitions" %}
+
+{% include web-preview.html src="transitions-a.html" title="View transitions" height="12rem" caption="Follow the link inside the frame" %}
+
 ## Tailwind v4 {#tailwind}
 
 ### `web:tailwind` {#web-tailwind}
@@ -248,4 +309,15 @@ Sets up the entry point for Tailwind: `@import "tailwindcss"`, with Tailwind's l
 
 ## Credits {#credits}
 
-The techniques follow [CUBE CSS](https://cube.fyi) by Andy Bell, [Every Layout](https://every-layout.dev) by Heydon Pickering and Andy Bell, [SmolCSS](https://smolcss.dev) by Stephanie Eckles, [Utopia](https://utopia.fyi) by James Gilyead and Trys Mudford, and the shade-distance idea of [Reasonable Colors](https://www.reasonable.work/colors/) by Matthew Howell. The CSS is written fresh for this pack, not copied. The pack is ISC licensed.
+Every file credits the work it builds on, in a comment at the top of the part it's about:
+
+- **[CUBE CSS](https://cube.fyi)** by Andy Bell: the layer order, and the Repel composition
+- **[Every Layout](https://every-layout.dev)** by Heydon Pickering and Andy Bell: the flow (Stack), cluster, sidebar, switcher and reel compositions
+- **[SmolCSS](https://smolcss.dev)** by Stephanie Eckles: the grid, wrapper (intrinsic container), center, overlay, breakout, reel (scroll snap) and gallery compositions, the card and avatar list, `.pad-fluid` and `.unbreakable`, and the transition tokens, visited links, heading anchors and list markers in the base styles
+- **[A (more) Modern CSS Reset](https://piccalil.li/blog/a-more-modern-css-reset/)** by Andy Bell and **[a modern CSS reset](https://www.joshwcomeau.com/css/custom-css-reset/)** by Josh W. Comeau: the reset
+- **[Utopia](https://utopia.fyi)** by James Gilyead and Trys Mudford: the fluid type and space scales
+- **[Reasonable Colors](https://www.reasonable.work/colors/)** by Matthew Howell: the idea of shade distances that guarantee contrast
+- **[OKLab](https://bottosson.github.io/posts/oklab/)** by Björn Ottosson: the color math behind the shades
+- **[HTML boilerplate](https://matuzo.at/blog/html-boilerplate/)** by Manuel Matuzović: `web:page`
+
+The code is written fresh for this pack, not copied. The pack is ISC licensed.
