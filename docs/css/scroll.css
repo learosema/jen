@@ -8,25 +8,25 @@
       to { opacity: 1; transform: none; }
     }
     /* "backwards" fill only: after the range ends, hover transforms work again */
-    .reveal:not(.steps, .why, .actions, .facts, .langs),
-    .steps li, .why li, .actions li, .facts > div, .lang {
+    .reveal:not(.steps, .why, .actions, .facts, .langs, .packs),
+    .steps li, .why li, .actions li, .packs li, .facts > div, .lang {
       animation: rise linear backwards;
       animation-timeline: view();
     }
-    .reveal:not(.steps, .why, .actions, .facts, .langs) { animation-range: entry 0 entry 16.25rem; }
+    .reveal:not(.steps, .why, .actions, .facts, .langs, .packs) { animation-range: entry 0 entry 16.25rem; }
     /* items in a row share a scroll position, so offset each one's range to stagger them */
-    .steps li, .why li, .actions li, .facts > div, .lang {
+    .steps li, .why li, .actions li, .packs li, .facts > div, .lang {
       --n: 0;
       animation-range: entry calc(var(--n) * 6%) entry calc(45% + var(--n) * 6%);
     }
     .lang { --n: var(--i); }
-    :is(.steps, .why, .actions) > :nth-child(2), .facts > :nth-child(2) { --n: 1; }
-    :is(.steps, .why, .actions) > :nth-child(3), .facts > :nth-child(3) { --n: 2; }
-    :is(.steps, .why, .actions) > :nth-child(4), .facts > :nth-child(4) { --n: 3; }
-    :is(.steps, .why, .actions) > :nth-child(5) { --n: 4; }
-    :is(.steps, .why, .actions) > :nth-child(6) { --n: 5; }
-    :is(.steps, .why, .actions) > :nth-child(7) { --n: 6; }
-    :is(.steps, .why, .actions) > :nth-child(8) { --n: 7; }
+    :is(.steps, .why, .actions, .packs) > :nth-child(2), .facts > :nth-child(2) { --n: 1; }
+    :is(.steps, .why, .actions, .packs) > :nth-child(3), .facts > :nth-child(3) { --n: 2; }
+    :is(.steps, .why, .actions, .packs) > :nth-child(4), .facts > :nth-child(4) { --n: 3; }
+    :is(.steps, .why, .actions, .packs) > :nth-child(5) { --n: 4; }
+    :is(.steps, .why, .actions, .packs) > :nth-child(6) { --n: 5; }
+    :is(.steps, .why, .actions, .packs) > :nth-child(7) { --n: 6; }
+    :is(.steps, .why, .actions, .packs) > :nth-child(8) { --n: 7; }
   }
 }
 

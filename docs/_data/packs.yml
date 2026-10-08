@@ -1,0 +1,6 @@
+# The packs section on the landing page (_includes/packs.html); the header's "packs" link points there.
+# langs: badge names from langs.yml · url: the pack's recipes page · soon: pack not published yet
+- { name: "@codejen/pack-cpp", langs: ["C++", CMake], url: "/recipes.html", text: "Modern C++ classes, types, tooling and SDL3 app starters, wired into your CMakeLists.txt." }
+- { name: "@codejen/pack-glsl", langs: [GLSL], url: "/glsl.html", text: "Shader starters, noise, signed distance fields, raymarching and lighting – with live previews." }
+- { name: "@codejen/pack-web", langs: [CSS], url: "/web.html", text: "A contrast-checked palette, a CUBE CSS starter, layout compositions, buttons and cards." }
+- { name: "@codejen/pack-js", langs: [TypeScript, JavaScript], soon: true, text: "Modules, classes and tests for TypeScript and JavaScript." }

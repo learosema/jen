@@ -7,9 +7,10 @@
   max-width: 40rem;
 }
 .lang { display: grid; justify-items: center; gap: var(--space-s); width: 4.6rem; }
-.lang b {
-  width: 3.6rem;
-  height: 3.6rem;
+/* the file-type badge, shared with the packs section */
+.badge {
+  width: var(--badge, 3.6rem);
+  height: var(--badge, 3.6rem);
   display: grid;
   place-items: center;
   background: var(--c);
@@ -19,13 +20,13 @@
   letter-spacing: -0.04em;
   box-shadow: 0 0.0625rem 0 rgba(0, 0, 0, 0.15), inset 0 0 0 0.0625rem rgba(255, 255, 255, 0.22);
 }
-.lang.hex b { border-radius: 0; clip-path: polygon(50% 0, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%); }
-.lang:hover b { transform: translateY(-0.25rem) rotate(-4deg); }
+.badge.hex { border-radius: 0; clip-path: polygon(50% 0, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%); }
+.lang:hover .badge, .pack:hover .badge { transform: translateY(-0.25rem) rotate(-4deg); }
 .lang span { font-size: var(--text-label); color: var(--muted); white-space: nowrap; }
-.lang.soon b { filter: grayscale(1); opacity: 0.45; box-shadow: none; }
+.lang.soon .badge, .pack.soon .badge { filter: grayscale(1); opacity: 0.45; box-shadow: none; }
 .lang.soon span { opacity: 0.7; }
 .lang small { display: block; }
-.lang.more b {
+.lang.more .badge {
   background: none;
   color: var(--accent);
   border: 0.125rem dashed var(--accent);
@@ -33,3 +34,25 @@
   font-size: var(--text-title);
   font-weight: 400;
 }
+
+/* ───────── packs ───────── */
+.packs { --min: 15rem; }
+.pack {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: var(--space-s);
+  height: 100%;
+  padding: var(--space-m);
+  text-decoration: none;
+  color: var(--muted);
+}
+.pack .badges { --badge: 2.6rem; --gap: var(--space-s); margin-block-end: var(--space-s); }
+.pack .badge { font-size: var(--text-small); }
+.pack strong { color: var(--fg); }
+.pack .go { color: var(--accent); font-size: var(--text-small); }
+a.pack:hover {
+  transform: translate(-0.1875rem, -0.1875rem);
+  border-color: var(--fg);
+  box-shadow: 0.3125rem 0.3125rem 0 var(--accent);
+}
+.pack.soon .go { color: var(--muted); }
