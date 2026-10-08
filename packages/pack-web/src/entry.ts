@@ -5,6 +5,7 @@
  */
 import { posix } from 'node:path';
 import type { Action, Context } from '@codejen/jen';
+import { fill, template } from './templates.ts';
 
 export const IMPORTS_MARKER = 'jen:imports';
 
@@ -19,15 +20,10 @@ export const TAILWIND_IMPORT = '@import "tailwindcss";';
 
 export const layerLine = (tailwind: boolean): string => `@layer ${(tailwind ? TAILWIND_LAYERS : LAYERS).join(', ')};`;
 
-export const entryCss = (files: string[], tailwind = false) => `/*
- * Stylesheet entry point, cascade layers in CUBE CSS order (later layers win).
- * jen generators add their @import lines above the marker at the end.
- */
-${layerLine(tailwind)}
-
-${[...(tailwind ? [TAILWIND_IMPORT] : []), ...files.map(importLine)].join('\n')}
-/* ${IMPORTS_MARKER} */
-`;
+export const entryCss = (files: string[], tailwind = false): string => {
+  const imports = [...(tailwind ? [TAILWIND_IMPORT] : []), ...files.map(importLine)];
+  return fill(template('styles.css'), { layers: (tailwind ? TAILWIND_LAYERS : LAYERS).join(', '), imports: imports.length ? imports.join('\n') : null });
+};
 
 /** Adds `files` and wires them into the project's entry point – or into a new `styles.css` if there is none. */
 export function wireEntry(ctx: Context, files: { add: string; template: string }[], tailwind = false): Action[] {

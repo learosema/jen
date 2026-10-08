@@ -1,0 +1,4 @@
+/* After the Stack in Every Layout by Heydon Pickering and Andy Bell, https://every-layout.dev */
+.flow > * + * {
+  margin-block-start: var(--flow-space, 1em);
+}

@@ -1,0 +1,8 @@
+/* After the Cluster in Every Layout by Heydon Pickering and Andy Bell, https://every-layout.dev */
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gutter, var(--space-s-m, 1rem));
+  justify-content: var(--cluster-justify, flex-start);
+  align-items: var(--cluster-align, center);
+}

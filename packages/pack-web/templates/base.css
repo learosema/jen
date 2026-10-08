@@ -1,0 +1,104 @@
+@layer base {
+  /* Transition tokens, :visited links, heading anchors and list markers after Stephanie Eckles, https://smolcss.dev */
+  :root {
+    --transition-duration: 0.2s;
+    --transition-easing: ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --transition-duration: 0s;
+    }
+  }
+
+  html {
+    /* No layout shift when a page starts or stops scrolling. */
+    scrollbar-gutter: stable;
+    hanging-punctuation: first last;
+    accent-color: var(--color-primary, AccentColor);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html:focus-within {
+      scroll-behavior: smooth;
+    }
+  }
+
+  body {
+    background: var(--color-surface, Canvas);
+    color: var(--color-text, CanvasText);
+    font-family: system-ui, sans-serif;
+    font-size: var(--step-0, 1rem);
+  }
+
+  h1 {
+    font-size: var(--step-5, 2.5em);
+  }
+
+  h2 {
+    font-size: var(--step-4, 2em);
+  }
+
+  h3 {
+    font-size: var(--step-3, 1.5em);
+  }
+
+  h4 {
+    font-size: var(--step-2, 1.25em);
+  }
+
+  a {
+    color: var(--color-primary, LinkText);
+    text-decoration-thickness: from-font;
+    text-underline-offset: 0.15em;
+  }
+
+  a:hover {
+    text-decoration-thickness: 0.125em;
+  }
+
+  a:visited {
+    color: var(--color-primary-strong, VisitedText);
+  }
+
+  :is(h2, h3, h4) > a[href^="#"] {
+    color: var(--color-text-muted, GrayText);
+    text-decoration: none;
+  }
+
+  :is(h2, h3, h4):target {
+    background: var(--color-primary-subtle, Mark);
+    color: var(--color-text, MarkText);
+  }
+
+  li[data-icon]::marker {
+    content: attr(data-icon) "\00a0";
+  }
+
+  :focus-visible {
+    outline: 0.125rem solid var(--color-focus, Highlight);
+    outline-offset: 0.125rem;
+  }
+
+  ::selection {
+    background: var(--color-primary, Highlight);
+    color: var(--color-on-primary, HighlightText);
+  }
+
+  hr {
+    border: none;
+    border-block-start: thin solid var(--color-border, GrayText);
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: ui-monospace, monospace;
+    font-size: 1em;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+}

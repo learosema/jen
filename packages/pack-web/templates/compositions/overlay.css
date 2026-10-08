@@ -1,0 +1,9 @@
+/* After Smol Stack Layout by Stephanie Eckles, https://smolcss.dev */
+.overlay {
+  display: grid;
+  grid-template-areas: "overlay";
+}
+
+.overlay > * {
+  grid-area: overlay;
+}

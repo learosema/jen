@@ -1,0 +1,17 @@
+/* After Smol Aspect Ratio Gallery by Stephanie Eckles, https://smolcss.dev */
+.gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gutter, var(--space-s-m, 1rem));
+}
+
+.gallery > * {
+  flex: 1 1 var(--gallery-min-item-size, 12rem);
+}
+
+.gallery :is(img, video) {
+  inline-size: 100%;
+  block-size: auto;
+  aspect-ratio: var(--gallery-ratio, 4 / 3);
+  object-fit: cover;
+}

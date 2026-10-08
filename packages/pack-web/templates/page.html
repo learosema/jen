@@ -1,0 +1,38 @@
+<!doctype html>
+<!-- After the HTML boilerplate by Manuel Matuzović, https://matuzo.at/blog/html-boilerplate/ -->
+<html lang="{{lang}}" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+
+    <title>{{title}}</title>
+
+    <script type="module">
+      document.documentElement.classList.replace('no-js', 'js');
+    </script>
+
+    <link rel="stylesheet" href="{{stylesheet}}">
+
+    <meta name="description" content="{{description}}">
+    <meta property="og:title" content="{{title}}">
+    <meta property="og:description" content="{{description}}">
+    <meta property="og:locale" content="{{locale}}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{url}}">
+    <link rel="canonical" href="{{url}}">
+    <meta property="og:image" content="{{image}}">
+    <meta property="og:image:alt" content="{{image-alt}}">
+    <meta name="twitter:card" content="{{twitter-card}}">
+
+    {{icons}}
+    <meta name="theme-color" content="{{theme-light}}" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="{{theme-dark}}" media="(prefers-color-scheme: dark)">
+  </head>
+  <body>
+    <main id="main">
+      <h1>{{heading}}</h1>
+    </main>
+    <script type="module" src="{{script}}"></script>
+  </body>
+</html>

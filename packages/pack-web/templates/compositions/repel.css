@@ -1,0 +1,8 @@
+/* After the Repel composition by Andy Bell, https://piccalil.li */
+.repel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gutter, var(--space-s-m, 1rem));
+  justify-content: space-between;
+  align-items: var(--repel-align, center);
+}

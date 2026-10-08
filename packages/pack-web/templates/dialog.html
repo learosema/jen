@@ -1,0 +1,9 @@
+<button class="button" commandfor="{{id}}" command="show-modal">{{title}}</button>
+<dialog id="{{id}}" class="dialog" aria-labelledby="{{id}}-title" closedby="any">
+  <h2 id="{{id}}-title">{{title}}</h2>
+  <p>Dialog content.</p>
+  <div class="cluster">
+    <button class="button button--outline" commandfor="{{id}}" command="close" value="cancel">Cancel</button>
+    <button class="button" commandfor="{{id}}" command="close" value="ok">OK</button>
+  </div>
+</dialog>

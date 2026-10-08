@@ -1,0 +1,25 @@
+/* After Smol Breakout Grid by Stephanie Eckles, https://smolcss.dev */
+.breakout {
+  --breakout-gutter: var(--space-s-l, 1rem);
+
+  display: grid;
+  grid-template-columns:
+    [full-start] minmax(var(--breakout-gutter), 1fr)
+    [wide-start] minmax(0, var(--breakout-wide, 10rem))
+    [content-start] min(100% - 2 * var(--breakout-gutter), var(--breakout-max-width, 65ch))
+    [content-end] minmax(0, var(--breakout-wide, 10rem))
+    [wide-end] minmax(var(--breakout-gutter), 1fr)
+    [full-end];
+}
+
+.breakout > * {
+  grid-column: content;
+}
+
+.breakout > [data-breakout="wide"] {
+  grid-column: wide;
+}
+
+.breakout > [data-breakout="full"] {
+  grid-column: full;
+}

@@ -1,0 +1,40 @@
+@layer blocks {
+  .popover {
+    margin: auto;
+    padding: var(--space-xs, 0.75rem);
+    border: thin solid var(--color-border, GrayText);
+    border-radius: var(--popover-radius, 0.5rem);
+    background: var(--color-surface, Canvas);
+    color: var(--color-text, CanvasText);
+    box-shadow: 0 0.5rem 1.5rem oklch(0% 0 0 / 0.2);
+  }
+
+  @supports (position-area: block-end) {
+    .popover {
+      inset: auto;
+      margin: var(--popover-offset, 0.25rem) 0;
+      position-area: block-end span-inline-end;
+      position-try-fallbacks: flip-block, flip-inline;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .popover {
+      opacity: 0;
+      transition:
+        opacity var(--transition-duration, 0.2s) var(--transition-easing, ease-out),
+        display var(--transition-duration, 0.2s) allow-discrete,
+        overlay var(--transition-duration, 0.2s) allow-discrete;
+    }
+
+    .popover:popover-open {
+      opacity: 1;
+    }
+
+    @starting-style {
+      .popover:popover-open {
+        opacity: 0;
+      }
+    }
+  }
+}

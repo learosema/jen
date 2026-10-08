@@ -1,0 +1,6 @@
+/* After Smol Responsive CSS Grid by Stephanie Eckles, https://smolcss.dev */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-placement, auto-fit), minmax(min(var(--grid-min-item-size, 16rem), 100%), 1fr));
+  gap: var(--gutter, var(--space-s-m, 1rem));
+}

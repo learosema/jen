@@ -1,0 +1,5 @@
+/* After Smol Intrinsic Container by Stephanie Eckles, https://smolcss.dev */
+.wrapper {
+  inline-size: min(100% - 2 * var(--wrapper-gutter, var(--space-s-l, 1rem)), var(--wrapper-max-width, 75rem));
+  margin-inline: auto;
+}

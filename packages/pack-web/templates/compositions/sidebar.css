@@ -1,0 +1,20 @@
+/* After the Sidebar in Every Layout by Heydon Pickering and Andy Bell, https://every-layout.dev */
+.sidebar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gutter, var(--space-s-m, 1rem));
+}
+
+.sidebar > :first-child,
+.sidebar[data-direction="end"] > :last-child {
+  flex-basis: var(--sidebar-target, 20rem);
+  flex-grow: 1;
+  min-inline-size: auto;
+}
+
+.sidebar > :last-child,
+.sidebar[data-direction="end"] > :first-child {
+  flex-basis: 0;
+  flex-grow: 999;
+  min-inline-size: var(--sidebar-content-min, 50%);
+}

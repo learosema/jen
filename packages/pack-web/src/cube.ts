@@ -1,12 +1,4 @@
-/**
- * `web:cube`: the whole CUBE CSS starter in one go – web:base, web:fluid,
- * web:compositions and web:utilities, plus web:palette and web:button when
- * `--primary` is given. Takes the flags of web:palette and web:fluid.
- * With `--tailwind` (or in a Tailwind project), the entry imports Tailwind
- * and the tokens go into its @theme; Tailwind's utilities replace web:utilities.
- *
- *   jen web:cube --primary=#5b5bd6 [--tailwind] [--dir=src/css]
- */
+/** `web:cube`: base, fluid, compositions and utilities at once – plus palette and buttons with `--primary`. */
 import type { Generator } from '@codejen/jen';
 import { BASE, RESET } from './base.ts';
 import { buttonCss } from './button.ts';
