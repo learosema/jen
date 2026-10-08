@@ -1,14 +1,4 @@
-/**
- * `web:tailwind`: sets up the stylesheet entry point for Tailwind v4 – Tailwind's
- * layers fitted into the CUBE CSS order, and `@import "tailwindcss"`. Run it
- * before web:palette and web:fluid (or web:cube), which then write their tokens
- * into Tailwind's @theme; an existing palette needs a re-run with --force.
- *
- * jen doesn't install anything: add `tailwindcss` and its build integration
- * (e.g. `@tailwindcss/vite`) yourself.
- *
- *   jen web:tailwind [--dir=src/css]
- */
+/** `web:tailwind`: the stylesheet entry point for Tailwind v4, its layers fitted into the CUBE CSS order. */
 import type { Generator } from '@codejen/jen';
 import { ENTRY, IMPORTS_MARKER, LAYERS, TAILWIND_IMPORT, entryCss, findEntry, layerLine } from './entry.ts';
 

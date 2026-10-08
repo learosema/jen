@@ -1,0 +1,44 @@
+/* After Smol Composable Card Component by Stephanie Eckles, https://smolcss.dev */
+@layer blocks {
+  .card {
+    --card-padding: var(--space-s-m, 1.25rem);
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--card-gap, var(--space-xs, 0.75rem));
+    padding-block: var(--card-padding);
+    border: thin solid var(--color-border);
+    border-radius: var(--card-radius, 0.75rem);
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    overflow: hidden;
+  }
+
+  .card > * {
+    margin: 0;
+    padding-inline: var(--card-padding);
+  }
+
+  .card > :last-child:not(:first-child) {
+    margin-block-start: auto;
+  }
+
+  .card > :is(img, picture, video) {
+    padding-inline: 0;
+    inline-size: 100%;
+    aspect-ratio: var(--card-media-ratio, 16 / 9);
+    object-fit: cover;
+  }
+
+  .card > :is(img, picture, video):first-child {
+    margin-block-start: calc(-1 * var(--card-padding));
+  }
+
+  .card > :is(img, picture, video):last-child {
+    margin-block-end: calc(-1 * var(--card-padding));
+  }
+
+  .card a {
+    color: var(--color-primary-strong);
+  }
+}

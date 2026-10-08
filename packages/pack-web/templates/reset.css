@@ -1,0 +1,107 @@
+/* After A (more) Modern CSS Reset by Andy Bell (https://piccalil.li/blog/a-more-modern-css-reset/) and Josh W. Comeau's CSS reset (https://www.joshwcomeau.com/css/custom-css-reset/) */
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  * {
+    margin: 0;
+  }
+
+  /* …except where the browser centers with margins. */
+  dialog,
+  [popover] {
+    margin: auto;
+  }
+
+  html {
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+  }
+
+  body {
+    min-block-size: 100dvh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    display: block;
+    max-inline-size: 100%;
+  }
+
+  input,
+  button,
+  textarea,
+  select {
+    font: inherit;
+    letter-spacing: inherit;
+  }
+
+  p,
+  li,
+  figcaption {
+    text-wrap: pretty;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    line-height: 1.1;
+    text-wrap: balance;
+  }
+
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    overflow-wrap: break-word;
+  }
+
+  /* Lists with role="list" are layout, not content: no bullets. */
+  :where(ul, ol)[role="list"] {
+    list-style: none;
+    padding: 0;
+  }
+
+  textarea:not([rows]) {
+    min-block-size: 10em;
+  }
+
+  :target {
+    scroll-margin-block: 5ex;
+  }
+
+  [hidden]:not([hidden="until-found"]) {
+    display: none !important;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      interpolate-size: allow-keywords;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

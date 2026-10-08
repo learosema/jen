@@ -1,16 +1,4 @@
-/**
- * `web:utilities`: CUBE CSS utility classes generated from the project's
- * tokens, in the `utilities` layer – `.color-*` / `.bg-*` from web:palette's
- * role tokens (not the raw shades, so pairs stay the checked ones), `.step-*`
- * font sizes and `.flow-space-*` / `.gutter-*` from web:fluid, plus
- * `.visually-hidden` and, after SmolCSS (https://smolcss.dev), `.pad-fluid`
- * and `.unbreakable`.
- *
- * Run it after web:palette / web:fluid, and again with --force when they
- * change. Tailwind projects get their utilities from Tailwind instead.
- *
- *   jen web:utilities
- */
+/** `web:utilities`: utility classes from the project's tokens; `.pad-fluid` and `.unbreakable` after Stephanie Eckles (https://smolcss.dev). */
 import type { Context, Generator } from '@codejen/jen';
 import { fail } from './common.ts';
 import { importActions, usesTailwind } from './entry.ts';
@@ -57,22 +45,19 @@ export function utilitiesCss({ roles, steps, space }: Tokens): string {
     ...space.map((s) => rule(`flow-space-${s}`, `--flow-space: var(--space-${s})`)),
     ...space.map((s) => rule(`gutter-${s}`, `--gutter: var(--space-${s})`)),
   ];
-  return `/* Utilities from your tokens – regenerate with --force when they change. */
-@layer utilities {
+  return `@layer utilities {
 ${rules.join('\n\n')}
 
-  /* Padding that grows with the container, between two space sizes. */
+  /* .pad-fluid and .unbreakable after Stephanie Eckles, https://smolcss.dev */
   .pad-fluid {
     padding: clamp(var(--space-s, 1rem), 5%, var(--space-xl, 3rem));
   }
 
-  /* Long words and URLs wrap instead of overflowing; hyphens need a lang attribute. */
   .unbreakable {
     overflow-wrap: anywhere;
     hyphens: auto;
   }
 
-  /* Hidden visually, still read by screen readers. */
   .visually-hidden:not(:focus, :active) {
     position: absolute;
     inline-size: 0.0625rem;

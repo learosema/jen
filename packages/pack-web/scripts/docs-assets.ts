@@ -12,7 +12,11 @@ import { dirname, join, posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Action, Context, Helpers } from '@codejen/jen';
 import pack from '../src/index.ts';
+import { dialogMarkup } from '../src/dialog.ts';
+import { COMMANDS_JS } from '../src/html.ts';
 import { groupsFor } from '../src/palette.ts';
+import { popoverMarkup } from '../src/popover.ts';
+import { PROGRESS_MARKUP } from '../src/scroll.ts';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const outDir = resolve(process.argv[2] ?? join(here, '../../../docs/web'));
@@ -34,6 +38,17 @@ const ctx: Context = {
   grep: (name, text) =>
     [...files.keys()].filter((f) => (typeof name === 'string' ? posix.basename(f) === name : name.test(f)) && (!text || files.get(f)!.includes(text))),
 };
+
+/** The one jen helper the pack's generators use. */
+const helpers = {
+  kebab: (s: string) =>
+    s
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .split(/[\s_\-./]+/)
+      .filter(Boolean)
+      .map((w) => w.toLowerCase())
+      .join('-'),
+} as Helpers;
 
 const place = (path: string) => (path.startsWith('/') ? path.slice(1) : posix.join(ctx.destDir, path));
 
@@ -57,12 +72,17 @@ function apply(actions: Action[]): void {
 function run(generator: string, answers: Record<string, string | boolean> = {}): void {
   const g = pack[generator];
   const defaults = Object.fromEntries(Object.entries(g.params ?? {}).map(([k, p]) => [k, p.default]));
-  apply(g.actions({ ...defaults, ...answers }, {} as Helpers, ctx));
+  apply(g.actions({ ...defaults, ...answers }, helpers, ctx));
 }
 
 run('cube', COLORS);
 run('card');
 run('avatars');
+run('dialog', { name: 'confirm' });
+run('popover', { name: 'menu' });
+run('scroll');
+run('transitions', { style: 'slide' });
+files.set('commands.js', COMMANDS_JS);
 
 // ─── Preview pages ──────────────────────────────────────────────────────────
 
@@ -208,6 +228,19 @@ ${[5, 4, 3, 2, 1, 0, -1, -2].map((n) => `<p class="step-${n}">step ${n}</p>`).jo
 <article class="card"><img src="${picture('secondary', 3)}" alt=""><h3>Short</h3><footer><button class="button button--small button--outline">Open</button></footer></article>
 </div>`,
   ),
+  'dialog.html': page('Dialog', `${dialogMarkup('confirm', 'Confirm')}\n<script type="module" src="./commands.js"></script>`),
+  'popover.html': page('Popover', popoverMarkup('menu')),
+  'scroll.html': page(
+    'Scroll-driven animations',
+    `${PROGRESS_MARKUP}
+<div class="flow">
+<p class="step-1"><b>Scroll this frame:</b> the bar at the top tracks the scroll position, and the boxes fade in.</p>
+${boxes(8, 'box reveal', (i) => `Revealed box ${i}`)}
+</div>`,
+    '    .flow { --flow-space: 3rem; padding-block-end: 4rem; }',
+  ),
+  'transitions-a.html': page('Page A', `<div class="flow"><h1>Page A</h1><p><a href="transitions-b.html">Go to page B →</a></p></div>`),
+  'transitions-b.html': page('Page B', `<div class="flow tint pad-fluid"><h1>Page B</h1><p><a href="transitions-a.html">← Back to page A</a></p></div>`),
   'avatars.html': page(
     'Avatars',
     `<ul class="avatars">${['A', 'B', 'C', 'D', 'E'].map((l, i) => `<li><a href="#"><img src="${avatar(l, i % 2 ? 'secondary' : 'primary')}" alt="${l}"></a></li>`).join('')}</ul>`,
@@ -220,4 +253,4 @@ for (const [file, text] of [...files, ...Object.entries(pages)]) {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, text);
 }
-console.log(`docs-assets: ${files.size} stylesheets + ${Object.keys(pages).length} preview pages → ${outDir}`);
+console.log(`docs-assets: ${files.size} generated files + ${Object.keys(pages).length} preview pages → ${outDir}`);

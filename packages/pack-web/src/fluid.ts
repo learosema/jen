@@ -1,16 +1,4 @@
-/**
- * `web:fluid`: Utopia-style fluid type and space scales (https://utopia.fyi)
- * as custom properties – `--step--2` … `--step-5` and `--space-3xs` …
- * `--space-3xl`, plus one-up pairs (`--space-s-m`, …) and `--space-s-l`.
- *
- * Every size is a clamp() between its value at `--minWidth` and at
- * `--maxWidth`, all in rem: the rem part of the formula keeps text zoomable.
- * Sizes may grow at most 2.5× across the range – beyond that, browser zoom
- * can't reach 200% text size (WCAG 1.4.4), so the generator refuses.
- *
- *   jen web:fluid [--minWidth=20 --maxWidth=77.5] [--minSize=1.125 --maxSize=1.25]
- *                 [--minRatio=1.2 --maxRatio=1.25] [--tailwind]
- */
+/** `web:fluid`: fluid type and space scales after Utopia by James Gilyead and Trys Mudford (https://utopia.fyi). */
 import type { Answers, Generator } from '@codejen/jen';
 import { fail } from './common.ts';
 import { importActions, usesTailwind } from './entry.ts';
@@ -102,7 +90,7 @@ ${steps.map(([name]) => `  --text-${name}: var(--${name});`).join('\n')}
 ${space.map(([name]) => `  --spacing-${name.slice('space-'.length)}: var(--${name});`).join('\n')}
 }
 `;
-  return `/* Fluid type and space (https://utopia.fyi), ${minWidth}rem to ${maxWidth}rem viewport width. */
+  return `/* After Utopia by James Gilyead and Trys Mudford (https://utopia.fyi): ${minWidth}rem to ${maxWidth}rem viewport width. */
 @layer tokens {
   :root {
 ${decl(steps)}

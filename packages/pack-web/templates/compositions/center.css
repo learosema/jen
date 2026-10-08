@@ -1,0 +1,5 @@
+/* After Smol Modern Centering by Stephanie Eckles, https://smolcss.dev */
+.center {
+  display: grid;
+  place-content: center;
+}

@@ -1,0 +1,56 @@
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    @layer blocks {
+      .reading-progress {
+        position: fixed;
+        inset: 0 0 auto;
+        z-index: 1;
+        block-size: var(--reading-progress-size, 0.25rem);
+        background: var(--color-primary, AccentColor);
+        transform-origin: 0 50%;
+        animation: reading-progress linear both;
+        animation-timeline: scroll(root);
+      }
+
+      .reading-progress:dir(rtl) {
+        transform-origin: 100% 50%;
+      }
+    }
+
+    @layer utilities {
+      .reveal {
+        animation: reveal linear both;
+        animation-timeline: view();
+        animation-range: entry 0% entry 100%;
+      }
+
+      .parallax {
+        animation: parallax linear both;
+        animation-timeline: view();
+      }
+    }
+
+    @keyframes reading-progress {
+      from {
+        scale: 0 1;
+      }
+    }
+
+    @keyframes reveal {
+      from {
+        opacity: 0;
+        translate: 0 2rem;
+      }
+    }
+
+    @keyframes parallax {
+      from {
+        translate: 0 calc(-1 * var(--parallax-shift, 3rem));
+      }
+
+      to {
+        translate: 0 var(--parallax-shift, 3rem);
+      }
+    }
+  }
+}

@@ -1,0 +1,31 @@
+/* After Smol Avatar List Component by Stephanie Eckles, https://smolcss.dev */
+@layer blocks {
+  .avatars {
+    --avatar-size: 3.5rem;
+
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: max(2.75rem, calc(var(--avatar-size) * 0.6));
+    justify-content: start;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .avatars > * {
+    inline-size: var(--avatar-size);
+    transition: translate var(--transition-duration, 0.2s) var(--transition-easing, ease-out);
+  }
+
+  .avatars > :is(:hover, :focus-within) ~ * {
+    translate: calc(var(--avatar-size) * 0.4) 0;
+  }
+
+  .avatars img {
+    inline-size: var(--avatar-size);
+    aspect-ratio: 1;
+    border: 0.1875rem solid var(--color-surface);
+    border-radius: 100vmax;
+    object-fit: cover;
+  }
+}

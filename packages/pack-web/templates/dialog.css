@@ -1,0 +1,53 @@
+@layer blocks {
+  .dialog {
+    inline-size: min(100% - 2rem, var(--dialog-max-width, 32rem));
+    margin: auto;
+    padding: var(--space-m, 1.5rem);
+    border: thin solid var(--color-border, GrayText);
+    border-radius: var(--dialog-radius, 0.75rem);
+    background: var(--color-surface, Canvas);
+    color: var(--color-text, CanvasText);
+    box-shadow: 0 1rem 3rem oklch(0% 0 0 / 0.25);
+  }
+
+  .dialog > * + * {
+    margin-block-start: var(--space-s, 1rem);
+  }
+
+  .dialog::backdrop {
+    background: oklch(0% 0 0 / 0.5);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .dialog,
+    .dialog::backdrop {
+      opacity: 0;
+      transition:
+        opacity var(--transition-duration, 0.2s) var(--transition-easing, ease-out),
+        translate var(--transition-duration, 0.2s) var(--transition-easing, ease-out),
+        display var(--transition-duration, 0.2s) allow-discrete,
+        overlay var(--transition-duration, 0.2s) allow-discrete;
+    }
+
+    .dialog {
+      translate: 0 1rem;
+    }
+
+    .dialog[open],
+    .dialog[open]::backdrop {
+      opacity: 1;
+      translate: 0 0;
+    }
+
+    @starting-style {
+      .dialog[open],
+      .dialog[open]::backdrop {
+        opacity: 0;
+      }
+
+      .dialog[open] {
+        translate: 0 1rem;
+      }
+    }
+  }
+}

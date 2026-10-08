@@ -1,0 +1,15 @@
+/* After Smol Scroll Snap by Stephanie Eckles, https://smolcss.dev, and the Reel in Every Layout */
+.reel {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--reel-item-size, min(80%, 20rem));
+  gap: var(--gutter, var(--space-s-m, 1rem));
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: inline mandatory;
+  padding-block-end: var(--space-2xs, 0.5rem);
+}
+
+.reel > * {
+  scroll-snap-align: center;
+}

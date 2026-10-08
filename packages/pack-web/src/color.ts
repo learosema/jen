@@ -1,13 +1,6 @@
 /**
- * Color math for `web:palette`: sRGB ↔ OKLab/OKLCH (Björn Ottosson's
- * matrices), sRGB gamut mapping by reducing chroma, and WCAG 2 relative
- * luminance / contrast ratios.
- *
- * Shades are placed by luminance, not by OKLCH lightness: every hue's shade n
- * gets the same target luminance, so the contrast between two shades depends
- * only on how far apart they are – across hues, too (the idea behind
- * https://www.reasonable.work/colors/). Contrast is always checked on the
- * final, rounded hex values.
+ * Color math for web:palette: OKLab/OKLCH by Björn Ottosson (https://bottosson.github.io/posts/oklab/)
+ * and WCAG 2 contrast. Shades are placed by luminance, so contrast depends only on their distance.
  */
 import { fail } from './common.ts';
 
