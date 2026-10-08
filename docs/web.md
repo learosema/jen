@@ -249,7 +249,7 @@ Overlapping round avatars that move apart on hover or focus. Each step is at lea
 
 ## Pages and platform features {#platform}
 
-Modern HTML and CSS that used to need JavaScript, each as progressive enhancement: where a browser lacks a feature, the page still works – it just doesn't animate or anchor. Generators that come with markup take `--into=<page.html>` and put it in before `</body>`, so a page needs no marker; run one twice and nothing is duplicated.
+Modern HTML and CSS that used to need JavaScript, each as progressive enhancement: where a browser lacks a feature, the page still works – it just doesn't animate or anchor. Generators that come with markup take `--into=<page.html>` and put it in before `</body>` – or before the line `--line=8` names, e.g. a `</nav>` to put a menu inside the nav. Either way the page needs no marker, the markup is indented to fit, and running a generator twice duplicates nothing. Script tags they need still go before `</body>`.
 
 ### `web:page` {#web-page}
 

@@ -17,6 +17,7 @@ import { LAYERS } from './src/entry.ts';
 import { COMPOSITIONS } from './src/compositions.ts';
 import { fluid } from './src/fluid.ts';
 import { COMMANDS_JS } from './src/html.ts';
+import { tokensFrom } from './src/utilities.ts';
 import { fill } from './src/templates.ts';
 import { Script } from 'node:vm';
 
@@ -247,6 +248,14 @@ describe('web:utilities', () => {
   it('needs tokens, and steps aside for Tailwind', () => {
     assert.throws(() => run('utilities', {}, context({})), /run `jen web:palette/);
     assert.throws(() => run('utilities', {}, context({ 'app.css': '@import "tailwindcss";', 'palette.css': palette })), /Tailwind/);
+  });
+
+  it('finds tokens after comments, and stays fast on hostile input', () => {
+    const tokens = tokensFrom(':root {\n  /* brand */\n  --color-primary: light-dark(#06c, #6af);\n}', '/* x */ --space-s: 1rem; --step-0: 1rem;');
+    assert.deepEqual(tokens, { roles: ['primary'], steps: ['0'], space: ['s'] });
+    const start = performance.now();
+    tokensFrom('--color-'.repeat(50_000), '--space-'.repeat(50_000));
+    assert.ok(performance.now() - start < 1000, 'no quadratic backtracking');
   });
 });
 
@@ -479,5 +488,27 @@ describe('templates', () => {
 
   it('fill() refuses a placeholder without a value', () => {
     assert.throws(() => fill('{{missing}}', {}), /\{\{missing\}\} has no value/);
+  });
+});
+
+describe('--line', () => {
+  const page = { 'index.html': '<body>\n  <header></header>\n</body>\n', 'css/styles.css': '/* jen:imports */' };
+
+  it('puts the markup before that line, and scripts still before </body>', () => {
+    const actions = run('dialog', { name: 'confirm', into: '/index.html', line: '2' }, context(page, 'css'));
+    const [markup, script] = inserts(actions).filter((a) => a.insert === '/index.html');
+    assert.equal(markup.before, 2);
+    assert.deepEqual(script.before, /<\/body>/);
+    assert.equal(inserts(run('popover', { name: 'menu', into: '/index.html', line: '2' }, context(page, 'css')))[1].before, 2);
+    assert.equal(inserts(run('scroll', { into: '/index.html', line: '3' }, context(page, 'css')))[1].before, 3);
+  });
+
+  it('defaults to before </body>, and refuses lines that make no sense', () => {
+    assert.deepEqual(inserts(run('popover', { name: 'menu', into: '/index.html' }, context(page, 'css')))[1].before, /<\/body>/);
+    assert.throws(() => run('popover', { name: 'menu', line: '2' }, context(page, 'css')), /--line: needs --into/);
+    assert.throws(() => run('popover', { name: 'menu', into: '/index.html', line: 'top' }, context(page, 'css')), /"top" is not a line number/);
+    assert.throws(() => run('scroll', { into: '/index.html', line: '0' }, context(page, 'css')), /"0" is not a line number/);
+    assert.throws(() => run('dialog', { name: 'x', into: '/index.html', line: '40' }, context(page, 'css')), /index\.html has 3 lines, there is no line 40/);
+    assert.equal(inserts(run('scroll', { into: '/index.html', line: '4' }, context(page, 'css')))[1].before, 4, 'one past the end appends');
   });
 });

@@ -2,7 +2,7 @@
 import type { Generator } from '@codejen/jen';
 import { importActions } from './entry.ts';
 import { fill, template } from './templates.ts';
-import { commandsFallback, intoPage, sentence } from './html.ts';
+import { LINE_PARAMS, commandsFallback, intoPage, lineParam, sentence } from './html.ts';
 
 export const FILE = 'dialog.css';
 
@@ -14,14 +14,16 @@ const dialogGenerator: Generator = {
   description: 'create a modal .dialog block (and its markup, opened via the command API, with --into)',
   params: {
     name: {},
-    into: { path: true, default: '' },
+    ...LINE_PARAMS,
   },
-  actions: ({ name, into }, { kebab }, ctx) => {
-    const id = kebab(String(name));
+  actions: (answers, { kebab }, ctx) => {
+    const id = kebab(String(answers.name));
+    const into = String(answers.into);
+    const at = lineParam('web:dialog', answers, ctx);
     return [
       { add: FILE, template: DIALOG },
       ...importActions(ctx, [FILE]),
-      ...(into ? [...intoPage(String(into), [dialogMarkup(id, sentence(id))]), ...commandsFallback(String(into))] : []),
+      ...(into ? [...intoPage(into, [dialogMarkup(id, sentence(id))], at), ...commandsFallback(into)] : []),
     ];
   },
 };

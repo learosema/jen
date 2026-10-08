@@ -134,7 +134,7 @@ export function locate(ctx: Context, { find, containing }: Find, from: string): 
 export function placeActions(actions: Action[], ctx: Context): Placed[] {
   const place = (path: string): string =>
     path.startsWith('/') ? posix.normalize(path.slice(1)) || '.' : posix.normalize(posix.join(ctx.destDir, path));
-  const target = (t: string | Find, marker?: string | RegExp): string | { skip: string; note: string } => {
+  const target = (t: string | Find, marker?: string | RegExp | number): string | { skip: string; note: string } => {
     if (typeof t === 'string') return place(t);
     const find = { containing: typeof marker === 'string' ? marker : undefined, ...t };
     const file = locate(ctx, find, ctx.destDir);

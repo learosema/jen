@@ -135,7 +135,7 @@ There's no prompting, no `validate`, no `select` with choices – if a generator
 ### Actions
 
 - **add** – `{ add, template, force? }`: Creates a file. Existing files are skipped unless `force` or `--force` is set.
-- **insert** – `{ insert, before, line }`: Inserts `line` before the first line containing the marker `before` (or, if `before` is a `RegExp`, the first line matching it), using the marker's indentation. Skipped if the line is already present. With `path` instead of `line`, the inserted line is that file's path relative to the file being inserted into – how a build file lists its sources.
+- **insert** – `{ insert, before, line }`: Inserts `line` before the first line containing the marker `before` (or, if `before` is a `RegExp`, the first line matching it; if it's a number, before that line – 1-based, e.g. from a `--line=65` param), using the marker's indentation – one level deeper before a closing line like `</nav>` or `}`, where the insert goes inside. Skipped if the line is already present. With `path` instead of `line`, the inserted line is that file's path relative to the file being inserted into – how a build file lists its sources.
 - **modify** – `{ modify, pattern, replace }`: Search and replace with a `RegExp`. Also the way to remove lines.
 - **delete** – `{ delete }`: Deletes a file, never a directory.
 
@@ -152,7 +152,7 @@ target_sources(app PRIVATE
 )
 ```
 
-`line` and `replace` can be a single line or a `\n`-joined block. A single line always reuses the marker's (or, for `modify`, the matched line's) exact indentation. A block keeps its own relative nesting but is re-rendered in the target file's indent style – see [EditorConfig](#editorconfig) below.
+`line` and `replace` can be a single line or a `\n`-joined block. A single line reuses the marker's (or, for `modify`, the matched line's) exact indentation, one level deeper before a closing line. A block keeps its own relative nesting but is re-rendered in the target file's indent style – see [EditorConfig](#editorconfig) below.
 
 ### EditorConfig
 

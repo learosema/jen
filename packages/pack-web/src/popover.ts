@@ -2,7 +2,7 @@
 import type { Generator } from '@codejen/jen';
 import { importActions } from './entry.ts';
 import { fill, template } from './templates.ts';
-import { intoPage, sentence } from './html.ts';
+import { LINE_PARAMS, intoPage, lineParam, sentence } from './html.ts';
 
 export const FILE = 'popover.css';
 
@@ -14,13 +14,16 @@ const popoverGenerator: Generator = {
   description: 'create an anchored .popover block (and its markup with --into)',
   params: {
     name: {},
-    into: { path: true, default: '' },
+    ...LINE_PARAMS,
   },
-  actions: ({ name, into }, { kebab }, ctx) => [
-    { add: FILE, template: POPOVER },
-    ...importActions(ctx, [FILE]),
-    ...(into ? intoPage(String(into), [popoverMarkup(kebab(String(name)))]) : []),
-  ],
+  actions: (answers, { kebab }, ctx) => {
+    const at = lineParam('web:popover', answers, ctx);
+    return [
+      { add: FILE, template: POPOVER },
+      ...importActions(ctx, [FILE]),
+      ...(answers.into ? intoPage(String(answers.into), [popoverMarkup(kebab(String(answers.name)))], at) : []),
+    ];
+  },
 };
 
 export default popoverGenerator;
