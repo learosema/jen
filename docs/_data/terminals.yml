@@ -665,3 +665,53 @@ web_tailwind:
   - ""
   - "✓ 7 written"
 
+web_page:
+  - "$ jen web:page --name=about --site=\"My Site\" --lang=en-GB --url=https://example.com --dir=pages"
+  - "web:page (pack @codejen/pack-web) – create an HTML page (after matuzo.at's boilerplate), linked to the stylesheet, palette and icons"
+  - ""
+  - "  + pages/about.html"
+  - ""
+  - "✓ 1 written"
+
+web_dialog:
+  - "$ jen web:dialog --name=confirm-delete --into=index.html --dir=css"
+  - "web:dialog (pack @codejen/pack-web) – create a modal .dialog block (and its markup, opened via the command API, with --into)"
+  - ""
+  - "  + css/dialog.css"
+  - "  ~ css/styles.css  + @import \"./dialog.css\";"
+  - "  ~ index.html  + <button class=\"button\" commandfor=\"confirm-delete\" command=\"show-modal\">Confirm delete</button> (+8 more)"
+  - "  + commands.js"
+  - "  ~ index.html  + <script type=\"module\" src=\"./commands.js\"></script>"
+  - ""
+  - "✓ 4 written"
+
+web_popover:
+  - "$ jen web:popover --name=menu --into=index.html --dir=css"
+  - "web:popover (pack @codejen/pack-web) – create an anchored .popover block (and its markup with --into)"
+  - ""
+  - "  + css/popover.css"
+  - "  ~ css/styles.css  + @import \"./popover.css\";"
+  - "  ~ index.html  + <button class=\"button\" popovertarget=\"menu\" style=\"anchor-name: --menu\">Menu</button> (+3 more)"
+  - ""
+  - "✓ 3 written"
+
+web_scroll:
+  - "$ jen web:scroll --into=index.html --dir=css"
+  - "web:scroll (pack @codejen/pack-web) – create scroll-driven animations: reading progress, reveal, parallax"
+  - ""
+  - "  + css/scroll.css"
+  - "  ~ css/styles.css  + @import \"./scroll.css\";"
+  - "  ~ index.html  + <div class=\"reading-progress\" aria-hidden=\"true\"></div>"
+  - ""
+  - "✓ 3 written"
+
+web_transitions:
+  - "$ jen web:transitions --style=slide --spa --dir=css"
+  - "web:transitions (pack @codejen/pack-web) – create view transitions between pages (and a same-document helper with --spa)"
+  - ""
+  - "  + css/transitions.css"
+  - "  ~ css/styles.css  + @import \"./transitions.css\";"
+  - "  + css/view-transition.js"
+  - ""
+  - "✓ 3 written"
+

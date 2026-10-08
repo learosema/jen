@@ -2,6 +2,8 @@
 
 **the code jen(erator)** – a scaffolding CLI. Extremely lightweight. Blazing fast. Zero extra dependencies.
 
+**Website: <https://learosema.github.io/jen/>**
+
 jen takes parameters from the command line (or their defaults), prints exactly what it does to your files. Generators are plain JavaScript or TypeScript modules, templates are template literals, and the whole thing is a single file with no dependencies beyond Node itself.
 
 ```
