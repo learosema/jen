@@ -47,7 +47,9 @@ export interface PageOptions {
 export function pageHtml(file: string, o: PageOptions): string {
   const dir = posix.dirname(file);
   const title = escape(o.site ? `${o.title} – ${o.site}` : o.title);
-  const base = o.url.replace(/\/+$/, '');
+  let end = o.url.length;
+  while (o.url[end - 1] === '/') end--;
+  const base = o.url.slice(0, end);
   const pageUrl = base ? `${base}/${file === 'index.html' ? '' : file}` : null;
   const image = o.image && base ? (/^https?:/.test(o.image) ? o.image : `${base}/${o.image.replace(/^\/+/, '')}`) : null;
   const icons = o.icons.map((icon) => ICONS.find(([name]) => name === posix.basename(icon))![1](relativeTo(dir, icon)));

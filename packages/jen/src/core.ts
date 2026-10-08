@@ -43,14 +43,16 @@ export type Action =
   | { add: string; template: string; force?: boolean }
   /**
    * Insert `line` before the marker line: the first line containing
-   * `before`, or the first line matching it if it's a RegExp. A single line
-   * reuses the marker's own indentation exactly; a `\n`-joined block is
+   * `before`, the first line matching it if it's a RegExp, or – a number –
+   * that line itself (1-based, e.g. from `--line=65`). A single line
+   * reuses the marker's own indentation exactly – one level deeper before a
+   * closing line (`</nav>`, `}`), where it goes inside; a `\n`-joined block is
    * re-rendered in the file's indent style, keeping the block's relative
    * nesting. No duplicates. With `path` instead of `line`, the line is the
    * path of that file, relative to the folder of the file inserted into –
    * how a build file lists its sources.
    */
-  | ({ insert: string | Find; before: string | RegExp } & ({ line: string } | { path: string }))
+  | ({ insert: string | Find; before: string | RegExp | number } & ({ line: string } | { path: string }))
   /**
    * Search and replace via RegExp. Also handy for removing lines. A
    * multi-line `replace` is reindented to match the first match's line.
@@ -62,7 +64,7 @@ export type Action =
 /** An action with its file resolved – a path from the project root – or skipped with a note. */
 export type Placed =
   | { add: string; template: string; force?: boolean }
-  | { insert: string; before: string | RegExp; line: string }
+  | { insert: string; before: string | RegExp | number; line: string }
   | { modify: string; pattern: RegExp; replace: string }
   | { delete: string }
   | { skip: string; note: string };
@@ -211,23 +213,37 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
         continue;
       }
       const marker = a.before;
-      const i = lines.findIndex((l) => {
-        if (typeof marker === 'string') return l.includes(marker);
-        marker.lastIndex = 0; // a /g or /y RegExp would otherwise carry state between lines
-        return marker.test(l);
-      });
+      // A file ending in a newline splits into one more (empty) element: the last line counts, the empty one doesn't.
+      const lineCount = text.endsWith('\n') ? lines.length - 1 : lines.length;
+      const i =
+        typeof marker === 'number'
+          ? Number.isInteger(marker) && marker >= 1 && marker <= lineCount + 1
+            ? marker - 1
+            : -1
+          : lines.findIndex((l) => {
+              if (typeof marker === 'string') return l.includes(marker);
+              marker.lastIndex = 0; // a /g or /y RegExp would otherwise carry state between lines
+              return marker.test(l);
+            });
       if (i < 0) {
-        steps.push({ mark: '?', file, note: `marker ${typeof marker === 'string' ? `"${marker}"` : String(marker)} not found` });
+        const note =
+          typeof marker === 'number'
+            ? `line ${marker} is not in the file (${lineCount} lines)`
+            : `marker ${typeof marker === 'string' ? `"${marker}"` : String(marker)} not found`;
+        steps.push({ mark: '?', file, note });
         continue;
       }
-      const baseIndent = lines[i].match(/^\s*/)?.[0] ?? '';
-      const rendered = reindentBlock(block, baseIndent, indentTargetFor(file, text));
+      const target = indentTargetFor(file, text);
+      // Before a closing line (`</nav>`, `}`, `)`, `]`), the insert goes inside: one level deeper.
+      const closing = /^\s*(?:<\/|[)}\]])/.test(lines[i]);
+      const baseIndent = (lines[i].match(/^\s*/)?.[0] ?? '') + (closing ? (target.style === 'tab' ? '\t' : ' '.repeat(target.size)) : '');
+      const rendered = reindentBlock(block, baseIndent, target);
       lines.splice(i, 0, ...rendered);
       changes.set(file, lines.join('\n'));
       steps.push({
         mark: '~',
         file,
-        note: `+ ${block[0].trim()}${block.length > 1 ? ` (+${block.length - 1} more)` : ''}`,
+        note: `+ ${block[0].trim()}${block.length > 1 ? ` (+${block.length - 1} more)` : ''}${typeof marker === 'number' ? ` at line ${marker}` : ''}`,
       });
     } else {
       const replace = a.replace.includes('\n')

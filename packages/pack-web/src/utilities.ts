@@ -13,7 +13,10 @@ export interface Tokens {
 
 const CSS = /\.css$/;
 
-const names = (css: string | null | undefined, pattern: RegExp): string[] => [...new Set([...(css ?? '').matchAll(pattern)].map((m) => m[1]))];
+// Matched per declaration with an anchored pattern: an unanchored global scan backtracks quadratically (ReDoS).
+const names = (css: string | null | undefined, pattern: RegExp): string[] => [
+  ...new Set((css ?? '').split(/[;{}]|\*\//).flatMap((decl) => pattern.exec(decl.trim())?.[1] ?? [])),
+];
 
 /** Role, step and space token names defined in the project. */
 export function projectTokens(ctx: Context): Tokens {
@@ -29,9 +32,9 @@ export function projectTokens(ctx: Context): Tokens {
 /** Token names defined in a palette and a fluid stylesheet (either may be missing). */
 export function tokensFrom(palette: string | null | undefined, fluid: string | null | undefined): Tokens {
   return {
-    roles: names(palette, /--color-([a-z0-9-]+): light-dark\(/g),
-    steps: names(fluid, /--step-(-?\d+):/g),
-    space: names(fluid, /--space-([a-z0-9-]+):/g),
+    roles: names(palette, /^--color-([a-z0-9-]+): light-dark\(/),
+    steps: names(fluid, /^--step-(-?\d+):/),
+    space: names(fluid, /^--space-([a-z0-9-]+):/),
   };
 }
 

@@ -225,6 +225,45 @@ describe('add + insert', () => {
     );
     assert.match(r.stdout, /marker \/\^nope\/ not found/);
   });
+
+  it('accepts a line number: inserts before that line, at its indentation', () => {
+    const dir = fixture({
+      'page.html': '<body>\n  <header>\n    <nav></nav>\n  </header>\n</body>\n',
+      '.jen/at.mjs': `export const actions = () => [
+        { insert: 'page.html', before: 3, line: '<button>Menu</button>' },
+        { insert: 'page.html', before: 3, line: '<button>Menu</button>' },
+        { insert: 'page.html', before: 7, line: '<footer></footer>' },
+        { insert: 'page.html', before: 9, line: 'never' },
+        { insert: 'page.html', before: 0, line: 'never' },
+      ];`,
+    });
+    const r = jen(['at'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    // The second insert is already present; line 7 is one past the (now 6-line) file, so the footer is appended.
+    assert.equal(read(dir, 'page.html'), '<body>\n  <header>\n    <button>Menu</button>\n    <nav></nav>\n  </header>\n</body>\n<footer></footer>\n');
+    assert.match(r.stdout, /\+ <button>Menu<\/button> at line 3/);
+    assert.match(r.stdout, /line 9 is not in the file \(7 lines\)/);
+    assert.match(r.stdout, /line 0 is not in the file/);
+  });
+
+  it('indents one level deeper before a closing line: the insert goes inside', () => {
+    const dir = fixture({
+      'page.html': '<body>\n  <nav>\n    <a href="/">Home</a>\n  </nav>\n</body>\n',
+      'app.js': 'function f() {\n\tg();\n}\n',
+      '.jen/inside.mjs': `export const actions = () => [
+        { insert: 'page.html', before: '</nav>', line: '<button>Menu</button>' },
+        { insert: 'page.html', before: /<\\/body>/, line: '<footer>\\n  <p>Hi</p>\\n</footer>' },
+        { insert: 'app.js', before: 3, line: 'h();' },
+      ];`,
+    });
+    const r = jen(['inside'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(
+      read(dir, 'page.html'),
+      '<body>\n  <nav>\n    <a href="/">Home</a>\n    <button>Menu</button>\n  </nav>\n  <footer>\n    <p>Hi</p>\n  </footer>\n</body>\n',
+    );
+    assert.equal(read(dir, 'app.js'), 'function f() {\n\tg();\n\th();\n}\n');
+  });
 });
 
 describe('--where (removed)', () => {
