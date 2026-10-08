@@ -2,5 +2,5 @@
   "packages/jen": "2.0.1",
   "packages/pack-cpp": "1.0.1",
   "packages/pack-glsl": "2.0.1",
-  "packages/pack-web": "0.0.0"
+  "packages/pack-web": "1.0.0"
 }
