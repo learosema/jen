@@ -5,7 +5,7 @@
    base.css. Everything here is :where(), so any component rule still wins. */
 
 :where(body, h1, h2, h3, h4, p, ul, ol, pre, figure) { margin: 0; }
-:where(.mini, .steps, .why, .actions, .langs ul) { list-style: none; padding: 0; }
+:where(.mini, .steps, .why, .actions, .langs ul, .packs) { list-style: none; padding: 0; }
 
 :where(section, .split:not(.code-split) > div, .doc, .toc) > :where(* + *) {
   margin-block-start: var(--flow-space, 1em);

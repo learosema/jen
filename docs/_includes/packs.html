@@ -1,0 +1,21 @@
+<section id="packs" class="reveal" aria-labelledby="packs-title">
+  <p class="kicker">Packs</p>
+  <h2 class="big" id="packs-title">Ready-made <em>generators</em>.</h2>
+  <ul class="packs auto-grid reveal" role="list">
+    {%- for pack in site.data.packs %}
+    <li>
+      {%- if pack.soon %}<div class="pack soon">{% else %}<a class="pack" href="{{ pack.url | relative_url }}">{% endif %}
+        <span class="badges cluster">
+          {%- for name in pack.langs %}
+          {%- assign lang = site.data.langs | where: "name", name | first %}
+          <b class="badge{% if lang.hex %} hex{% endif %}" style="--c:{{ lang.color }};--t:{{ lang.text }}" aria-hidden="true">{{ lang.badge }}</b>
+          {%- endfor %}
+        </span>
+        <strong>{{ pack.name }}</strong>
+        <span>{{ pack.text }}</span>
+        <span class="go">{% if pack.soon %}coming soon{% else %}recipes →{% endif %}</span>
+      {% if pack.soon %}</div>{% else %}</a>{% endif %}
+    </li>
+    {%- endfor %}
+  </ul>
+</section>

@@ -14,7 +14,7 @@
 .steps li, .facts > div { background: var(--bg); }
 
 /* a raised box */
-.why li, .cards .card {
+.why li, .cards .card, .pack {
   background: var(--card);
   border: thin solid var(--border);
   border-radius: var(--radius-m);
@@ -52,7 +52,7 @@
 .switch .knob, .switch .knob::after { border-radius: var(--radius-pill); }
 
 /* one transition for everything interactive, so hover states don't each declare their own */
-:where(a, button, li, .lang b, .switch .knob, .switch .knob::after) {
+:where(a, button, li, .badge, .switch .knob, .switch .knob::after) {
   transition: 0.2s;
   transition-property: color, background-color, border-color, box-shadow, transform, opacity;
 }

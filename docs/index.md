@@ -74,6 +74,8 @@ The project root, found by walking up to the nearest `.jen/`, `package.json` or 
 </div>
 </section>
 
+{% include packs.html %}
+
 <section id="write" class="reveal" markdown="1">
 
 Make it yours

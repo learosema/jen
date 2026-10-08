@@ -4,9 +4,7 @@ header:
   - { title: how, url: "/#how" }
   - { title: where files go, url: "/#where" }
   - { title: write your own, url: "/#write" }
-  - { title: cpp recipes, url: "/recipes.html" }
-  - { title: glsl recipes, url: "/glsl.html" }
-  - { title: web recipes, url: "/web.html" }
+  - { title: packs, url: "/#packs", current: packs }
   - { title: github, url: "https://github.com/learosema/jen" }
   - { title: npm, url: "https://www.npmjs.com/package/@codejen/jen" }
 

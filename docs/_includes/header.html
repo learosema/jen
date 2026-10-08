@@ -1,9 +1,10 @@
 <header class="bar">
   <a class="logo" href="{{ '/' | relative_url }}">jen<i>.</i></a>
+  {%- assign pack_urls = site.data.packs | map: "url" %}
   <nav class="cluster">
     {%- for item in site.data.nav.header %}
     {%- assign internal = item.url | slice: 0 | eq: "/" %}
-    <a href="{% if internal %}{{ item.url | relative_url }}{% else %}{{ item.url }}{% endif %}"{% if item.url == page.url %} aria-current="page"{% endif %}>{{ item.title }}</a>
+    <a href="{% if internal %}{{ item.url | relative_url }}{% else %}{{ item.url }}{% endif %}"{% if item.url == page.url or item.current == "packs" and pack_urls contains page.url %} aria-current="page"{% endif %}>{{ item.title }}</a>
     {%- endfor %}
     <button class="pill theme" type="button" aria-label="Toggle color theme">☾</button>
   </nav>
