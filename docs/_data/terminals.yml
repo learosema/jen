@@ -715,3 +715,134 @@ web_transitions:
   - ""
   - "✓ 3 written"
 
+
+js_install_global:
+  - "$ npm install -g @codejen/jen @codejen/pack-js"
+  - "$ jen js:element --name=my-counter --attrs=count:number"
+
+js_install_local:
+  - "$ npm install --save-dev @codejen/jen @codejen/pack-js"
+  - "$ npx jen js:element --name=my-counter --attrs=count:number"
+
+js_install_npx:
+  - "$ npx @codejen/jen js:element --name=my-counter --attrs=count:number"
+
+js_element:
+  - "$ jen js:element --name=star-rating --attrs=max:number,readonly:boolean --events=\"change:{value:number}\" --form --into=index.html --dir=src/components"
+  - "js:element (pack @codejen/pack-js) – create a custom element with typed attributes and events (--into loads it from a page or module)"
+  - ""
+  - "  + src/components/star-rating.ts"
+  - "  ~ index.html  + <star-rating></star-rating>"
+  - "  ~ index.html  + <script type=\"module\" src=\"./src/components/star-rating.ts\"></script>"
+  - ""
+  - "✓ 2 written"
+
+js_element_jsdoc:
+  - "$ jen js:element --name=my-counter --attrs=count:number --events=change --dir=src/components"
+  - "js:element (pack @codejen/pack-js) – create a custom element with typed attributes and events (--into loads it from a page or module)"
+  - ""
+  - "  + src/components/my-counter.js"
+  - "  + src/components/elements.d.ts"
+  - "  ~ src/components/elements.d.ts  + 'my-counter': import('./my-counter.js').MyCounter;"
+  - ""
+  - "✓ 2 written"
+
+js_roving:
+  - "$ jen js:roving --dir=src/lib"
+  - "js:roving (pack @codejen/pack-js) – create roving tabindex for toolbars, tab lists, radio groups and listboxes (ARIA APG)"
+  - ""
+  - "  + src/lib/roving-tabindex.ts"
+  - ""
+  - "✓ 1 written"
+
+js_menu:
+  - "$ jen js:menu --dir=src/lib"
+  - "js:menu (pack @codejen/pack-js) – create menu and menubar keyboard interaction: arrows, Home/End, typeahead, Escape, popover-aware (ARIA APG)"
+  - ""
+  - "  + src/lib/menu.ts"
+  - ""
+  - "✓ 1 written"
+
+js_grid:
+  - "$ jen js:grid --dir=src/lib"
+  - "js:grid (pack @codejen/pack-js) – create two-dimensional grid navigation with arrows, Home/End, Page Up/Down (ARIA APG)"
+  - ""
+  - "  + src/lib/grid-navigation.ts"
+  - ""
+  - "✓ 1 written"
+
+js_hotkeys:
+  - "$ jen js:hotkeys --dir=src/lib"
+  - "js:hotkeys (pack @codejen/pack-js) – create a hotkeys registry: scoped bindings, modifiers, ignores typing, optional help overlay"
+  - ""
+  - "  + src/lib/hotkeys.ts"
+  - ""
+  - "✓ 1 written"
+
+js_class:
+  - "$ jen js:class --name=timer --fields=id:number,label:string --disposable --withTest --dir=src/lib"
+  - "js:class (pack @codejen/pack-js) – create a class with #private fields, getters and a static create() (--disposable adds Symbol.dispose)"
+  - ""
+  - "  + src/lib/timer.ts"
+  - "  + src/lib/timer.test.ts"
+  - ""
+  - "✓ 2 written"
+
+js_enum:
+  - "$ jen js:enum --name=direction --values=up,down,left,right --withTest --dir=src/lib"
+  - "js:enum (pack @codejen/pack-js) – create an enum as an `as const` object with its union type and a type guard"
+  - ""
+  - "  + src/lib/direction.ts"
+  - "  + src/lib/direction.test.ts"
+  - ""
+  - "✓ 2 written"
+
+js_union:
+  - "$ jen js:union --name=shape --cases=\"circle:{radius:number},square:{size:number}\" --withTest --dir=src/lib"
+  - "js:union (pack @codejen/pack-js) – create a tagged union type with an exhaustively checked match function"
+  - ""
+  - "  + src/lib/shape.ts"
+  - "  + src/lib/shape.test.ts"
+  - ""
+  - "✓ 2 written"
+
+js_brand:
+  - "$ jen js:brand --name=user-id --dir=src/lib"
+  - "js:brand (pack @codejen/pack-js) – create a branded type with a type guard and a checked constructor"
+  - ""
+  - "  + src/lib/user-id.ts"
+  - ""
+  - "✓ 1 written"
+
+js_error:
+  - "$ jen js:error --name=not-found --fields=path:string --dir=src/lib"
+  - "js:error (pack @codejen/pack-js) – create an Error subclass with its own name, extra fields and cause"
+  - ""
+  - "  + src/lib/not-found-error.ts"
+  - ""
+  - "✓ 1 written"
+
+js_emitter:
+  - "$ jen js:emitter --name=store --events=\"change:{value:number},reset\" --dir=src/lib"
+  - "js:emitter (pack @codejen/pack-js) – create an EventTarget subclass with a typed event map"
+  - ""
+  - "  + src/lib/store.ts"
+  - ""
+  - "✓ 1 written"
+
+js_module:
+  - "$ jen js:module --name=format-date --withTest --dir=src/lib"
+  - "js:module (pack @codejen/pack-js) – create a module exporting a function of the same name"
+  - ""
+  - "  + src/lib/format-date.ts"
+  - "  + src/lib/format-date.test.ts"
+  - ""
+  - "✓ 2 written"
+
+js_test:
+  - "$ jen js:test --name=slugify --dir=src/lib"
+  - "js:test (pack @codejen/pack-js) – create a test file for a module: node:test, or Vitest in a Vite project"
+  - ""
+  - "  + src/lib/slugify.test.ts"
+  - ""
+  - "✓ 1 written"

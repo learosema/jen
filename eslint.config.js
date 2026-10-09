@@ -32,5 +32,12 @@ export default defineConfig(
         ...globals.browser,
       },
     },
+  },
+  {
+    // pack-js's elements.d.ts starts as an empty augmentation of HTMLElementTagNameMap.
+    files: ['packages/*/templates/**/*.d.ts'],
+    rules: {
+      '@typescript-eslint/no-empty-object-type': 'off',
+    },
   }
 );

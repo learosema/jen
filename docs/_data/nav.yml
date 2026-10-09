@@ -12,5 +12,6 @@ footer:
   - { title: cpp pack recipes, url: "/recipes.html" }
   - { title: glsl pack recipes, url: "/glsl.html" }
   - { title: web pack recipes, url: "/web.html" }
+  - { title: js pack recipes, url: "/js.html" }
   - { title: GitHub, url: "https://github.com/learosema/jen" }
   - { title: npm, url: "https://www.npmjs.com/package/@codejen/jen" }
