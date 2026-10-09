@@ -7,3 +7,4 @@ docs/vendor
 docs/Gemfile.lock
 docs/glsl
 docs/web
+docs/js

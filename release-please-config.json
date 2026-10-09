@@ -15,6 +15,9 @@
     },
     "packages/pack-web": {
       "component": "pack-web"
+    },
+    "packages/pack-js": {
+      "component": "pack-js"
     }
   }
 }

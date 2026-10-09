@@ -1,0 +1,49 @@
+{
+  "name": "@codejen/pack-js",
+  "version": "0.0.0",
+  "description": "jen pack for TypeScript and JavaScript: web components, ARIA keyboard patterns and type patterns, as TypeScript, JSDoc or plain JavaScript",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/learosema/jen.git",
+    "directory": "packages/pack-js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "pretypecheck": "npm run build --prefix ../jen",
+    "prebuild": "npm run build --prefix ../jen",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "typecheck": "tsc",
+    "test": "node --test pack-js.test.ts",
+    "prepublishOnly": "npm test && npm run typecheck && npm run build"
+  },
+  "keywords": [
+    "jen-pack",
+    "typescript",
+    "javascript",
+    "jsdoc",
+    "web-components",
+    "a11y"
+  ],
+  "author": "Lea Rosema",
+  "license": "ISC",
+  "peerDependencies": {
+    "@codejen/jen": "^2.0.0"
+  },
+  "devDependencies": {
+    "@codejen/jen": "^2.0.0",
+    "@types/node": "^26.6.3",
+    "typescript": "^6.0.3"
+  }
+}
