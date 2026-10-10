@@ -72,7 +72,7 @@ const typeOnly = (block: string): boolean => {
   const first = block
     .replace(/^\s*\/\*\*/, '')
     .split('\n')
-    .map((line) => line.replace(/^\s*\*?\s*/, '').trim())
+    .map((line) => line.replace(/^\s*(\*\s*)?/, '').trim())
     .find(Boolean);
   return first !== undefined && TYPE_TAG.test(first);
 };

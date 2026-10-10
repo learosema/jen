@@ -44,14 +44,36 @@ export function parseNamed(text: string, param: string, name = /^[A-Za-z_$][\w$-
   return items;
 }
 
-/** `{value:number}` → `{ value: number }`. */
-export const formatType = (type: string): string =>
-  type
-    .replace(/\s*([:,;])\s*/g, '$1 ')
-    .replace(/\{\s*/g, '{ ')
-    .replace(/\s*\}/g, ' }')
-    .replace(/\{\s+\}/g, '{}')
-    .replace(/\s+$/, '');
+/** `{value:number}` → `{ value: number }`, in one pass – regexes around runs of whitespace backtrack quadratically on user input. */
+export function formatType(type: string): string {
+  const out: string[] = [];
+  const space = () => {
+    if (out.length && out[out.length - 1] !== ' ') out.push(' ');
+  };
+  const unspace = () => {
+    if (out[out.length - 1] === ' ') out.pop();
+  };
+  for (const ch of type) {
+    if (/\s/.test(ch)) {
+      space();
+    } else if (ch === ':' || ch === ',' || ch === ';') {
+      unspace();
+      out.push(ch);
+      space();
+    } else if (ch === '{') {
+      out.push(ch);
+      space();
+    } else if (ch === '}') {
+      unspace();
+      if (out[out.length - 1] !== '{') out.push(' ');
+      out.push(ch);
+    } else {
+      out.push(ch);
+    }
+  }
+  unspace();
+  return out.join('');
+}
 
 /** An object key: bare if it's an identifier, quoted otherwise. */
 export const key = (name: string): string => (/^[A-Za-z_$][\w$]*$/.test(name) ? name : `'${name}'`);
