@@ -1,6 +1,6 @@
 {
   "name": "@codejen/pack-js",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "jen pack for TypeScript and JavaScript: web components, ARIA keyboard patterns and type patterns, as TypeScript, JSDoc or plain JavaScript",
   "type": "module",
   "main": "./dist/index.js",
