@@ -137,6 +137,12 @@ describe('list params', () => {
 
   it('formats types and makes samples of them', () => {
     assert.equal(formatType('{value:number,ok?:boolean}'), '{ value: number, ok?: boolean }');
+    assert.equal(formatType('  {  a :  string ;b:{c:number} }  '), '{ a: string; b: { c: number } }');
+    assert.equal(formatType('{ }'), '{}');
+    assert.equal(formatType('(n:number)=>void'), '(n: number)=>void');
+    const start = performance.now();
+    for (const hostile of [' '.repeat(100_000), `{${' '.repeat(100_000)}x`, `a${' \t'.repeat(50_000)}b`]) formatType(hostile);
+    assert.ok(performance.now() - start < 1000, 'no quadratic backtracking');
     assert.equal(sample('{ value: number, tags: string[], kind: "a" | "b" }', 'ts'), `{ value: 0, tags: [], kind: "a" }`);
     assert.equal(sample('Date', 'ts'), 'undefined as never');
     assert.equal(sample('Date', 'jsdoc'), '/** @type {never} */ (undefined)');
