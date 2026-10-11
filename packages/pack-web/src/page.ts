@@ -6,7 +6,7 @@ import { sentence } from './html.ts';
 import { fill, template } from './templates.ts';
 
 /** Icon and manifest files a page links to when the project has them (at its root or in public/). */
-const ICONS: [string, (href: string) => string][] = [
+export const ICONS: [string, (href: string) => string][] = [
   ['favicon.ico', (href) => `<link rel="icon" href="${href}" sizes="32x32">`],
   ['favicon.svg', (href) => `<link rel="icon" href="${href}" type="image/svg+xml">`],
   ['apple-touch-icon.png', (href) => `<link rel="apple-touch-icon" href="${href}">`],
@@ -16,18 +16,22 @@ const ICONS: [string, (href: string) => string][] = [
 const escape = (s: string): string => s.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
 
 /** `path` (from the project root) as seen from the folder `from`. */
-const relativeTo = (from: string, path: string): string => {
+export const relativeTo = (from: string, path: string): string => {
   const rel = posix.relative(from, path);
   return rel.startsWith('.') ? rel : `./${rel}`;
 };
 
 /** The palette's page background in light and dark mode, if there is a palette. */
-function surfaces(ctx: Context): [string, string] | null {
+export function surfaces(ctx: Context): [string, string] | null {
   const css = ctx.grep(/\.css$/, '--color-neutral-1:').map((f) => ctx.read(f) ?? '')[0];
   const shade = (n: number) => new RegExp(`--color-neutral-${n}: (#[0-9a-f]{6});`).exec(css ?? '')?.[1];
   const [light, dark] = [shade(1), shade(6)];
   return light && dark ? [light, dark] : null;
 }
+
+/** Which of `names` the project has, at its root or in public/, as the paths they're served at. */
+export const iconsIn = (ctx: Context, names: string[]): string[] =>
+  names.flatMap((icon) => [icon, `public/${icon}`]).filter((p) => ctx.exists(p)).map((p) => p.replace(/^public\//, ''));
 
 export interface PageOptions {
   title: string;
@@ -87,7 +91,6 @@ const pageGenerator: Generator = {
   actions: (answers, { kebab }, ctx) => {
     const name = kebab(String(answers.name));
     const file = posix.join(ctx.destDir, `${name}.html`);
-    const icons = ICONS.flatMap(([icon]) => [icon, `public/${icon}`]).filter((p) => ctx.exists(p));
     const html = pageHtml(file, {
       title: String(answers.title) || sentence(name),
       site: String(answers.site),
@@ -98,7 +101,7 @@ const pageGenerator: Generator = {
       imageAlt: String(answers.imageAlt),
       stylesheet: findEntry(ctx),
       script: answers.script ? String(answers.script).replace(/^\//, '') : null,
-      icons: icons.map((p) => p.replace(/^public\//, '')),
+      icons: iconsIn(ctx, ICONS.map(([icon]) => icon)),
       themeColors: surfaces(ctx),
     });
     return [{ add: `${name}.html`, template: html }];

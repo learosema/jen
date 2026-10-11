@@ -22,6 +22,7 @@
   },
   "scripts": {
     "pretypecheck": "npm run build --prefix ../jen",
+    "pretest": "npm run build --prefix ../jen",
     "prebuild": "npm run build --prefix ../jen",
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
     "typecheck": "tsc",

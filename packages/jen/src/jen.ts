@@ -16,6 +16,8 @@ import { main } from './cli.ts';
 
 export type { Action, AnyGenerator, Answers, Args, Context, Find, Generator, Helpers, Pack, PackEnv, PackFactory, Params, Probe } from './core.ts';
 export { helpers } from './core.ts';
+export type { Types } from './style.ts';
+export { TYPES_PARAM, detectTypes, ext, importExt, pick, source, stripTypes, typesFor } from './style.ts';
 
 // Only run as a program, not when jen.ts is imported (e.g. for its types).
 const isMain = (() => {

@@ -20,6 +20,14 @@ import { COMMANDS_JS } from './src/html.ts';
 import { tokensFrom } from './src/utilities.ts';
 import { fill } from './src/templates.ts';
 import { Script } from 'node:vm';
+import { spawn, spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
+import { stripTypeScriptTypes } from 'node:module';
+import { tmpdir } from 'node:os';
+import { extname, join } from 'node:path';
+import { hexColor, maskableSvg, paletteColor } from './src/manifest.ts';
+import { findConverter, iconSvg } from './src/png.ts';
 
 const words = (s: string): string[] => s.replace(/([a-z0-9])([A-Z])/g, '$1 $2').split(/[\s_\-./]+/).filter(Boolean);
 /** The one jen helper these generators use. */
@@ -37,7 +45,13 @@ function context(files: Record<string, string>, destDir = '.'): Context {
     read: (p) => files[p] ?? null,
     readdir: (dir) =>
       [...new Set(paths.filter((f) => dir === '.' || f.startsWith(`${dir}/`)).map((f) => (dir === '.' ? f : f.slice(dir.length + 1)).split('/')[0]))].sort(),
-    findUp: () => null,
+    findUp: (name, text, from = '.') => {
+      for (let dir = from; ; dir = posix.dirname(dir)) {
+        const file = dir === '.' ? name : `${dir}/${name}`;
+        if (file in files && (!text || files[file].includes(text))) return file;
+        if (dir === '.') return null;
+      }
+    },
     grep: (name, text) =>
       paths
         .filter((f) => (typeof name === 'string' ? posix.basename(f) === name : name.test(posix.basename(f))))
@@ -54,6 +68,7 @@ function run(generator: string, answers: Answers, ctx: Context): Action[] {
 
 const added = (actions: Action[]) => actions.flatMap((a) => ('add' in a ? [a.add] : []));
 const inserts = (actions: Action[]) => actions.flatMap((a) => ('insert' in a ? [a] : []));
+const lines = (actions: Action[]) => inserts(actions).map((a) => ('line' in a ? a.line : ''));
 const template = (actions: Action[], file: string) => {
   const a = actions.find((x) => 'add' in x && x.add === file);
   return a && 'template' in a ? a.template : assert.fail(`no ${file} added`);
@@ -510,5 +525,310 @@ describe('--line', () => {
     assert.throws(() => run('scroll', { into: '/index.html', line: '0' }, context(page, 'css')), /"0" is not a line number/);
     assert.throws(() => run('dialog', { name: 'x', into: '/index.html', line: '40' }, context(page, 'css')), /index\.html has 3 lines, there is no line 40/);
     assert.equal(inserts(run('scroll', { into: '/index.html', line: '4' }, context(page, 'css')))[1].before, 4, 'one past the end appends');
+  });
+});
+
+describe('web:manifest', () => {
+  const json = (actions: Action[], file = 'manifest.webmanifest') => JSON.parse(template(actions, file));
+
+  it('writes a manifest with neutral colors and no icons in a bare project', () => {
+    const m = json(run('manifest', { name: 'My Site' }, context({})));
+    assert.deepEqual(m, {
+      name: 'My Site',
+      short_name: 'My Site',
+      start_url: './',
+      scope: './',
+      display: 'standalone',
+      theme_color: '#ffffff',
+      background_color: '#ffffff',
+      icons: [],
+      lang: 'en',
+      dir: 'ltr',
+    });
+    assert.equal(json(run('manifest', { name: 'Codejen Notebook Pro' }, context({}))).short_name, 'Codejen');
+    assert.equal(json(run('manifest', { name: 'x', lang: 'he-IL' }, context({}))).dir, 'rtl');
+  });
+
+  it('takes primary and surface from the palette, as hex', () => {
+    const palette = paletteCss({ primary: '#5b5bd6', contrast: 'aaa' });
+    const ctx = context({ 'css/palette.css': palette });
+    const m = json(run('manifest', { name: 'x' }, ctx));
+    assert.equal(m.theme_color, paletteColor(ctx, 'primary'));
+    assert.equal(m.background_color, /--color-neutral-1: (#[0-9a-f]{6});/.exec(palette)![1]);
+    assert.match(m.theme_color, /^#[0-9a-f]{6}$/);
+  });
+
+  it('converts color flags to hex, and refuses what it cannot read', () => {
+    assert.equal(hexColor('#abc', '--x'), '#aabbcc');
+    assert.equal(hexColor('oklch(1 0 0)', '--x'), '#ffffff');
+    assert.match(hexColor('264', '--x'), /^#[0-9a-f]{6}$/);
+    const m = json(run('manifest', { name: 'x', themeColor: '#123456', backgroundColor: 'oklch(0 0 0)' }, context({})));
+    assert.deepEqual([m.theme_color, m.background_color], ['#123456', '#000000']);
+    assert.throws(() => run('manifest', { name: 'x', themeColor: 'teal' }, context({})), /--themeColor: "teal" is not a color/);
+    assert.throws(() => run('manifest', { name: 'x', display: 'window' }, context({})), /--display: expected fullscreen, standalone, minimal-ui, browser/);
+  });
+
+  it('lists the icons that exist, and makes a maskable one from favicon.svg', () => {
+    const ctx = context({ 'package.json': '{ "devDependencies": { "vite": "^7" } }', 'public/favicon.svg': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"/>', 'public/icon-512.png': '' });
+    const actions = run('manifest', { name: 'x' }, ctx);
+    assert.deepEqual(added(actions), ['/public/manifest.webmanifest', '/public/icon-maskable.svg']);
+    assert.deepEqual(
+      json(actions, '/public/manifest.webmanifest').icons.map((i: Record<string, string>) => `${i.src} ${i.sizes} ${i.purpose}`),
+      ['favicon.svg any any', 'icon-maskable.svg any maskable', 'icon-512.png 512x512 any'],
+    );
+  });
+
+  it('fits favicon.svg into the safe zone of the maskable icon', () => {
+    const svg = maskableSvg('<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle r="1"/></svg>\n', '#eeeeee');
+    assert.match(svg, /<rect width="100" height="100" fill="#eeeeee"\/>/);
+    assert.match(svg, /<svg x="21\.7" y="21\.7" width="56\.6" height="56\.6" viewBox="0 0 32 32" xmlns="http:\/\/www\.w3\.org\/2000\/svg"><circle r="1"\/><\/svg>/);
+    assert.doesNotMatch(svg, /<\?xml/);
+    assert.match(maskableSvg('<svg viewBox="0 0 8 8" width="1em"></svg>', '#fff'), /<svg x="21\.7" y="21\.7" width="56\.6" height="56\.6" viewBox="0 0 8 8"><\/svg>/);
+  });
+
+  it('--png needs favicon.svg, and rsvg-convert or ImageMagick', () => {
+    assert.throws(() => run('manifest', { name: 'x', png: true }, context({})), /--png: renders the PNGs from favicon\.svg, and there is none/);
+    const path = process.env.PATH;
+    process.env.PATH = '';
+    try {
+      assert.throws(() => run('manifest', { name: 'x', png: true }, context({ 'favicon.svg': '<svg/>' })), /--png: needs rsvg-convert \(librsvg\) or ImageMagick \(magick\) on the PATH/);
+    } finally {
+      process.env.PATH = path;
+    }
+  });
+
+  it('frames the apple-touch-icon on the background, and leaves the others edge to edge', () => {
+    const favicon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><circle r="4"/></svg>';
+    assert.equal(
+      iconSvg(favicon, { file: 'a.png', size: 180, frame: { background: '#123456', inset: 20 / 180 } }),
+      '<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 100 100"><rect width="100" height="100" fill="#123456"/><svg x="11.1" y="11.1" width="77.8" height="77.8" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"><circle r="4"/></svg></svg>\n',
+    );
+    assert.match(iconSvg(favicon, { file: 'b.png', size: 512, frame: null }), /^<svg [^>]*width="512" height="512"[^>]*><svg x="0" y="0" width="100" height="100"/);
+  });
+
+  it('--png renders the icons next to favicon.svg and lists them', { skip: !findConverter() && 'no rsvg-convert or ImageMagick' }, () => {
+    const favicon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="#5b5bd6"/></svg>';
+    const ctx = context({ 'public/favicon.svg': favicon, 'index.html': '<head>\n</head>\n' });
+    const actions = run('manifest', { name: 'x', png: true, into: '/index.html' }, ctx);
+    const pngs = actions.flatMap((a) => ('bytes' in a ? [a] : []));
+    // A PNG's size sits in its IHDR chunk, as two big-endian 32-bit numbers from byte 16.
+    const size = (bytes: Uint8Array) => {
+      const view = new DataView(bytes.buffer, bytes.byteOffset);
+      return `${view.getUint32(16)}x${view.getUint32(20)}`;
+    };
+    assert.deepEqual(
+      pngs.map((a) => `${a.add} ${size(a.bytes)}`),
+      ['/public/icon-192.png 192x192', '/public/icon-512.png 512x512', '/public/apple-touch-icon.png 180x180'],
+    );
+    assert.ok(pngs.every((a) => Buffer.from(a.bytes.subarray(1, 4)).toString() === 'PNG'));
+    const icons = JSON.parse(template(actions, '/public/manifest.webmanifest')).icons.map((i: Record<string, string>) => `${i.src} ${i.sizes}`);
+    assert.deepEqual(icons.slice(2), ['icon-192.png 192x192', 'icon-512.png 512x512']);
+    assert.equal(lines(actions)[0], '<link rel="apple-touch-icon" href="./apple-touch-icon.png">');
+  });
+
+  it('--into links the manifest and the theme colors in the head', () => {
+    const page = { 'pages/about.html': '<head>\n</head>\n<body>\n</body>\n' };
+    const plain = run('manifest', { name: 'x', into: '/pages/about.html' }, context(page));
+    assert.deepEqual(lines(plain), ['<link rel="manifest" href="../manifest.webmanifest">', '<meta name="theme-color" content="#ffffff">']);
+    assert.ok(inserts(plain).every((a) => String(a.before) === String(/<\/head>/)));
+    const themed = lines(run('manifest', { name: 'x', into: '/pages/about.html' }, context({ ...page, 'palette.css': paletteCss({ primary: '#5b5bd6', contrast: 'aaa' }) })));
+    assert.match(themed[1], /media="\(prefers-color-scheme: light\)"/);
+    assert.match(themed[2], /media="\(prefers-color-scheme: dark\)"/);
+  });
+});
+
+describe('web:sw', () => {
+  const site = {
+    'package.json': '{ "name": "@me/my-site" }',
+    'styles.css': '@import "./reset.css";\n@import "./blocks/card.css";\n/* jen:imports */',
+    'reset.css': '',
+    'blocks/card.css': '@import "../reset.css";',
+    'index.html': '<body>\n</body>\n',
+    'about.html': '',
+  };
+
+  it('writes the service worker, precaching the pages and the stylesheets, and a module that registers it', () => {
+    const actions = run('sw', {}, context(site));
+    assert.deepEqual(added(actions), ['sw.js', 'register-sw.js']);
+    const sw = template(actions, 'sw.js');
+    assert.match(sw, /^\/\/ Caching strategies after Jake Archibald's Offline Cookbook: https:\/\/web\.dev\/articles\/offline-cookbook/);
+    assert.match(sw, /const PREFIX = 'my-site-';/);
+    assert.match(sw, /const PRECACHE = \[\n {2}'\.\/about\.html',\n {2}'\.\/',\n {2}'\.\/styles\.css',\n {2}'\.\/reset\.css',\n {2}'\.\/blocks\/card\.css',\n\];/);
+    assert.match(sw, /const OFFLINE_PAGE = null;/);
+    assert.match(sw, /async function fromCache\(\{ request \}\)/);
+    assert.doesNotThrow(() => new Script(sw), 'sw.js is valid JavaScript');
+    const register = template(actions, 'register-sw.js');
+    assert.match(register, /const SW_URL = new URL\('\.\/sw\.js', import\.meta\.url\);/);
+    assert.match(register, /if \('serviceWorker' in navigator\)/);
+    assert.doesNotMatch(register, /@ts-check|@param|\{\{/);
+  });
+
+  it('--strategy=swr revalidates in the background; --precache lists the files', () => {
+    const sw = template(run('sw', { strategy: 'swr', precache: 'app.css, /logo.svg,./a.js' }, context(site)), 'sw.js');
+    assert.match(sw, /stale-while-revalidate/);
+    assert.match(sw, /event\.waitUntil\(fresh\.catch/);
+    assert.match(sw, /const PRECACHE = \[\n {2}'\.\/app\.css',\n {2}'\/logo\.svg',\n {2}'\.\/a\.js',\n\];/);
+    assert.doesNotThrow(() => new Script(sw));
+    assert.throws(() => run('sw', { strategy: 'network-only' }, context(site)), /--strategy: expected cache-first or swr, got "network-only"/);
+  });
+
+  it('--offline writes an offline page through web:page\'s template and precaches it', () => {
+    const actions = run('sw', { offline: true }, context(site));
+    assert.deepEqual(added(actions), ['sw.js', 'offline.html', 'register-sw.js']);
+    assert.match(template(actions, 'offline.html'), /<title>Offline<\/title>[\s\S]*<link rel="stylesheet" href="\.\/styles\.css">/);
+    const sw = template(actions, 'sw.js');
+    assert.match(sw, /const OFFLINE_PAGE = '\.\/offline\.html';/);
+    assert.match(sw, /'\.\/offline\.html',\n\];/);
+  });
+
+  it('writes valid JavaScript and TypeScript in every variant', (t) => {
+    const dir = mkdtempSync(join(tmpdir(), 'jen-sw-check-'));
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    const variants = [
+      run('sw', { offline: true }, context(site)),
+      run('sw', { strategy: 'swr', types: 'jsdoc' }, context(site)),
+      run('sw', { types: 'ts' }, context(site)),
+      run('sw', {}, context({ 'package.json': '{ "devDependencies": { "vite": "^7" } }' })),
+    ];
+    // Without the test runner's NODE_TEST_CONTEXT, which turns a child `node --check` into a no-op; TypeScript is stripped first.
+    const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => k !== 'NODE_TEST_CONTEXT'));
+    variants.flat().forEach((a, i) => {
+      if (!('template' in a) || !/\.[jt]s$/.test(a.add)) return;
+      const file = join(dir, `${i}.mjs`);
+      writeFileSync(file, a.add.endsWith('.ts') ? stripTypeScriptTypes(a.template) : a.template);
+      const check = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8', env });
+      assert.equal(check.status, 0, `${a.add}: ${check.stderr}`);
+    });
+  });
+
+  it('writes the register module in the project\'s style', () => {
+    const ts = template(run('sw', {}, context({ ...site, 'tsconfig.json': '{}' })), 'register-sw.ts');
+    assert.match(ts, /'sw-update': CustomEvent<SwUpdate>;/);
+    assert.match(ts, /async function register\(\): Promise<void>/);
+    const jsdoc = template(run('sw', { types: 'jsdoc' }, context(site)), 'register-sw.js');
+    assert.match(jsdoc, /^\/\/ @ts-check\n/);
+    assert.match(jsdoc, /@param \{ServiceWorker\} worker/);
+    assert.throws(() => run('sw', { types: 'flow' }, context(site)), /web:sw --types: expected ts, jsdoc or none, got "flow"/);
+  });
+
+  it('serves from public/ in a Vite project, registered only in production builds', () => {
+    const vite = { 'package.json': '{ "devDependencies": { "vite": "^7" } }', 'index.html': '', 'src/style.css': '/* jen:imports */' };
+    const actions = run('sw', {}, context(vite, 'src'));
+    assert.deepEqual(added(actions), ['/public/sw.js', 'register-sw.js']);
+    assert.match(template(actions, '/public/sw.js'), /const PRECACHE = \[\n {2}'\.\/',\n\];/, 'the bundler builds the stylesheets');
+    const register = template(actions, 'register-sw.js');
+    assert.match(register, /const SW_URL = `\$\{import\.meta\.env\.BASE_URL\}sw\.js`;/);
+    assert.match(register, /if \(import\.meta\.env\.PROD && 'serviceWorker' in navigator\)/);
+  });
+
+  it('--into loads the register module from a page or a module', () => {
+    assert.deepEqual(lines(run('sw', { into: '/index.html' }, context(site, 'js'))), ['<script type="module" src="./js/register-sw.js"></script>']);
+    assert.deepEqual(lines(run('sw', { into: '/src/main.ts' }, context({ ...site, 'tsconfig.json': '{}', 'src/main.ts': '' }, 'src'))), ["import './register-sw.js';"]);
+  });
+});
+
+/** Chromium for the browser test: $CHROME, else a usual install; the test is skipped without one. */
+const CHROME = [process.env.CHROME, '/usr/bin/chromium', '/usr/bin/google-chrome', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'].find(
+  (p) => p && existsSync(p),
+);
+
+/** A minimal Chrome DevTools protocol client over the WebSocket Node has built in. */
+function devtools(url: string) {
+  const ws = new WebSocket(url);
+  let id = 0;
+  const pending = new Map<number, { resolve: (v: Record<string, unknown>) => void; reject: (e: Error) => void }>();
+  const waiting: { method: string; resolve: () => void }[] = [];
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(String(e.data));
+    const call = pending.get(msg.id);
+    if (call) {
+      pending.delete(msg.id);
+      if (msg.error) call.reject(new Error(msg.error.message));
+      else call.resolve(msg.result);
+    }
+    for (const w of waiting.filter((w) => w.method === msg.method)) {
+      waiting.splice(waiting.indexOf(w), 1);
+      w.resolve();
+    }
+  };
+  return {
+    open: new Promise((resolve) => (ws.onopen = resolve)),
+    send: (method: string, params: Record<string, unknown> = {}, sessionId?: string) =>
+      new Promise<Record<string, unknown>>((resolve, reject) => {
+        pending.set(++id, { resolve, reject });
+        ws.send(JSON.stringify({ id, method, params, sessionId }));
+      }),
+    next: (method: string) => new Promise<void>((resolve) => waiting.push({ method, resolve })),
+    close: () => ws.close(),
+  };
+}
+
+const MIME: Record<string, string> = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.webmanifest': 'application/manifest+json' };
+
+describe('web:sw in a browser', { skip: !CHROME && 'no Chromium found (set CHROME)' }, () => {
+  it('serves cached pages, and the offline page for the rest, once offline', { timeout: 60_000 }, async (t) => {
+    const dir = mkdtempSync(join(tmpdir(), 'jen-sw-'));
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    const files: Record<string, string> = { 'styles.css': '/* jen:imports */\nh1 { color: rebeccapurple; }\n' };
+    files['index.html'] = template(run('page', { name: 'index', title: 'Home', script: '/register-sw.js' }, context(files)), 'index.html');
+    for (const a of run('sw', { offline: true }, context(files))) if ('template' in a) files[a.add] = a.template;
+    for (const [file, text] of Object.entries(files)) writeFileSync(join(dir, file), text);
+
+    const server = createServer((req, res) => {
+      const path = join(dir, new URL(req.url ?? '/', 'http://localhost').pathname.replace(/\/$/, '/index.html'));
+      if (!path.startsWith(dir) || !existsSync(path)) return void res.writeHead(404).end();
+      res.writeHead(200, { 'content-type': MIME[extname(path)] ?? 'text/plain' }).end(readFileSync(path));
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    const origin = `http://127.0.0.1:${typeof address === 'object' && address ? address.port : 0}`;
+    t.after(() => server.close());
+
+    const profile = join(dir, '.profile');
+    mkdirSync(profile);
+    const chrome = spawn(CHROME!, ['--headless=new', '--no-sandbox', '--no-first-run', '--no-default-browser-check', `--user-data-dir=${profile}`, '--remote-debugging-port=0', 'about:blank'], {
+      stdio: ['ignore', 'ignore', 'pipe'],
+    });
+    t.after(() => chrome.kill());
+    const url = await new Promise<string>((resolve, reject) => {
+      let err = '';
+      chrome.stderr.on('data', (d) => {
+        err += d;
+        const m = /DevTools listening on (ws:\S+)/.exec(err);
+        if (m) resolve(m[1]);
+      });
+      chrome.on('exit', () => reject(new Error(`Chromium exited: ${err}`)));
+    });
+
+    const cdp = devtools(url);
+    t.after(() => cdp.close());
+    await cdp.open;
+    const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
+    const { sessionId } = (await cdp.send('Target.attachToTarget', { targetId, flatten: true })) as { sessionId: string };
+    const send = (method: string, params: Record<string, unknown> = {}) => cdp.send(method, params, sessionId);
+    const evaluate = async (expression: string) =>
+      ((await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true })) as { result: { value: unknown } }).result.value;
+    const go = async (method: string, params: Record<string, unknown> = {}) => {
+      const loaded = cdp.next('Page.loadEventFired');
+      await send(method, params);
+      await loaded;
+    };
+    await send('Page.enable');
+    await send('Network.enable');
+
+    await go('Page.navigate', { url: `${origin}/` });
+    const controlled = `navigator.serviceWorker.controller ? true : new Promise((resolve) => navigator.serviceWorker.addEventListener('controllerchange', () => resolve(true)))`;
+    assert.equal(await evaluate(controlled), true, 'the service worker takes over the page');
+
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+    await send('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+
+    await go('Page.reload');
+    assert.equal(await evaluate('document.querySelector("h1").textContent'), 'Home', 'a precached page comes from the cache');
+    assert.equal(await evaluate('getComputedStyle(document.querySelector("h1")).color'), 'rgb(102, 51, 153)', 'and its stylesheet too');
+
+    await go('Page.navigate', { url: `${origin}/elsewhere.html` });
+    assert.equal(await evaluate('document.title'), 'Offline', 'any other page shows the offline page');
   });
 });
