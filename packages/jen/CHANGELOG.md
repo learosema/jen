@@ -2,6 +2,13 @@
 
 > Renamed from `@lea.rosema/jen` to `@codejen/jen` and republished as 1.0.0. The history below (up to 1.1.0) is `@lea.rosema/jen`'s; `@lea.rosema/jen` is deprecated in favor of this package.
 
+## [2.2.0](https://github.com/learosema/jen/compare/jen-v2.1.0...jen-v2.2.0) (2026-10-11)
+
+
+### Features
+
+* **pack-web:** implement pwa utilities ([c818417](https://github.com/learosema/jen/commit/c818417171b56e9a3a5293d18c992ce31b579fcf))
+
 ## [2.1.0](https://github.com/learosema/jen/compare/jen-v2.0.2...jen-v2.1.0) (2026-10-11)
 
 
