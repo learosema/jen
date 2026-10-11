@@ -3,7 +3,7 @@ name: Pages
 on:
   push:
     branches: [main]
-    paths: [docs/**, packages/pack-glsl/**, packages/pack-web/**, packages/pack-js/**]
+    paths: [docs/**, packages/pack-glsl/**, packages/pack-web/**, packages/pack-js/**, .github/workflows/pages.yml]
   workflow_dispatch:
 
 permissions:
@@ -29,12 +29,19 @@ jobs:
         uses: actions/checkout@v7
 
       # The GLSL, web and js recipes' live previews (docs/glsl/, docs/web/, docs/js/, gitignored)
-      # are made by the packs themselves. Type-only imports, so Node runs the
-      # scripts without npm ci.
+      # are made by the packs themselves. pack-web and pack-js import jen's style
+      # helpers at runtime, so they need the workspace installed and jen built.
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
           node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build jen
+        run: npm run build --workspace packages/jen
 
       - name: Generate GLSL previews
         run: node packages/pack-glsl/scripts/docs-assets.ts
