@@ -107,7 +107,7 @@ private:
 };
 ```
 
-Because `actions()` receives the resolved params, you can build the action list dynamically, for example to add a test file only when asked for it: `...(withTest ? [{ add: … }] : [])`.
+Because `actions()` receives the resolved params, you can build the action list dynamically, for example to add a test file only when asked for it: `...(withTest ? [{ add: … }] : [])`. It may also be `async` and return a promise of the list.
 
 Generator files can be `.mjs`, `.js`, `.ts` or `.mts`. TypeScript generators run through Node's built-in type stripping, so no build step is needed.
 
@@ -134,7 +134,7 @@ There's no prompting, no `validate`, no `select` with choices – if a generator
 
 ### Actions
 
-- **add** – `{ add, template, force? }`: Creates a file. Existing files are skipped unless `force` or `--force` is set.
+- **add** – `{ add, template, force? }`: Creates a file. Existing files are skipped unless `force` or `--force` is set. A `Uint8Array` as `template` is written byte for byte, for binary files.
 - **insert** – `{ insert, before, line }`: Inserts `line` before the first line containing the marker `before` (or, if `before` is a `RegExp`, the first line matching it; if it's a number, before that line – 1-based, e.g. from a `--line=65` param), using the marker's indentation – one level deeper before a closing line like `</nav>` or `}`, where the insert goes inside. Skipped if the line is already present. With `path` instead of `line`, the inserted line is that file's path relative to the file being inserted into – how a build file lists its sources.
 - **modify** – `{ modify, pattern, replace }`: Search and replace with a `RegExp`. Also the way to remove lines.
 - **delete** – `{ delete }`: Deletes a file, never a directory.
@@ -184,6 +184,7 @@ Most generators never need it, but the third argument to `actions()` tells a gen
 - `ctx.destDir` – where the files go, relative to the project root.
 - `ctx.root` and `ctx.cwd` – the absolute project root, and the current directory relative to it.
 - `ctx.exists(path)`, `ctx.read(path)`, `ctx.findUp(name, text?)` and `ctx.grep(name, text?)` – a read-only look at the project, with paths relative to the root.
+- `ctx.args` – every flag given (besides jen's own, and `--dir`) and the positionals after the generator name, declared as params or not – for generators that pass them on, like [pack-yeoman](https://learosema.github.io/jen/yeoman.html).
 
 If a generator declares its own `dir` param, jen leaves `--dir` to it.
 
@@ -278,51 +279,33 @@ jen finds packs automatically: add one as a dependency (of any kind – `depende
 { "devDependencies": { "@codejen/pack-cpp": "^1.0.0" } }
 ```
 
-jen resolves the package from the project's `node_modules` first, then the user directory's, then from next to jen's own install location. Globally installed packs (`npm install -g`) are also found without being listed anywhere: jen scans the `node_modules` it is installed into for `jen-pack-*` / `@scope/pack-*` (and `generator-*`) packages. That makes `npm i -g @codejen/jen @codejen/pack-cpp` enough for projects without a `package.json`, such as C++ repos. `node_modules` inside the project are not scanned – there, its `package.json` decides.
+jen resolves the package from the project's `node_modules` first, then the user directory's, then from next to jen's own install location. Globally installed packs (`npm install -g`) are also found without being listed anywhere: jen scans the `node_modules` it is installed into for `jen-pack-*` / `@scope/pack-*` packages (and, for pack-yeoman, `generator-*`). That makes `npm i -g @codejen/jen @codejen/pack-cpp` enough for projects without a `package.json`, such as C++ repos. `node_modules` inside the project are not scanned – there, its `package.json` decides.
 
 The pack prefix is the part after `jen-pack-` or `@scope/pack-`: `@codejen/pack-cpp` and `jen-pack-cpp` both become `cpp`.
 
+When a pack's generators depend on what's installed, its default export can be a function instead, sync or async, that returns them. It gets the installed package names matching a pattern (`env.packages(re)`, from the same places jen looks for packs, plus a `--from` package) and where one resolves to (`env.resolve(name)`):
+
+```js
+export default (env) =>
+  Object.fromEntries(env.packages(/^generator-/).map((name) => [name.slice(10), makeGenerator(name, env.resolve(name))]));
+```
+
 ## Yeoman generators
 
-jen can also run real [Yeoman](https://yeoman.io/) generators – npm packages named `generator-<name>` or `@scope/generator-<name>` – straight through its own plan/apply engine, without jen itself gaining a single runtime dependency for it. Add one as a dependency, same as a pack:
-
-```json
-{ "devDependencies": { "generator-code": "^1.12.0" } }
-```
-
-```
-$ jen code --extensionType=command-ts --extensionDisplayName="My Extension"
-code (yeoman generator-code) – Yeoman generator
-
-  + my-extension/package.json
-  + my-extension/src/extension.ts
-  …
-
-✓ 12 written
-```
-
-It's exposed under its short name – `code` for `generator-code` – the same generator `yo code` itself would run. jen doesn't enumerate a package's other sub-generators, just its default one.
-
-**How, without a dependency:** a real Yeoman generator's own `package.json` already depends on `yeoman-generator`, `mem-fs` and `mem-fs-editor`. jen resolves and reuses those straight from the generator's own `node_modules` – exactly how it already resolves packs – instead of reimplementing the `Generator` base class or `copyTpl`'s EJS templating itself. What jen fakes is only the small slice of a Yeoman environment that `yeoman-generator` needs to run: a shared in-memory file store and the queue that schedules `initializing`/`prompting`/`configuring`/`default`/`writing`. The files the generator would write become a normal jen plan – same diff, same `--dry-run`, same `--force` conflict handling as a native generator.
-
-This comes with real limits, on purpose:
-
-- **Never interactive**, like the rest of jen. A generator's `this.prompt()` is answered from a `--flag` matching the question's `name`, or its own default – never a real prompt. If a question has neither, jen fails with a clear `Missing: --flag` message and quits, the same as a missing param on a native generator. Since Yeoman generators typically only prompt for what wasn't already given as an option (check the generator's own `--help`/docs for its options), supplying everything upfront avoids this entirely.
-- **No `composeWith`/blueprints.** Generators that compose other generators (JHipster's blueprint system is the big example) aren't supported – jen fails with a clear error if one tries.
-- **The `install` and `end` priorities never run.** That's where generators normally run `npm install`, `git init`, or open an editor – real side effects that assume the files are already on disk, which, in jen's plan-then-apply model, they aren't yet when the generator itself runs. Only the file changes make it into the plan; anything a generator would otherwise do afterwards is up to you.
+Yeoman generators, JHipster included, run through [`@codejen/pack-yeoman`](https://learosema.github.io/jen/yeoman.html): `jen yeoman:code` runs `generator-code`, fetching both on the fly if they aren't installed (`generator-code` and `generator-jhipster` only). jen 2 ran them itself, as `jen code`.
 
 ## Running a pack or generator without installing it
 
-`--from <name>` (optionally `<name>@<version>`) fetches a jen pack or a Yeoman generator via npm into a throwaway directory, runs it once, and removes the directory again – no `package.json` entry, no `node_modules` left behind in your project:
+`--from <name>` (optionally `<name>@<version>`) fetches a jen pack via npm into a throwaway directory, runs it once, and removes the directory again – no `package.json` entry, no `node_modules` left behind in your project. Any other package is fetched the same way for a pack to run, e.g. a Yeoman generator for `yeoman:`:
 
 ```sh
-jen --from generator-code code --extensionType=command-ts --extensionDisplayName="My Extension"
 jen --from @codejen/pack-cpp cpp:class --name=RigidBody
+jen --from generator-code yeoman:code --extensionType=command-ts --extensionDisplayName="My Extension"
 ```
 
-The generator name after `--from` still has to be given, same as it would be for an installed one (`code`, `cpp:class`) – `--from` only changes where jen gets the package from, not how you address what's inside it.
+The generator name after `--from` still has to be given, same as it would be for an installed one (`cpp:class`, `yeoman:code`) – `--from` only changes where jen gets the package from, not how you address what's inside it.
 
-Besides the [not-found fallback](#when-a-generator-isnt-found) below, which is limited to the `@codejen` scope, this is the *only* thing jen ever fetches or installs, and only for that one invocation – nothing else in jen touches the network or writes outside the files it just showed you in the plan. It shells out to your own `npm` (with `--ignore-scripts`, so install/postinstall scripts don't run) rather than adding an installer dependency of its own.
+Besides the [not-found fallback](#when-a-generator-isnt-found) below, which is limited to the `@codejen` scope, and pack-yeoman's fixed list of generators, this is the *only* thing jen ever fetches or installs, and only for that one invocation – nothing else in jen touches the network or writes outside the files it just showed you in the plan. It shells out to your own `npm` (with `--ignore-scripts`, so install/postinstall scripts don't run) rather than adding an installer dependency of its own.
 
 ## Command line
 
@@ -334,7 +317,8 @@ jen [generator] [--param=value …] [options]
   --dry-run, -n   only show the plan
   --force,   -f   overwrite existing files
   --dir           where the files go instead of the current directory
-  --from          fetch a pack or Yeoman generator via npm, run it once, then remove it
+  --from          fetch a pack via npm, run it once, then remove it – or a package
+                  a pack runs, e.g. a Yeoman generator: --from generator-code yeoman:code
   --help,    -h   show this help
 ```
 

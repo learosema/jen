@@ -24,3 +24,9 @@
     url: "/js.html",
     text: "Web components, ARIA keyboard patterns and type patterns – as TypeScript, JSDoc or plain JavaScript.",
   }
+- {
+    name: "@codejen/pack-yeoman",
+    langs: [],
+    url: "/yeoman.html",
+    text: "Runs Yeoman generators, JHipster included, through jen's plan – never interactive, never online.",
+  }

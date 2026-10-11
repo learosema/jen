@@ -14,16 +14,15 @@
  *                        "@scope/pack-*", project package.json then the
  *                        user directory's, then packs installed globally
  *                        next to jen itself (npm install -g)
- *   5. yeoman generators dependencies named "generator-*" or
- *                        "@scope/generator-*" (see yeoman.ts), same places
- *   6. built-in generators
+ *   5. built-in generators
  *
  * A prefixed name whose pack isn't installed ("lua:function") falls back to
  * fetching @codejen/pack-lua the same way (first-party scope only).
  *
- * --from/-F fetches a single pack or Yeoman generator via npm into a
- * throwaway directory, runs it once, and removes it again – it replaces the
- * whole search path above for that one run.
+ * --from fetches a single pack via npm into a throwaway directory, runs it
+ * once, and removes it again – it replaces the whole search path above for
+ * that one run. Any other package is fetched the same way, but only made
+ * available to packs (PackEnv), e.g. a Yeoman generator for pack-yeoman.
  *
  * Generators decide what to create, jen decides where: paths in actions are
  * relative to the current directory (--dir overrides), `/…` to the project
@@ -39,10 +38,8 @@ import { pathToFileURL } from 'node:url';
 import { parseArgs, styleText } from 'node:util';
 import { buildContext, placeActions, resolvePathParams } from './context.ts';
 import { apply, dim, fail, helpers, plan, printPlan } from './core.ts';
-import type { Answers, Generator, Pack, Params, Placed } from './core.ts';
+import type { AnyGenerator, Answers, Pack, PackEnv, PackFactory, Params, Placed } from './core.ts';
 import { PROJECT, PROJECT_JEN, ROOT, USER_DIR } from './location.ts';
-import type { YeomanGeneratorClass } from './yeoman.ts';
-import { runYeoman } from './yeoman.ts';
 
 // ─── Built-in generators ────────────────────────────────────────────────────
 
@@ -76,34 +73,20 @@ export default {
 
 // ─── Collecting generators ──────────────────────────────────────────────────
 
-/** A jen generator, loaded and ready to plan. */
-interface ActionsGenerator extends Generator {
-  kind: 'actions';
-}
-
-/** A real Yeoman generator, run through the shim in yeoman.ts – see there for what that covers. */
-interface RunnableYeoman {
-  kind: 'yeoman';
-  description?: string;
-  run(given: Record<string, unknown>, positionals: string[]): Promise<Placed[]>;
-}
-
-type LoadedGenerator = ActionsGenerator | RunnableYeoman;
-
 interface Entry {
   name: string;
   source: string;
   prefix?: string;
-  load: () => Promise<LoadedGenerator>;
+  load: () => Promise<AnyGenerator>;
 }
 
 const GEN_FILE = /\.(m?js|m?ts)$/;
 
-function asGenerator(mod: unknown, where: string): ActionsGenerator {
+function asGenerator(mod: unknown, where: string): AnyGenerator {
   const m = mod as { default?: unknown };
-  const gen = (m.default ?? m) as Generator;
+  const gen = (m.default ?? m) as AnyGenerator;
   if (typeof gen?.actions !== 'function') fail(`${where}: does not export an actions() function`);
-  return { kind: 'actions', ...gen };
+  return gen;
 }
 
 function dirSource(source: string, dir: string | null): Entry[] {
@@ -176,7 +159,7 @@ function discoverGlobal(re: RegExp): string[] {
 /** Where to resolve a package from: the project, the user directory, then jen's own install location (global). */
 const defaultBases = (): string[] => [join(ROOT, 'package.json'), join(USER_DIR, 'package.json'), import.meta.filename];
 
-/** Dependency names in a package.json matching a naming convention (jen packs, Yeoman generators). */
+/** Dependency names in a package.json matching a naming convention (e.g. jen packs). */
 function discoverDeps(dir: string | null, re: RegExp): string[] {
   const pkg = readPackageJson(dir);
   const names = [
@@ -187,69 +170,62 @@ function discoverDeps(dir: string | null, re: RegExp): string[] {
   return names.filter((n) => re.test(n));
 }
 
-async function packSource(name: string, bases = defaultBases()): Promise<Entry[]> {
-  // Look locally in the project first, then the user directory, then from
-  // jen's own location – for a global install, that finds global packs.
-  for (const base of bases) {
-    let file: string;
-    try {
-      file = createRequire(base).resolve(name);
-    } catch {
-      continue;
-    }
-    const mod = (await import(pathToFileURL(file).href)) as { default?: Pack };
-    const pack = mod.default ?? (mod as Pack);
-    return Object.entries(pack).map(([gen, g]) => ({
-      name: gen,
-      source: `pack ${name}`,
-      prefix: packPrefix(name),
-      load: async () => asGenerator(g, `${name}:${gen}`),
-    }));
-  }
-  console.warn(styleText('yellow', `Pack ${name} not found (install it locally or globally).`));
-  return [];
+/** Dependency names matching `re` in the project, the user directory and globally, without duplicates. */
+const discoverAll = (re: RegExp): string[] => [...new Set([...discoverDeps(ROOT, re), ...discoverDeps(USER_DIR, re), ...discoverGlobal(re)])];
+
+/** Packages fetched for this run that aren't packs – via `--from` or a pack's env.fetch() – only visible to packs, and what removes them again. */
+interface Extra {
+  packages: string[];
+  bases: string[];
+  cleanups: Array<() => void>;
 }
 
-/** Matches Yeoman generator package names, Yeoman's own convention: "generator-code" or "@scope/generator-code" → "code". */
-const YEOMAN_RE = /^(?:generator-|@[^/]+\/generator-)(.+)$/;
+const noExtra = (): Extra => ({ packages: [], bases: [], cleanups: [] });
 
-const yeomanShortName = (name: string): string => YEOMAN_RE.exec(name)?.[1] ?? name;
-
-/**
- * Loads a Yeoman generator package's default export as a single generator –
- * jen doesn't enumerate a package's sub-generators, just its own default one
- * (what `yo <name>` itself runs). See yeoman.ts for what running it covers.
- */
-async function yeomanSource(name: string, bases = defaultBases()): Promise<Entry[]> {
+/** The file `name` resolves to from the first base that has it; null if none does. */
+function resolveFrom(bases: string[], name: string): string | null {
   for (const base of bases) {
-    let file: string;
     try {
-      file = createRequire(base).resolve(name);
+      return createRequire(base).resolve(name);
     } catch {
       continue;
     }
-    const mod = (await import(pathToFileURL(file).href)) as { default?: unknown };
-    const GeneratorClass = (mod.default ?? mod) as YeomanGeneratorClass;
-    if (typeof GeneratorClass !== 'function') {
-      console.warn(styleText('yellow', `${name}: default export is not a Yeoman generator class, skipped.`));
-      return [];
-    }
-    const shortName = yeomanShortName(name);
-    return [
-      {
-        name: shortName,
-        source: `yeoman ${name}`,
-        load: async () => ({
-          kind: 'yeoman',
-          description: 'Yeoman generator',
-          run: (given, positionals) =>
-            runYeoman(GeneratorClass, file, { given, positionals, root: process.cwd(), namespace: `${shortName}:app` }),
-        }),
-      },
-    ];
   }
-  console.warn(styleText('yellow', `Yeoman generator ${name} not found (install it locally or globally).`));
-  return [];
+  return null;
+}
+
+function packEnv(extra: Extra): PackEnv {
+  const resolve = (name: string) => resolveFrom([...extra.bases, ...defaultBases()], name);
+  return {
+    packages: (re) => [...new Set([...extra.packages.filter((n) => re.test(n)), ...discoverAll(re)])],
+    resolve,
+    async fetch(name) {
+      if (process.env.JEN_NO_FETCH) return null;
+      if (!NPM_NAME.test(name)) fail(`"${name}" isn't an npm package name.`);
+      extra.packages.push(name);
+      extra.bases.push(install(name, extra));
+      return resolve(name);
+    },
+  };
+}
+
+async function packSource(name: string, bases = defaultBases(), extra: Extra = noExtra()): Promise<Entry[]> {
+  // Look locally in the project first, then the user directory, then from
+  // jen's own location – for a global install, that finds global packs.
+  const file = resolveFrom(bases, name);
+  if (!file) {
+    console.warn(styleText('yellow', `Pack ${name} not found (install it locally or globally).`));
+    return [];
+  }
+  const mod = (await import(pathToFileURL(file).href)) as { default?: Pack | PackFactory };
+  const exported = mod.default ?? (mod as Pack);
+  const pack = typeof exported === 'function' ? await exported(packEnv(extra)) : exported;
+  return Object.entries(pack).map(([gen, g]) => ({
+    name: gen,
+    source: `pack ${name}`,
+    prefix: packPrefix(name),
+    load: async () => asGenerator(g, `${name}:${gen}`),
+  }));
 }
 
 /** Splits "name@version" into its parts, keeping a scope's own "@" intact: "@scope/name@1.0.0" → ["@scope/name", "1.0.0"]. */
@@ -258,19 +234,21 @@ function splitPkgSpec(spec: string): [name: string, version: string] {
   return at < 0 ? [spec, 'latest'] : [spec.slice(0, at), spec.slice(at + 1)];
 }
 
-/**
- * Installs a single pack or Yeoman generator via npm into a throwaway
- * directory (never the project's own node_modules), and returns its
- * entries plus a cleanup function that removes that directory again.
- * jen never fetches anything implicitly – only this, and only for the one
- * generator name given on the command line.
- */
-async function fetchFrom(spec: string): Promise<{ entries: Entry[]; cleanup: () => void }> {
-  const [name, version] = splitPkgSpec(spec);
-  if (!PACK_RE.test(name) && !YEOMAN_RE.test(name)) {
-    fail(`"${name}" doesn't look like a jen pack (jen-pack-*, @scope/pack-*) or a Yeoman generator (generator-*, @scope/generator-*).`);
-  }
+const notAPack = (name: string): string =>
+  `"${name}" isn't a jen pack – name the pack's generator that runs it, as in: jen --from generator-code yeoman:code`;
 
+/** A plain npm package name, so nothing else (a flag, a URL, a git spec) ever reaches npm install. */
+const NPM_NAME = /^(?:@[a-z0-9][\w.~-]*\/)?[a-z0-9][\w.~-]*$/;
+
+/**
+ * Installs a single package via npm into a throwaway directory (never the
+ * project's own node_modules), removed again when the run ends. jen never
+ * fetches anything implicitly – only for `--from`, the @codejen fallback
+ * and a pack's env.fetch(). Returns the directory's package.json, to
+ * resolve from.
+ */
+function install(spec: string, extra: Extra): string {
+  const [name, version] = splitPkgSpec(spec);
   const dir = mkdtempSync(join(tmpdir(), 'jen-from-'));
   const remove = () => rmSync(dir, { recursive: true, force: true });
 
@@ -283,11 +261,11 @@ async function fetchFrom(spec: string): Promise<{ entries: Entry[]; cleanup: () 
   };
   process.once('SIGINT', onSignal);
   process.once('SIGTERM', onSignal);
-  const cleanup = () => {
+  extra.cleanups.push(() => {
     process.off('SIGINT', onSignal);
     process.off('SIGTERM', onSignal);
     remove();
-  };
+  });
 
   console.log(dim(`Fetching ${name}@${version} …`));
   const result = spawnSync(
@@ -296,29 +274,32 @@ async function fetchFrom(spec: string): Promise<{ entries: Entry[]; cleanup: () 
     { stdio: 'inherit', shell: process.platform === 'win32' },
   );
   if (result.error || result.status !== 0) {
-    cleanup();
     fail(`npm install ${name}@${version} failed${result.error ? `: ${result.error.message}` : ''}.`);
   }
-
-  const bases = [join(dir, 'package.json')];
-  const entries = PACK_RE.test(name) ? await packSource(name, bases) : await yeomanSource(name, bases);
-  return { entries, cleanup };
+  return join(dir, 'package.json');
 }
 
-async function collect(): Promise<Entry[]> {
-  const extra = (process.env.JEN_PATH ?? '').split(delimiter).filter(Boolean);
-  const discover = (re: RegExp) => [...new Set([...discoverDeps(ROOT, re), ...discoverDeps(USER_DIR, re), ...discoverGlobal(re)])];
-  const packs = discover(PACK_RE);
-  const yeomanGenerators = discover(YEOMAN_RE);
+/** Fetches a pack and returns its entries – or, for any other package, the regular entries with that package visible to packs. */
+async function fetchFrom(spec: string, extra: Extra): Promise<Entry[]> {
+  const [name] = splitPkgSpec(spec);
+  if (!NPM_NAME.test(name)) fail(`"${name}" isn't an npm package name.`);
+  const base = install(spec, extra);
+  if (PACK_RE.test(name)) return packSource(name, [base], extra);
+  extra.packages.push(name);
+  extra.bases.push(base);
+  return collect(extra);
+}
+
+async function collect(extra: Extra): Promise<Entry[]> {
+  const paths = (process.env.JEN_PATH ?? '').split(delimiter).filter(Boolean);
   const entries: Entry[] = [
     ...dirSource('project', PROJECT_JEN),
     ...dirSource('user', USER_DIR),
-    ...extra.flatMap((dir) => dirSource(`JEN_PATH ${dir}`, dir)),
+    ...paths.flatMap((dir) => dirSource(`JEN_PATH ${dir}`, dir)),
   ];
-  for (const p of packs) entries.push(...(await packSource(p)));
-  for (const g of yeomanGenerators) entries.push(...(await yeomanSource(g)));
+  for (const p of discoverAll(PACK_RE)) entries.push(...(await packSource(p, defaultBases(), extra)));
   for (const [name, g] of Object.entries(BUILTINS)) {
-    entries.push({ name, source: 'built-in', load: async () => ({ kind: 'actions', ...g }) });
+    entries.push({ name, source: 'built-in', load: async () => g });
   }
   return entries;
 }
@@ -351,6 +332,10 @@ function notFound(entries: Entry[], query: string): never {
   const prefix = unknownPackPrefix(entries, query);
   const lines = [`Generator "${query}" not found – jen --list shows all.`];
   if (prefix) lines.push(`If "${prefix}" is a pack you haven't installed, try: jen --from ${FIRST_PARTY_SCOPE}/pack-${prefix} ${query}`);
+  // jen 2 ran Yeoman generators by their short name itself
+  if (!query.includes(':') && discoverAll(/^(?:@[^/]+\/)?generator-/).some((n) => n.endsWith(`generator-${query}`))) {
+    lines.push(`Yeoman generators run through ${FIRST_PARTY_SCOPE}/pack-yeoman now: jen yeoman:${query}`);
+  }
   return fail(lines.join('\n'));
 }
 
@@ -361,21 +346,14 @@ function notFound(entries: Entry[], query: string): never {
  * package – anything else only gets the hint from notFound(). JEN_NO_FETCH
  * turns it off entirely (offline use, tests).
  */
-async function fetchFallback(entries: Entry[], query: string): Promise<{ entry: Entry; cleanup: () => void } | undefined> {
+async function fetchFallback(entries: Entry[], query: string, extra: Extra): Promise<Entry | undefined> {
   const prefix = unknownPackPrefix(entries, query);
   if (!prefix || process.env.JEN_NO_FETCH) return undefined;
-  let fetched;
   try {
-    fetched = await fetchFrom(`${FIRST_PARTY_SCOPE}/pack-${prefix}`);
+    return find(await fetchFrom(`${FIRST_PARTY_SCOPE}/pack-${prefix}`, extra), query);
   } catch {
     return undefined; // no such package (or npm failed) – fall through to the regular not-found error
   }
-  const entry = find(fetched.entries, query);
-  if (!entry) {
-    fetched.cleanup();
-    return undefined;
-  }
-  return { entry, cleanup: fetched.cleanup };
 }
 
 async function list(entries: Entry[]): Promise<void> {
@@ -430,7 +408,8 @@ const HELP = `jen – the code jen(erator)
   --dry-run, -n   only show the plan
   --force,   -f   overwrite existing files
   --dir           where the files go instead of the current directory
-  --from          fetch a pack or Yeoman generator via npm, run it once, then remove it
+  --from          fetch a pack via npm, run it once, then remove it – or a package
+                  a pack runs, e.g. a Yeoman generator: --from generator-code yeoman:code
   --help,    -h   show this help
 
   CLI answers always use "=": --name=Foo (flags like --moveOnly work without).
@@ -449,9 +428,16 @@ export async function main(): Promise<void> {
   const { values, positionals } = parseArgs({ allowPositionals: true, strict: false, options: FLAGS });
   if (values.help) return void console.log(HELP);
 
-  let fetched = values.from ? await fetchFrom(String(values.from)) : undefined;
+  const extra = noExtra();
   try {
-    const entries = fetched ? fetched.entries : await collect();
+    let entries: Entry[];
+    if (values.from) {
+      const [name] = splitPkgSpec(String(values.from));
+      if (NPM_NAME.test(name) && !PACK_RE.test(name) && !values.list && !positionals[0]?.includes(':')) fail(notAPack(name));
+      entries = await fetchFrom(String(values.from), extra);
+    } else {
+      entries = await collect(extra);
+    }
     if (values.list) return void (await list(entries));
 
     const query = positionals[0];
@@ -462,35 +448,33 @@ export async function main(): Promise<void> {
     }
     let entry = find(entries, query);
     if (!entry) {
-      const fallback = fetched ? undefined : await fetchFallback(entries, query);
+      // a fetched pack is the whole search path; a fetched package for a pack still needs that pack
+      const fallback = values.from && extra.packages.length === 0 ? undefined : await fetchFallback(entries, query, extra);
       if (!fallback) notFound(entries, query);
-      entry = fallback.entry;
-      fetched = { entries: [], cleanup: fallback.cleanup };
+      entry = fallback;
     }
     const gen = await entry.load();
     // --where was removed: fail rather than quietly write into the cwd, unless it's the generator's own param
-    if ('w' in values || ('where' in values && !(gen.kind === 'actions' && 'where' in (gen.params ?? {})))) {
+    if ('w' in values || ('where' in values && !('where' in (gen.params ?? {})))) {
       fail('--where/-w was removed – cd into the directory and run jen there.');
     }
     console.log(dim(`${qualified(entry)} (${entry.source})${gen.description ? ` – ${gen.description}` : ''}`));
 
-    const given = Object.fromEntries(Object.entries(values).filter(([k]) => !(k in FLAGS)));
+    const given = Object.fromEntries(Object.entries(values).filter(([k]) => !(k in FLAGS))) as Record<string, string | boolean>;
     const notes: string[] = [];
-    let actions: Placed[];
-    if (gen.kind === 'yeoman') {
-      actions = await gen.run(given, positionals.slice(1));
-    } else {
-      const cwd = process.cwd();
-      if (PROJECT && PROJECT.root !== cwd) notes.push(`root: ${relative(cwd, PROJECT.root)} (${PROJECT.marker})`);
-      // --dir is the same flag everywhere, unless the generator has a param of that name itself
-      const params = { dir: { default: '' }, ...gen.params };
-      const answers = resolveParams(params, given);
-      const ctx = buildContext('dir' in (gen.params ?? {}) ? '' : String(answers.dir), ROOT, cwd);
-      resolvePathParams(gen.params ?? {}, answers, ctx);
-      const raw = gen.actions(answers, helpers, ctx);
-      // built-ins are jen's own: they write to absolute paths, e.g. the user directory
-      actions = entry.source === 'built-in' ? (raw as Placed[]) : placeActions(raw, ctx);
-    }
+    const cwd = process.cwd();
+    if (PROJECT && PROJECT.root !== cwd) notes.push(`root: ${relative(cwd, PROJECT.root)} (${PROJECT.marker})`);
+    // --dir is the same flag everywhere, unless the generator has a param of that name itself
+    const ownDir = 'dir' in (gen.params ?? {});
+    const params = { dir: { default: '' }, ...gen.params };
+    const answers = resolveParams(params, given);
+    const ctx = buildContext(ownDir ? '' : String(answers.dir), ROOT, cwd);
+    const flags = ownDir ? given : Object.fromEntries(Object.entries(given).filter(([k]) => k !== 'dir'));
+    ctx.args = { flags, positionals: positionals.slice(1) };
+    resolvePathParams(gen.params ?? {}, answers, ctx);
+    const raw = await gen.actions(answers, helpers, ctx);
+    // built-ins are jen's own: they write to absolute paths, e.g. the user directory
+    const actions = entry.source === 'built-in' ? (raw as Placed[]) : placeActions(raw, ctx);
     for (const n of notes) console.log(dim(`  ${n}`));
 
     const { steps, changes } = await plan(actions, Boolean(values.force), entry.source === 'built-in' ? [USER_DIR] : []);
@@ -503,6 +487,6 @@ export async function main(): Promise<void> {
     const summary = [written && `${written} written`, deleted && `${deleted} deleted`].filter(Boolean).join(', ');
     console.log(styleText('green', `✓ ${summary || 'nothing changed'}`));
   } finally {
-    fetched?.cleanup();
+    for (const cleanup of extra.cleanups) cleanup();
   }
 }

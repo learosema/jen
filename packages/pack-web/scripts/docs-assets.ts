@@ -54,7 +54,7 @@ const place = (path: string) => (path.startsWith('/') ? path.slice(1) : posix.jo
 
 function apply(actions: Action[]): void {
   for (const a of actions) {
-    if ('add' in a) {
+    if ('template' in a) {
       if (!files.has(place(a.add))) files.set(place(a.add), a.template);
     } else if ('insert' in a) {
       if (typeof a.insert !== 'string' || !('line' in a)) throw new Error('docs-assets: only plain inserts are supported');

@@ -63,7 +63,7 @@ function run(generator: string, answers: Record<string, string | boolean>): Acti
 /** Applies actions to an in-memory file map, like jen's plan() (dedupe by trimmed block, insert before marker). */
 function applyActions(files: Map<string, string>, actions: Action[]): Map<string, string> {
   for (const a of actions) {
-    if ('add' in a) {
+    if ('template' in a) {
       if (!files.has(a.add)) files.set(a.add, a.template);
     } else if ('insert' in a) {
       if (typeof a.insert !== 'string' || !('line' in a)) assert.fail('only plain inserts here');
@@ -72,7 +72,7 @@ function applyActions(files: Map<string, string>, actions: Action[]): Map<string
       const present = lines.some((_, k) => block.every((b, j) => lines[k + j]?.trim() === b));
       if (present) continue;
       const marker = a.before;
-      const i = lines.findIndex((l) => (typeof marker === 'string' ? l.includes(marker) : marker.test(l)));
+      const i = typeof marker === 'number' ? marker - 1 : lines.findIndex((l) => (typeof marker === 'string' ? l.includes(marker) : marker.test(l)));
       assert.ok(i >= 0, `marker "${a.before}" not found in ${a.insert}`);
       lines.splice(i, 0, ...a.line.split('\n'));
       files.set(a.insert, lines.join('\n'));

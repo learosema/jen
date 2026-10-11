@@ -8,8 +8,7 @@
  */
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { after, describe, it } from 'node:test';
@@ -17,12 +16,6 @@ import { helpers } from './src/jen.ts';
 
 const JEN = join(import.meta.dirname, 'src/jen.ts');
 
-/** A dependency's own directory, wherever npm workspaces happened to hoist it to. */
-function packageDir(name: string): string {
-  const resolved = createRequire(import.meta.url).resolve(name);
-  const marker = join('node_modules', name);
-  return resolved.slice(0, resolved.lastIndexOf(marker) + marker.length);
-}
 const tempDirs: string[] = [];
 
 after(() => {
@@ -678,177 +671,84 @@ describe('packs', () => {
   });
 });
 
-// ─── Yeoman generators ──────────────────────────────────────────────────────
-//
-// These run a real `yeoman-generator` Generator subclass – not jen's own
-// fixture shape – through the shim in src/yeoman.ts, to prove real Yeoman
-// generators actually work, not just something shaped like one. jen adds no
-// runtime dependency for this; yeoman-generator/mem-fs are devDependencies
-// used only for typechecking and these tests, symlinked into each fixture so
-// the spawned `jen` process resolves them exactly as it would a real
-// project's own node_modules.
+// ─── Pack factories ─────────────────────────────────────────────────────────
 
-describe('yeoman generators', () => {
-  function withRealYeoman(dir: string): void {
-    const nodeModules = join(dir, 'node_modules');
-    mkdirSync(nodeModules, { recursive: true });
-    for (const pkg of ['yeoman-generator', 'mem-fs']) {
-      symlinkSync(packageDir(pkg), join(nodeModules, pkg), 'dir');
-    }
-  }
-
-  const WIDGET = {
-    'node_modules/generator-widget/package.json': JSON.stringify({
-      name: 'generator-widget',
-      type: 'module',
-      main: './index.mjs',
-    }),
-    'node_modules/generator-widget/index.mjs': `
-import Generator from 'yeoman-generator';
-export default class extends Generator {
-  constructor(args, opts) {
-    super(args, opts);
-    this.option('name', { type: String });
-  }
-  async prompting() {
-    const { greeting } = await this.prompt({ name: 'greeting', message: 'Greeting?', default: 'Hello' });
-    this.greeting = greeting;
-  }
-  writing() {
-    this.fs.write(this.destinationPath('out.txt'), \`\${this.greeting}, \${this.options.name}!\\n\`);
-    this.fs.copyTpl(this.templatePath('tpl.txt'), this.destinationPath('rendered.txt'), { name: this.options.name });
-  }
-  install() {
-    this.fs.write(this.destinationPath('should-not-exist.txt'), 'nope');
-  }
-};
-`,
-    'node_modules/generator-widget/templates/tpl.txt': 'Hi <%= name %>!\n',
-    'package.json': JSON.stringify({ devDependencies: { 'generator-widget': '^1.0.0' } }),
+describe('pack factories', () => {
+  // a pack whose generators depend on what's installed, like pack-yeoman: one per "thing-*" package
+  const FACTORY = {
+    'node_modules/jen-pack-things/package.json': JSON.stringify({ name: 'jen-pack-things', type: 'module', exports: './index.mjs' }),
+    'node_modules/jen-pack-things/index.mjs': `export default async (env) => Object.fromEntries(
+  env.packages(/^thing-/).map((name) => [name.slice(6), {
+    description: 'thing at ' + env.resolve(name).split('node_modules/')[1],
+    actions: async (answers, helpers, ctx) => [
+      { add: name + '.json', template: JSON.stringify(ctx.args) + '\\n' },
+      { add: name + '.fetched.json', template: JSON.stringify(await env.fetch('thing-two')) + '\\n' },
+      { add: name + '.bin', bytes: new Uint8Array([0, 255, 10, 13]) },
+    ],
+  }]),
+);`,
+    'node_modules/thing-one/package.json': JSON.stringify({ name: 'thing-one', main: 'index.js' }),
+    'node_modules/thing-one/index.js': '',
+    'package.json': JSON.stringify({ devDependencies: { 'jen-pack-things': '^1.0.0', 'thing-one': '^1.0.0' } }),
   };
 
-  it('lists a Yeoman generator by its short package name', () => {
-    const dir = fixture(WIDGET);
-    withRealYeoman(dir);
-    const r = jen(['--list'], { cwd: dir });
+  it('lists the generators a factory builds from the installed packages', () => {
+    const r = jen(['--list'], { cwd: fixture(FACTORY) });
     assert.equal(r.code, 0, r.stderr);
-    assert.match(r.stdout, /widget\s+yeoman generator-widget/);
+    assert.match(r.stdout, /things:one\s+pack jen-pack-things\s+thing at thing-one\/index\.js/);
   });
 
-  it('runs a real yeoman-generator class end to end, using EJS via the real copyTpl', () => {
-    const dir = fixture(WIDGET);
-    withRealYeoman(dir);
-    const r = jen(['widget', '--name=World'], { cwd: dir });
+  it('awaits async actions and hands over every flag and positional in ctx.args', () => {
+    const dir = fixture(FACTORY);
+    const r = jen(['things:one', 'a', 'b', '--name=x', '--flag', '--dir=out'], { cwd: dir });
     assert.equal(r.code, 0, r.stderr);
-    assert.equal(read(dir, 'out.txt'), 'Hello, World!\n');
-    assert.equal(read(dir, 'rendered.txt'), 'Hi World!\n');
+    assert.deepEqual(JSON.parse(read(dir, 'out/thing-one.json')), { flags: { name: 'x', flag: true }, positionals: ['a', 'b'] });
   });
 
-  it('writes where you stand, like yo', () => {
-    const dir = fixture({ ...WIDGET, 'sub/.keep': '' });
-    withRealYeoman(dir);
-    const r = jen(['widget', '--name=World'], { cwd: join(dir, 'sub') });
-    assert.equal(r.code, 0, r.stderr);
-    assert.equal(read(dir, 'sub/out.txt'), 'Hello, World!\n');
+  it('lets a pack fetch, but not when fetching is off (JEN_NO_FETCH)', () => {
+    const dir = fixture(FACTORY);
+    jen(['things:one'], { cwd: dir });
+    assert.equal(read(dir, 'thing-one.fetched.json'), 'null\n');
   });
 
-  it('never runs the install/end priorities', () => {
-    const dir = fixture(WIDGET);
-    withRealYeoman(dir);
-    const r = jen(['widget', '--name=World'], { cwd: dir });
-    assert.equal(r.code, 0, r.stderr);
-    assert.equal(existsSync(join(dir, 'should-not-exist.txt')), false);
+  it('writes bytes as they are', () => {
+    const dir = fixture(FACTORY);
+    jen(['things:one'], { cwd: dir });
+    assert.deepEqual([...readFileSync(join(dir, 'thing-one.bin'))], [0, 255, 10, 13]);
   });
 
-  it('answers a prompt from a CLI flag instead of its default', () => {
-    const dir = fixture(WIDGET);
-    withRealYeoman(dir);
-    const r = jen(['widget', '--name=World', '--greeting=Hi'], { cwd: dir });
-    assert.equal(r.code, 0, r.stderr);
-    assert.equal(read(dir, 'out.txt'), 'Hi, World!\n');
-  });
-
-  it('skips existing files unless --force, same as a native generator', () => {
-    const dir = fixture(WIDGET);
-    withRealYeoman(dir);
-    jen(['widget', '--name=World'], { cwd: dir });
-    const r = jen(['widget', '--name=Someone'], { cwd: dir });
-    assert.equal(r.code, 0, r.stderr);
-    assert.match(r.stdout, /exists, skipped/);
-    assert.equal(read(dir, 'out.txt'), 'Hello, World!\n');
-  });
-
-  it('fails clearly instead of prompting when a question has no default and no CLI answer', () => {
-    const dir = fixture({
-      'node_modules/generator-strict/package.json': JSON.stringify({
-        name: 'generator-strict',
-        type: 'module',
-        main: './index.mjs',
-      }),
-      'node_modules/generator-strict/index.mjs': `
-import Generator from 'yeoman-generator';
-export default class extends Generator {
-  async prompting() {
-    await this.prompt({ name: 'flavor', message: 'Flavor?' });
-  }
-  writing() {
-    this.fs.write(this.destinationPath('never.txt'), 'nope');
-  }
-};
-`,
-      'package.json': JSON.stringify({ devDependencies: { 'generator-strict': '^1.0.0' } }),
-    });
-    withRealYeoman(dir);
-    const r = jen(['strict'], { cwd: dir });
+  it('points jen 2 users of a Yeoman generator to pack-yeoman', () => {
+    const dir = fixture({ 'package.json': JSON.stringify({ devDependencies: { 'generator-code': '^1.0.0' } }) });
+    const r = jen(['code'], { cwd: dir });
     assert.equal(r.code, 1);
-    assert.match(r.stderr, /Missing: --flavor/);
-    assert.equal(existsSync(join(dir, 'never.txt')), false);
-  });
-
-  it('recognizes the scoped @scope/generator- prefix too', () => {
-    const dir = fixture({
-      'node_modules/@acme/generator-thing/package.json': JSON.stringify({
-        name: '@acme/generator-thing',
-        type: 'module',
-        main: './index.mjs',
-      }),
-      'node_modules/@acme/generator-thing/index.mjs': `
-import Generator from 'yeoman-generator';
-export default class extends Generator {
-  writing() {
-    this.fs.write(this.destinationPath('thing.txt'), 'thing\\n');
-  }
-};
-`,
-      'package.json': JSON.stringify({ devDependencies: { '@acme/generator-thing': '^1.0.0' } }),
-    });
-    withRealYeoman(dir);
-    const list = jen(['--list'], { cwd: dir });
-    assert.match(list.stdout, /thing\s+yeoman @acme\/generator-thing/);
+    assert.match(r.stderr, /@codejen\/pack-yeoman now: jen yeoman:code/);
   });
 });
 
 // ─── --from ─────────────────────────────────────────────────────────────────
 //
 // --from does a real `npm install` into a throwaway directory, so a genuine
-// end-to-end run needs the network – verified by hand against the real
-// generator-code, not part of this offline suite. What's covered here is the
-// part that never touches the network at all: --from validates the package
-// name against the same jen-pack-*/generator-* convention as normal
-// discovery before spawning npm, so a name that can't possibly be either
-// fails immediately.
+// end-to-end run needs the network – not part of this offline suite. What's
+// covered here is what fails before npm is ever spawned.
 
 describe('--from', () => {
-  it('rejects a package that is not a jen pack or a Yeoman generator, without touching the network', () => {
+  it('needs a pack-prefixed generator for a package that is not a pack, without touching the network', () => {
     const r = jen(['--from', 'lodash', 'x'], { cwd: fixture() });
     assert.equal(r.code, 1);
-    assert.match(r.stderr, /"lodash" doesn't look like a jen pack.*or a Yeoman generator/);
+    assert.match(r.stderr, /"lodash" isn't a jen pack – name the pack's generator that runs it/);
+    assert.doesNotMatch(r.stdout, /Fetching/);
   });
 
-  it('strips the version from a scoped package spec before checking its name', () => {
+  it('strips the version from a scoped package spec before checking it', () => {
     const r = jen(['--from', '@acme/not-a-pack@1.2.3', 'x'], { cwd: fixture() });
     assert.equal(r.code, 1);
-    assert.match(r.stderr, /"@acme\/not-a-pack" doesn't look like/);
+    assert.match(r.stderr, /"@acme\/not-a-pack" isn't a jen pack/);
+  });
+
+  it('rejects anything that is not a plain npm package name', () => {
+    const r = jen(['--from', 'git+https://example.com/x.git', 'x:y'], { cwd: fixture() });
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /isn't an npm package name/);
   });
 });
 

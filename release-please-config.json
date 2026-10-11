@@ -18,6 +18,9 @@
     },
     "packages/pack-js": {
       "component": "pack-js"
+    },
+    "packages/pack-yeoman": {
+      "component": "pack-yeoman"
     }
   }
 }
