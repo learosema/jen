@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/learosema/jen/compare/pack-web-v1.2.1...pack-web-v1.3.0) (2026-10-11)
+
+
+### Features
+
+* **main:** add --list --json command ([5040305](https://github.com/learosema/jen/commit/5040305f61f0a3414d04ede4084d7565e3c14e15))
+
 ## [1.2.1](https://github.com/learosema/jen/compare/pack-web-v1.2.0...pack-web-v1.2.1) (2026-10-11)
 
 
