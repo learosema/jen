@@ -5,9 +5,9 @@ import { type Types, ext, importExt, source } from './style.ts';
 
 export type Runner = 'node' | 'vitest';
 
-export const RUNNER_PARAM = { runner: { default: '' } };
+export const RUNNER_PARAM = { runner: { default: '', description: 'node (node:test) or vitest (default: vitest in a Vite or Vitest project)' } };
 
-export const WITH_TEST_PARAMS = { withTest: { default: false }, ...RUNNER_PARAM };
+export const WITH_TEST_PARAMS = { withTest: { default: false, description: 'add a test next to it' }, ...RUNNER_PARAM };
 
 /** `--runner`, else Vitest if the nearest package.json lists it or a Vite/Vitest config is around, else `node:test`. */
 export function runnerFor(generator: string, answers: Answers, ctx: Context): Runner {

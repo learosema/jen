@@ -6,10 +6,10 @@ const r0Generator: Generator = {
   description: 'create a Rule of Zero class: members generated from constructor params, no special member functions (header-only)',
   params: {
     name: {},
-    members: {},
+    members: { description: 'comma-separated "Type name" pairs, e.g. "std::string title, int year"' },
     namespace: { default: '' },
-    compare: { default: false },
-    withTest: { default: false },
+    compare: { default: false, description: 'add a defaulted <=> (comparison and ==)' },
+    withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
   actions: ({ name, members, namespace, compare, withTest }, { pascal, constant }) => {
     const className = pascal(String(name));

@@ -36,8 +36,8 @@ export function is${name}(value) {
 const enumGenerator: Generator = {
   description: 'create an enum as an `as const` object with its union type and a type guard',
   params: {
-    name: {},
-    values: {},
+    name: { description: 'the type, any case: user-id and UserId both make UserId in user-id.ts' },
+    values: { description: 'comma-separated values, e.g. "draft, published"' },
     ...WITH_TEST_PARAMS,
     ...TYPES_PARAM,
   },

@@ -44,9 +44,9 @@ int Run(std::span<char* const> args) {
 const appGenerator: Generator = {
   description: 'create a console app starter without SDL (<name>-core library + thin executable, main wraps argv in a span)',
   params: {
-    name: {},
-    folderCase: { default: 'kebab' },
-    dir: { default: '' },
+    name: { description: 'project and target name' },
+    folderCase: { default: 'kebab', description: 'project folder name from --name: kebab (my-game) or pascal (MyGame)' },
+    dir: { default: '', description: 'project folder instead of one named after --name; . for the current directory' },
   },
   actions: ({ name, folderCase, dir }, helpers) => {
     const { kebab, constant } = helpers;

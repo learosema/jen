@@ -18,8 +18,9 @@ export type Answers = Record<string, any>;
  * A parameter's default also decides its type: boolean default → boolean, otherwise string.
  * `path: true` marks a path the user types relative to where they stand; the generator
  * gets it ready to use as an action path (`/…`, from the project root), or `''` if not given.
+ * `description` is a short phrase shown by `jen <generator> --help` and `jen --list --json`.
  */
-export type Params = Record<string, { default?: string | boolean; path?: boolean }>;
+export type Params = Record<string, { default?: string | boolean; path?: boolean; description?: string }>;
 
 /**
  * An existing file for jen to find, instead of a path: the nearest file named `find`

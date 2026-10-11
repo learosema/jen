@@ -1,0 +1,34 @@
+{%- assign key = include.key -%}
+{%- case key -%}
+{%- when "name", "bundleId", "tracyTag", "maintainer" -%}{%- assign icon = "tag" -%}
+{%- when "namespace" -%}{%- assign icon = "braces" -%}
+{%- when "withTest" -%}{%- assign icon = "check" -%}
+{%- when "width", "height" -%}{%- assign icon = "resize" -%}
+{%- when "dir", "folderCase", "file", "target" -%}{%- assign icon = "folder" -%}
+{%- when "moveOnly", "impl", "gpu", "staticSdl", "compare" -%}{%- assign icon = "toggle" -%}
+{%- when "members", "methods", "values", "cases", "ops", "underlying" -%}{%- assign icon = "list" -%}
+{%- when "# jen:sources" -%}{%- assign icon = "list" -%}
+{%- when "# jen:embed", "# jen:install, # jen:cpack" -%}{%- assign icon = "box" -%}
+{%- when "# jen:link" -%}{%- assign icon = "link" -%}
+{%- when "# jen:app" -%}{%- assign icon = "window" -%}
+{%- when "# jen:options" -%}{%- assign icon = "sliders" -%}
+{%- when "# jen:subdirs" -%}{%- assign icon = "folder" -%}
+{%- when "# jen:tests" -%}{%- assign icon = "check" -%}
+{%- when "// jen:includes" -%}{%- assign icon = "hash" -%}
+{%- when "// jen:frame-end" -%}{%- assign icon = "refresh" -%}
+{%- when "// jen:gl-init" -%}{%- assign icon = "flag" -%}
+{%- when "assets" -%}{%- assign icon = "image" -%}
+{%- else -%}{%- assign icon = include.fallback | default: "sliders" -%}
+{%- endcase -%}
+<div class="card">
+<div class="head">
+<svg class="pict" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#i-{{ icon }}"/></svg>
+<h4>{{ include.title }}</h4>
+</div>
+{%- if include.text != "" %}
+<p>{{ include.text }}</p>
+{%- endif %}
+{%- if include.meta != "" or include.label != "" %}
+<p class="meta"><span>{{ include.label }}</span> {{ include.meta }}</p>
+{%- endif %}
+</div>

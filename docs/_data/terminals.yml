@@ -87,7 +87,7 @@ sdl3_opengl:
 
 class:
   - "$ jen cpp:class --name=rigid_body --dir=src"
-  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources; --moveOnly for a Rule-of-Five RAII wrapper"
+  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources"
   - ""
   - "  + src/RigidBody.h"
   - "  + src/RigidBody.cpp"
@@ -97,7 +97,7 @@ class:
 
 class_moveonly:
   - "$ jen cpp:class --name=Texture --moveOnly --resource=GLuint --nullValue=0 --destroy=glDeleteTextures --dir=src"
-  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources; --moveOnly for a Rule-of-Five RAII wrapper"
+  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources"
   - ""
   - "  + src/Texture.h"
   - "  + src/Texture.cpp"
@@ -174,9 +174,20 @@ module:
   - ""
   - "✓ 4 written"
 
+class_help:
+  - "$ jen cpp:class --help"
+  - "cpp:class – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources"
+  - "  --name (required)"
+  - "  --namespace=\"\""
+  - "  --moveOnly  RAII wrapper: copy deleted, move defaulted (Rule of Five)"
+  - "  --resource=Resource*  with --moveOnly: the handle type it owns, e.g. SDL_Window* or GLuint"
+  - "  --nullValue=nullptr  with --moveOnly: the empty handle value, e.g. 0 for GLuint"
+  - "  --destroy=destroy  with --moveOnly: the function that frees the handle, e.g. SDL_DestroyWindow"
+  - "  --withTest  add a doctest case (needs cpp:doctest)"
+
 class_withtest:
   - "$ jen cpp:class --name=Camera --withTest --dir=src"
-  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources; --moveOnly for a Rule-of-Five RAII wrapper, --withTest for a doctest case"
+  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources"
   - ""
   - "  + src/Camera.h"
   - "  + src/Camera.cpp"
@@ -188,7 +199,7 @@ class_withtest:
 
 interface:
   - "$ jen cpp:interface --name=Drawable --methods=\"void draw(), void resize(int w, int h)\" --impl=SpriteDrawable --dir=src"
-  - "cpp:interface (pack @codejen/pack-cpp) – create a polymorphic interface class (virtual dtor, protected copy/move, pure virtual --methods); --impl scaffolds a final implementation"
+  - "cpp:interface (pack @codejen/pack-cpp) – create a polymorphic interface class (virtual dtor, protected copy/move, pure virtual methods)"
   - ""
   - "  + src/Drawable.h"
   - "  + src/SpriteDrawable.h"
@@ -298,7 +309,7 @@ doctest:
 
 tracy:
   - "$ jen cpp:tracy --gpu"
-  - "cpp:tracy (pack @codejen/pack-cpp) – add the Tracy profiler (PROFILING option, FetchContent) and a FrameMark at the app starter's frame end; --gpu for OpenGL GPU zones"
+  - "cpp:tracy (pack @codejen/pack-cpp) – add the Tracy profiler (PROFILING option, FetchContent) and a FrameMark at the app starter's frame end"
   - ""
   - "  + cmake/tracy.cmake"
   - "  ~ CMakeLists.txt  + include(cmake/tracy.cmake)"
@@ -367,7 +378,7 @@ together_tooling:
 where:
   - "$ cd my-game"
   - "$ jen cpp:class --name=Camera --dir=src"
-  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources; --moveOnly for a Rule-of-Five RAII wrapper, --withTest for a doctest case"
+  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources"
   - ""
   - "  + src/Camera.h"
   - "  + src/Camera.cpp"
@@ -377,7 +388,7 @@ where:
   - ""
   - "$ cd src/net"
   - "$ jen cpp:class --name=Socket"
-  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources; --moveOnly for a Rule-of-Five RAII wrapper, --withTest for a doctest case"
+  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources"
   - "  # root: ../.. (package.json)"
   - ""
   - "  + Socket.h"

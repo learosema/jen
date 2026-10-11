@@ -9,8 +9,8 @@ import type { Generator } from '@codejen/jen';
 const iconGenerator: Generator = {
   description: 'wire a Windows .rc icon and a macOS .icns bundle icon into the executable (you supply the icon files)',
   params: {
-    ico: { default: 'resources/app.ico' },
-    icns: { default: 'resources/app.icns' },
+    ico: { default: 'resources/app.ico', description: 'Windows icon, relative to the project root' },
+    icns: { default: 'resources/app.icns', description: 'macOS icon, relative to the project root' },
   },
   actions: ({ ico, icns }) => {
     const icoPath = String(ico);

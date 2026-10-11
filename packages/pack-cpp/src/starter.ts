@@ -23,13 +23,13 @@ export const SDL_TAG_DEFAULT = 'release-3.4.14';
 
 /** Params shared by every SDL app starter. */
 export const sdlStarterParams = {
-  name: {},
-  width: { default: '800' },
-  height: { default: '600' },
-  bundleId: { default: '' },
-  folderCase: { default: 'kebab' },
-  dir: { default: '' },
-  sdlTag: { default: SDL_TAG_DEFAULT },
+  name: { description: 'project and target name, window title and app id' },
+  width: { default: '800', description: 'window width in pixels' },
+  height: { default: '600', description: 'window height in pixels' },
+  bundleId: { default: '', description: 'app identifier, e.g. com.example.my-game (default: com.example.<name>)' },
+  folderCase: { default: 'kebab', description: 'project folder name from --name: kebab (my-game) or pascal (MyGame)' },
+  dir: { default: '', description: 'project folder instead of one named after --name; . for the current directory' },
+  sdlTag: { default: SDL_TAG_DEFAULT, description: 'SDL3 git tag to fetch' },
 };
 
 export function sdlVendorCMake(sdlTag: string, extra = ''): string {

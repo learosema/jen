@@ -16,9 +16,9 @@ const KINDS = ['quad', 'triangle', 'mesh'];
 const vertGenerator: Generator = {
   description: 'create a GLSL vertex shader starter',
   params: {
-    name: {},
-    kind: { default: 'quad' },
-    version: { default: '300es' },
+    name: { description: 'file name: Clouds makes clouds.vert.glsl' },
+    kind: { default: 'quad', description: 'quad (full-screen, matches cpp:sdl3-opengl), triangle (full-screen, no vertex buffer) or mesh (3D model with normals for lighting)' },
+    version: { default: '300es', description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
   },
   actions: ({ name, kind, version }, { kebab }) => {
     const k = String(kind);

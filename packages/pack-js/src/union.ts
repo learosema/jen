@@ -80,8 +80,8 @@ ${throwNever}
 const unionGenerator: Generator = {
   description: 'create a tagged union type with an exhaustively checked match function',
   params: {
-    name: {},
-    cases: {},
+    name: { description: 'the type, any case: user-id and UserId both make UserId in user-id.ts' },
+    cases: { description: 'comma-separated kind:{fields} cases, or a bare kind without fields' },
     ...WITH_TEST_PARAMS,
     ...TYPES_PARAM,
   },

@@ -11,8 +11,8 @@ import { parseVersion, withHeader } from './dialect.ts';
 const fragGenerator: Generator = {
   description: 'create a full-screen GLSL fragment shader starter',
   params: {
-    name: {},
-    version: { default: '300es' },
+    name: { description: 'file name: Clouds makes clouds.frag.glsl' },
+    version: { default: '300es', description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
   },
   actions: ({ name, version }, { kebab }) => [
     {

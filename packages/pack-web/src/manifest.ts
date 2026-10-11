@@ -49,14 +49,14 @@ export const maskableSvg = (svg: string, background: string): string =>
 const manifestGenerator: Generator = {
   description: 'create a web app manifest with the palette\'s colors and the icons the project has (--into links it from a page)',
   params: {
-    name: {},
-    shortName: { default: '' },
-    display: { default: 'standalone' },
-    themeColor: { default: '' },
-    backgroundColor: { default: '' },
-    lang: { default: 'en' },
-    png: { default: false },
-    into: { path: true, default: '' },
+    name: { description: 'the app name the install prompt shows' },
+    shortName: { default: '', description: 'name under the icon (default: the name, or its first word if it is longer than 12 characters)' },
+    display: { default: 'standalone', description: 'fullscreen, standalone, minimal-ui or browser' },
+    themeColor: { default: '', description: 'browser toolbar color: #hex, oklch() or a hue (default: the palette\'s primary, else white)' },
+    backgroundColor: { default: '', description: 'splash screen color: #hex, oklch() or a hue (default: the palette\'s surface, else white)' },
+    lang: { default: 'en', description: 'app language; also sets the text direction (rtl for Arabic, Hebrew, …)' },
+    png: { default: false, description: 'also render PNG icons from favicon.svg, with rsvg-convert or ImageMagick' },
+    into: { path: true, default: '', description: 'a page to link the manifest from (and with --png, the apple-touch icon)' },
   },
   actions: (answers, _helpers, ctx) => {
     const name = String(answers.name).trim();

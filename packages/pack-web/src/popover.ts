@@ -13,7 +13,7 @@ export const popoverMarkup = (id: string): string => fill(template('popover.html
 const popoverGenerator: Generator = {
   description: 'create an anchored .popover block (and its markup with --into)',
   params: {
-    name: {},
+    name: { description: 'id, and the label from it: user-menu makes "User menu"' },
     ...LINE_PARAMS,
   },
   actions: (answers, { kebab }, ctx) => {

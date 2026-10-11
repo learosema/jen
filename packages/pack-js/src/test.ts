@@ -14,7 +14,7 @@ export function exportsOf(text: string): { name: string; callable: boolean }[] {
 const testGenerator: Generator = {
   description: 'create a test file for a module: node:test, or Vitest in a Vite project',
   params: {
-    name: {},
+    name: { description: 'the module to test, e.g. format-date' },
     ...RUNNER_PARAM,
     ...TYPES_PARAM,
   },

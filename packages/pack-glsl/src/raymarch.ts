@@ -158,13 +158,13 @@ ${output}
 const raymarchGenerator: Generator = {
   description: 'raymarch signed distance fields',
   params: {
-    name: { default: '' },
-    minimal: { default: false },
-    materials: { default: false },
-    lighting: { default: 'lambert' },
-    parts: { default: 'all' },
-    into: { path: true, default: '' },
-    version: { default: '300es' },
+    name: { default: '', description: 'create a starter shader with this name: a small scene, orbiting camera, shadows, AO and fog' },
+    minimal: { default: false, description: 'with --name: leave out soft shadows, ambient occlusion and fog' },
+    materials: { default: false, description: 'with --name: a material id per surface, for different colors' },
+    lighting: { default: 'lambert', description: 'with --name: lambert, blinn, toon or pbr (see glsl:lighting)' },
+    parts: { default: 'all', description: 'with --into, comma-separated: march, normal, soft-shadow, ao, camera – or all' },
+    into: { path: true, default: '', description: 'existing shader to add the raymarching helpers to, for your own scene()' },
+    version: { default: '300es', description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
   },
   actions: ({ name, minimal, materials, lighting, parts, into, version }, { kebab }) => {
     const model = String(lighting);

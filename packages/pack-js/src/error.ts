@@ -44,8 +44,8 @@ export function errorSource(types: Types, cls: string, fields: Named[]): string 
 const errorGenerator: Generator = {
   description: 'create an Error subclass with its own name, extra fields and cause',
   params: {
-    name: {},
-    fields: { default: '' },
+    name: { description: 'the type, any case: user-id and UserId both make UserId in user-id.ts' },
+    fields: { default: '', description: 'comma-separated name:type extra fields, e.g. status:number' },
     ...WITH_TEST_PARAMS,
     ...TYPES_PARAM,
   },

@@ -19,10 +19,10 @@ const structGenerator: Generator = {
   description: 'create an aggregate struct with default member initializers for plain data bundles (header-only)',
   params: {
     name: {},
-    members: {},
-    compare: { default: false },
+    members: { description: 'comma-separated "Type name [= value]" entries, e.g. "int width = 800, int height = 600"' },
+    compare: { default: false, description: 'add a defaulted <=> (comparison and ==)' },
     namespace: { default: '' },
-    withTest: { default: false },
+    withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
   actions: ({ name, members, compare, namespace, withTest }, { pascal, constant }) => {
     const ns = String(namespace);

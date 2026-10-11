@@ -283,16 +283,16 @@ ${indent(fallback(groups, roles), '  ')}
 }
 
 export const PALETTE_PARAMS: Params = {
-  primary: {},
-  secondary: { default: '' },
-  tertiary: { default: '' },
-  neutral: { default: '' },
-  success: { default: '' },
-  warning: { default: '' },
-  danger: { default: '' },
-  info: { default: '' },
-  contrast: { default: 'aaa' },
-  tailwind: { default: false },
+  primary: { description: 'brand color: #rrggbb, #rgb, oklch(L C H) or a hue in degrees' },
+  secondary: { default: '', description: 'a second brand color, same formats as --primary' },
+  tertiary: { default: '', description: 'a third brand color, same formats as --primary' },
+  neutral: { default: '', description: 'the gray\'s tint (default: the primary\'s hue)' },
+  success: { default: '', description: 'overrides the built-in success color' },
+  warning: { default: '', description: 'overrides the built-in warning color' },
+  danger: { default: '', description: 'overrides the built-in danger color' },
+  info: { default: '', description: 'overrides the built-in info color' },
+  contrast: { default: 'aaa', description: 'WCAG level the role tokens meet: aaa, or aa (shades 3 apart)' },
+  tailwind: { default: false, description: 'write Tailwind\'s @theme instead – on by itself in a Tailwind project' },
 };
 
 const paletteGenerator: Generator = {

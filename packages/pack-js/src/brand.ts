@@ -46,8 +46,8 @@ ${make('(value)')}
 const brandGenerator: Generator = {
   description: 'create a branded type with a type guard and a checked constructor',
   params: {
-    name: {},
-    underlying: { default: 'string' },
+    name: { description: 'the type, any case: user-id and UserId both make UserId in user-id.ts' },
+    underlying: { default: 'string', description: 'the branded type: string, number or bigint' },
     ...WITH_TEST_PARAMS,
     ...TYPES_PARAM,
   },

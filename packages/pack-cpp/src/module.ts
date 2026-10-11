@@ -9,9 +9,9 @@ import { appFolder, inFolder } from './util.ts';
 const moduleGenerator: Generator = {
   description: '(experimental) create a C++20 modules starter: .cppm in a FILE_SET CXX_MODULES, CMake >= 3.28, needs Ninja',
   params: {
-    name: {},
-    folderCase: { default: 'kebab' },
-    dir: { default: '' },
+    name: { description: 'project and target name' },
+    folderCase: { default: 'kebab', description: 'project folder name from --name: kebab (my-game) or pascal (MyGame)' },
+    dir: { default: '', description: 'project folder instead of one named after --name; . for the current directory' },
   },
   actions: ({ name, folderCase, dir }, helpers) => {
     const { kebab, snake } = helpers;

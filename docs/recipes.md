@@ -113,40 +113,39 @@ An SDL3 [callbacks](https://wiki.libsdl.org/SDL3/README/main-functions)-based ap
 
 {% include terminal.html id="sdl3" %}
 
-{% capture rows %}
-`name` | — | required; project/target name, window title, app metadata id
-`width` | `800` | initial window width
-`height` | `600` | initial window height
-`bundleId` | — | defaults to `com.example.<kebab-name>`
-`folderCase` | `kebab` | `kebab` (`my-game/`) or `pascal` (`MyGame/`) for the new project folder
-`dir` | — | explicit folder instead of one derived from `name`; `--dir=.` writes into the current directory
-`sdlTag` | `release-3.4.14` | SDL3 git tag to fetch
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="cpp:sdl3" %}
 
 ### `cpp:sdl3-opengl` {#cpp-sdl3-opengl}
 
-The same starter with an OpenGL 4.1 core context instead: vendors a real, checked-in [glad](https://glad.dav1d.de) loader under `vendor/glad/`, adds `cmake/embed-glsl.cmake`, and scaffolds an app class that compiles a shader pair and draws an animated full-screen quad. Same params as `cpp:sdl3`.
+The same starter with an OpenGL 4.1 core context instead: vendors a real, checked-in [glad](https://glad.dav1d.de) loader under `vendor/glad/`, adds `cmake/embed-glsl.cmake`, and scaffolds an app class that compiles a shader pair and draws an animated full-screen quad.
 
 {% include terminal.html id="sdl3_opengl" %}
 
+{% include params.html generator="cpp:sdl3-opengl" %}
+
 ### `cpp:app` {#cpp-app}
 
-A console starter without SDL. `main(int argc, char** argv)` wraps the arguments in a `std::span` to avoid pointer arithmetic (bounds profile). Params: `name`, `folderCase`, `dir`.
+A console starter without SDL. `main(int argc, char** argv)` wraps the arguments in a `std::span` to avoid pointer arithmetic (bounds profile).
 
 {% include terminal.html id="app" %}
 
+{% include params.html generator="cpp:app" %}
+
 ### `cpp:lib` {#cpp-lib}
 
-A library starter: public headers in `include/<name>/`, `BUILD_INTERFACE`/`INSTALL_INTERFACE` include dirs, a generated export header, and install rules plus a CMake package config, so consumers can `find_package(my-lib)` and link `my-lib::my-lib`. The target is called `<name>-core` internally like in the other starters (so tests and `cpp:embed` find it) and is exported as `<name>::<name>`. Params: `name`, `folderCase`, `dir`.
+A library starter: public headers in `include/<name>/`, `BUILD_INTERFACE`/`INSTALL_INTERFACE` include dirs, a generated export header, and install rules plus a CMake package config, so consumers can `find_package(my-lib)` and link `my-lib::my-lib`. The target is called `<name>-core` internally like in the other starters (so tests and `cpp:embed` find it) and is exported as `<name>::<name>`.
 
 {% include terminal.html id="lib" %}
 
+{% include params.html generator="cpp:lib" %}
+
 ### `cpp:module` {#cpp-module}
 
-Experimental. A C++20 modules starter: a `.cppm` module interface in a `FILE_SET CXX_MODULES` of the core library, `import`ed by `main.cpp`. Needs CMake 3.28 or newer and a module-capable generator (`cmake -G Ninja`). Params: `name`, `folderCase`, `dir`.
+Experimental. A C++20 modules starter: a `.cppm` module interface in a `FILE_SET CXX_MODULES` of the core library, `import`ed by `main.cpp`. Needs CMake 3.28 or newer and a module-capable generator (`cmake -G Ninja`).
 
 {% include terminal.html id="module" %}
+
+{% include params.html generator="cpp:module" %}
 
 ### Core library and markers {#markers}
 
@@ -185,17 +184,11 @@ A move-only RAII wrapper instead (Rule of Five): deleted copy, `noexcept` move v
 
 {% include terminal.html id="class_moveonly" %}
 
-{% capture rows %}
-`name` | — | required; the class name
-`namespace` | `''` | wraps the class in a namespace
-`moveOnly` | `false` | scaffold a move-only RAII wrapper instead of a plain class
-`resource` | `Resource*` | `--moveOnly` only: the handle's type
-`nullValue` | `nullptr` | `--moveOnly` only: the value meaning "no resource"
-`destroy` | `destroy` | `--moveOnly` only: the function that frees the resource
-`withTest` | `false` | also scaffold a test, see [`--withTest`](#with-test)
-`dir` | — | where the files go, relative to the current directory; else the current directory
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="cpp:class" %}
+
+Every generator shows its params in the terminal too, with `--help`:
+
+{% include terminal.html id="class_help" %}
 
 ### `cpp:handle` {#cpp-handle}
 
@@ -203,11 +196,15 @@ A generic, header-only `Handle<T, Deleter, Null>` template for non-pointer handl
 
 {% include terminal.html id="handle" %}
 
+{% include params.html generator="cpp:handle" %}
+
 ### `cpp:scopeexit` {#cpp-scopeexit}
 
 A header-only `ScopeExit` scope-guard template: runs a `noexcept`-checked callable on destruction unless `release()`d first (`scopeexit` in my-cpp-snippets).
 
 {% include terminal.html id="scopeexit" %}
+
+{% include params.html generator="cpp:scopeexit" %}
 
 ### `cpp:r0` {#cpp-r0}
 
@@ -215,14 +212,7 @@ A Rule of Zero class: no special member functions, one constructor generated fro
 
 {% include terminal.html id="r0" %}
 
-{% capture rows %}
-`name` | — | required; the class name
-`members` | — | required; comma-separated `Type name` pairs
-`namespace` | `''` | wraps the class in a namespace
-`compare` | `false` | adds `auto operator<=>(const X&) const = default;`
-`withTest` | `false` | also scaffold a test
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="cpp:r0" %}
 
 ### `cpp:interface` {#cpp-interface}
 
@@ -230,14 +220,7 @@ A polymorphic base class (C.35, C.67, C.128): virtual defaulted destructor, prot
 
 {% include terminal.html id="interface" %}
 
-{% capture rows %}
-`name` | — | required; interface name
-`methods` | `''` | e.g. `"void draw(), void resize(int w, int h)"`
-`impl` | `''` | name of a concrete implementation class
-`namespace` | `''` | wraps the classes in a namespace
-`withTest` | `false` | also scaffold a test
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="cpp:interface" %}
 
 ### `cpp:struct` {#cpp-struct}
 
@@ -245,14 +228,7 @@ An aggregate for plain data bundles without an invariant (C.2, C.131): public me
 
 {% include terminal.html id="struct" %}
 
-{% capture rows %}
-`name` | — | required
-`members` | — | required; e.g. `"int width = 800, int height = 600"`
-`compare` | `false` | adds `auto operator<=>(const X&) const = default;`
-`namespace` | `''` | 
-`withTest` | `false` | also scaffold a test
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="cpp:struct" %}
 
 ### `cpp:strong` {#cpp-strong}
 
@@ -260,14 +236,7 @@ A strong typedef (I.4): explicit constructor, `value()`, and optional operators.
 
 {% include terminal.html id="strong" %}
 
-{% capture rows %}
-`name` | — | required
-`underlying` | — | required; the wrapped type
-`ops` | `compare` | comma-separated: `compare` (`<=>`), `arith` (`+ - * /`, scalar for `* /`), `hash` (`std::hash`)
-`namespace` | `''` | 
-`withTest` | `false` | also scaffold a test
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="cpp:strong" %}
 
 ### `cpp:enum` {#cpp-enum}
 
@@ -275,20 +244,15 @@ An `enum class` with `to_string()` and a `std::formatter` specialization (Enum.3
 
 {% include terminal.html id="enum" %}
 
-{% capture rows %}
-`name` | — | required
-`values` | — | required; e.g. `"idle, running, paused"`
-`namespace` | `''` | 
-`std` | `23` | `20` uses `std::abort()` instead of `std::unreachable()`
-`withTest` | `false` | also scaffold a test
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="cpp:enum" %}
 
 ### `cpp:pimpl` {#cpp-pimpl}
 
-A pimpl class (I.27): `std::unique_ptr<Impl>`, with the destructor and move operations defaulted in the `.cpp` so `Impl` can stay incomplete in the header. Easy to get wrong by hand. Params: `name`, `namespace`, `withTest`.
+A pimpl class (I.27): `std::unique_ptr<Impl>`, with the destructor and move operations defaulted in the `.cpp` so `Impl` can stay incomplete in the header. Easy to get wrong by hand.
 
 {% include terminal.html id="pimpl" %}
+
+{% include params.html generator="cpp:pimpl" %}
 
 ### `cpp:variant` {#cpp-variant}
 
@@ -296,13 +260,7 @@ A `std::variant` of small case structs plus the `overloaded` visitor helper (in 
 
 {% include terminal.html id="variant" %}
 
-{% capture rows %}
-`name` | — | required; name of the variant alias
-`cases` | — | required; e.g. `"KeyDown, KeyUp, Resize"`
-`namespace` | `''` | 
-`withTest` | `false` | also scaffold a test
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="cpp:variant" %}
 
 ### `--withTest` {#with-test}
 
@@ -357,17 +315,23 @@ Sets up [doctest](https://github.com/doctest/doctest) via `FetchContent`: `enabl
 
 doctest also supports inline tests in the `.cpp` files with `DOCTEST_CONFIG_DISABLE` in release builds. That's charming for small projects but scales worse, so it isn't scaffolded.
 
+{% include params.html generator="cpp:doctest" %}
+
 ### `cpp:tidy` {#cpp-tidy}
 
 A `.clang-tidy` enabling `cppcoreguidelines-*`, `modernize-*`, `bugprone-*` and `performance-*`, with the checks that are noisy in graphics/SDL code (magic numbers, pointer arithmetic, varargs, …) switched off and explained in a comment. It also adds `cmake/tidy.cmake`, an opt-in `-DCLANG_TIDY=ON` that runs it during the build; `--cmake=false` skips that part.
 
 {% include terminal.html id="tidy" %}
 
+{% include params.html generator="cpp:tidy" %}
+
 ### `cpp:format` {#cpp-format}
 
-A `.clang-format` matching the style the generators emit. Params: `basedOn` (`Google`), `indent` (`2`), `columnLimit` (`120`); keep them in line with your `.editorconfig`.
+A `.clang-format` matching the style the generators emit. Keep `--indent` and `--columnLimit` in line with your `.editorconfig`.
 
 {% include terminal.html id="format" %}
+
+{% include params.html generator="cpp:format" %}
 
 ### `cpp:presets` {#cpp-presets}
 
@@ -381,6 +345,8 @@ A `project_warnings` INTERFACE target with `-Wall -Wextra -Wpedantic -Wconversio
 
 {% include terminal.html id="warnings" %}
 
+{% include params.html generator="cpp:warnings" %}
+
 ### `cpp:compiler` {#cpp-compiler}
 
 Compiler settings that nudge the build towards the Core Guidelines, complementing `cpp:warnings` (general warnings) and `cpp:tidy` (static analysis). `cmake/compiler.cmake` sets build-wide conventions: `CMAKE_CXX_EXTENSIONS OFF` (`-std=c++23`, not `gnu++23`, P.2), `CMAKE_CXX_STANDARD_REQUIRED`, and `compile_commands.json` for clangd and clang-tidy. It also defines a `project_options` INTERFACE target, linked privately into the core library, with:
@@ -392,6 +358,8 @@ Compiler settings that nudge the build towards the Core Guidelines, complementin
 
 {% include terminal.html id="compiler" %}
 
+{% include params.html generator="cpp:compiler" %}
+
 ## Profiling {#profiling}
 
 ### `cpp:tracy` {#cpp-tracy}
@@ -400,12 +368,7 @@ The [Tracy](https://github.com/wolfpld/tracy) profiler via `FetchContent`, linke
 
 {% include terminal.html id="tracy" %}
 
-{% capture rows %}
-`gpu` | `false` | OpenGL GPU zones
-`file` | `src/app.cpp` | the file the markers are in
-`tracyTag` | `v0.11.1` | Tracy git tag to fetch
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="cpp:tracy" %}
 
 Then `cmake -S . -B build -DPROFILING=ON`.
 
@@ -419,19 +382,15 @@ A shared SDL3 is shipped next to the executable (`IMPORTED_RUNTIME_ARTIFACTS` fo
 
 {% include terminal.html id="cpack" %}
 
-{% capture rows %}
-`assets` | `assets` | directory installed next to the binary
-`staticSdl` | `false` | build SDL3 statically instead of shipping the shared library
-`bundleId` | — | macOS bundle id, defaults to `com.example.${PROJECT_NAME}`
-`maintainer` | — | vendor and Debian maintainer, defaults to `${PROJECT_NAME} maintainers`
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="cpp:cpack" %}
 
 ### `cpp:icon` {#cpp-icon}
 
 Platform app resources, separate from embedding: a Windows `resources/app.rc` that attaches an icon to the executable, and a macOS `.icns` copied into the bundle's `Resources`, both wired in at `# jen:app`. jen only writes text, so drop your own `resources/app.ico` and `resources/app.icns` in (`--ico` and `--icns` change the paths). Pairs with `cpp:cpack`.
 
 {% include terminal.html id="icon" %}
+
+{% include params.html generator="cpp:icon" %}
 
 ## Resources {#resources}
 
@@ -443,11 +402,7 @@ Embeds a GLSL file you already have: write it with [`glsl:frag`]({{ '/glsl.html#
 
 If the file doesn't exist yet, jen says so and points at `glsl:frag`.
 
-{% capture rows %}
-`file` | — | required; the shader to embed, relative to the current directory
-`name` | derived | the C++ variable: `vignette.frag.glsl` becomes `vignetteFragmentShader`, `blur.glsl` becomes `blurShader`
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="cpp:shader" %}
 
 ### `cpp:embed` {#cpp-embed}
 
@@ -455,13 +410,7 @@ Cross-platform binary embedding. `#embed` isn't portable yet (C only in Clang/GC
 
 {% include terminal.html id="embed" %}
 
-{% capture rows %}
-`file` | — | required; path relative to the project's source dir
-`name` | — | required; the C++ variable and header name
-`target` | `${PROJECT_NAME}-core` | the target to add it to
-`method` | `cmake` | only `cmake` for now
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="cpp:embed" %}
 
 CMake's regex gets noticeably slow for assets in the tens of MB, and each generated header should be included from exactly one `.cpp`, since large `constexpr` arrays cost compile time in every translation unit.
 

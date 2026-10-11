@@ -87,6 +87,8 @@ The whole starter at once: [`web:base`](#web-base), [`web:fluid`](#web-fluid), [
 
 {% include terminal.html id="web_cube" %}
 
+{% include params.html generator="web:cube" %}
+
 ## Tokens {#tokens}
 
 ### `web:palette` {#web-palette}
@@ -103,15 +105,7 @@ So `--color-primary-5` text on `--color-danger-1` is AAA, without looking anythi
 
 {% include web-preview.html src="palette.html" title="The palette" height="32rem" dual=true caption="<code>--primary=#5b5bd6 --secondary=330</code>: labels sit at least 3 shades away from their swatch" %}
 
-{% capture rows %}
-`primary` | — | required: `#rrggbb`, `#rgb`, `oklch(L C H)` or a hue in degrees
-`secondary`, `tertiary` | — | more brand colors, same formats
-`neutral` | primary's hue | the gray's tint
-`success`, `warning`, `danger`, `info` | built in | override the status colors
-`contrast` | `aaa` | `aa` relaxes the role tokens to shades 3 apart
-`tailwind` | `false` | write Tailwind's `@theme` instead – on by itself in a Tailwind project
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="web:palette" %}
 
 ### Role tokens and dark mode {#roles}
 
@@ -153,13 +147,7 @@ A size that would grow more than 2.5× across the range is refused: browser zoom
 
 {% include terminal.html id="web_fluid_zoom" %}
 
-{% capture rows %}
-`minWidth`, `maxWidth` | `20`, `77.5` | the viewport range in rem (320–1240px)
-`minSize`, `maxSize` | `1.125`, `1.25` | step 0 at either end, in rem
-`minRatio`, `maxRatio` | `1.2`, `1.25` | how much each step grows over the last
-`tailwind` | `false` | also map the scales into Tailwind's `text-*` and spacing
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="web:fluid" %}
 
 ## CUBE CSS {#cube}
 
@@ -213,6 +201,8 @@ A text column (`--breakout-max-width`) whose children can break out with `data-b
 {% include web-preview.html src="compositions-reel.html" title=".reel" height="6rem" %}
 {% include web-preview.html src="compositions-gallery.html" title=".gallery" height="11rem" %}
 
+{% include params.html generator="web:compositions" %}
+
 ### `web:utilities` {#web-utilities}
 
 Utility classes from your tokens, in the `utilities` layer: `.color-*` and `.bg-*` for every role token – not the raw shades, so you stay on checked pairs – `.step-*` font sizes, `.flow-space-*` and `.gutter-*` for every space size, `.pad-fluid`, `.unbreakable` and `.visually-hidden`. Run it after the tokens, and again with `--force` when they change.
@@ -259,15 +249,7 @@ A new page after [Manuel Matuzović's HTML boilerplate](https://matuzo.at/blog/h
 
 {% include terminal.html id="web_page" %}
 
-{% capture rows %}
-`name` | — | required; the file name (`about` becomes `about.html`)
-`title`, `site` | `About`, — | the title is "title – site"
-`description` | `Page description` | for search results and link previews
-`lang` | `en` | with a region (`en-GB`), it also sets `og:locale`
-`url`, `image`, `imageAlt` | — | the site's address, and the image link previews show
-`script` | — | a module script to load at the end of the body
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="web:page" %}
 
 ### `web:manifest` {#web-manifest}
 
@@ -281,16 +263,7 @@ Some browsers, and iOS for the home screen, still want PNGs. `--png` renders `ic
 
 {% include terminal.html id="web_manifest_png" %}
 
-{% capture rows %}
-`name` | — | required; the app's name, as the install prompt shows it
-`shortName` | the name | under the icon; without it, the name, or its first word if it's longer than 12 characters
-`display` | `standalone` | `fullscreen`, `standalone`, `minimal-ui` or `browser`
-`themeColor`, `backgroundColor` | palette | the browser's toolbar and the splash screen; `#ffffff` without a palette
-`lang` | `en` | also sets `dir`: `rtl` for Arabic, Hebrew, Persian, Urdu and other right-to-left languages
-`png` | — | also render the PNG icons from `favicon.svg`, with rsvg-convert or ImageMagick
-`into` | — | a page to link the manifest from (and with `--png`, the apple-touch icon)
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="web:manifest" %}
 
 ### `web:sw` {#web-sw}
 
@@ -304,14 +277,7 @@ A live preview is no use for a service worker, so here's the start of the file i
 
 {% include terminal.html id="web_sw_file" %}
 
-{% capture rows %}
-`precache` | pages and stylesheets | files to cache on install, comma-separated, relative to `sw.js`
-`strategy` | `cache-first` | `swr` for stale-while-revalidate (pages stay network first)
-`offline` | — | also write `offline.html`, shown for pages that aren't cached
-`types` | from the project | `ts`, `jsdoc` or `none`, for `register-sw`
-`into` | — | a page (script tag) or module (import line) that loads `register-sw`
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="web:sw" %}
 
 ### `web:dialog` {#web-dialog}
 
@@ -321,6 +287,8 @@ A modal `.dialog` that fades and rises in and out (`@starting-style`) above a di
 
 {% include web-preview.html src="dialog.html" title="A dialog" height="18rem" dual=true caption="Press the button" %}
 
+{% include params.html generator="web:dialog" %}
+
 ### `web:popover` {#web-popover}
 
 A `.popover` anchored below its trigger with CSS anchor positioning, flipping above or to the other side when there's no room. Without anchor positioning it opens centered, like any popover. The markup uses `popovertarget` and ties trigger and popover together with an anchor name.
@@ -328,6 +296,8 @@ A `.popover` anchored below its trigger with CSS anchor positioning, flipping ab
 {% include terminal.html id="web_popover" %}
 
 {% include web-preview.html src="popover.html" title="A popover" height="11rem" dual=true caption="Press the button" %}
+
+{% include params.html generator="web:popover" %}
 
 ### `web:scroll` {#web-scroll}
 
@@ -337,6 +307,8 @@ Scroll-driven animations, no JavaScript: a `.reading-progress` bar that follows 
 
 {% include web-preview.html src="scroll.html" title="Scroll-driven animations" height="18rem" caption="Scroll inside the frame" %}
 
+{% include params.html generator="web:scroll" %}
+
 ### `web:transitions` {#web-transitions}
 
 Cross-document view transitions between the pages of a site, as the browser's crossfade or `--style=slide` – off with reduced motion, and simply absent where unsupported. `--spa` adds `view-transition.js` for same-document transitions: `transition(() => updateTheDom())`, a plain update where unsupported.
@@ -344,6 +316,8 @@ Cross-document view transitions between the pages of a site, as the browser's cr
 {% include terminal.html id="web_transitions" %}
 
 {% include web-preview.html src="transitions-a.html" title="View transitions" height="12rem" caption="Follow the link inside the frame" %}
+
+{% include params.html generator="web:transitions" %}
 
 ## Tailwind v4 {#tailwind}
 

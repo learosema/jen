@@ -28,7 +28,7 @@ export const compositionsCss = (names: string[]): string =>
 
 const compositionsGenerator: Generator = {
   description: 'create CUBE CSS compositions (flow, cluster, sidebar, grid, wrapper, breakout, reel, …)',
-  params: { only: { default: '' } },
+  params: { only: { default: '', description: 'comma-separated compositions to pick, e.g. flow,cluster (default: all)' } },
   actions: ({ only }, _helpers, ctx) => [{ add: FILE, template: compositionsCss(pickCompositions(String(only))) }, ...importActions(ctx, [FILE])],
 };
 

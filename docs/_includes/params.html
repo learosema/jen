@@ -1,0 +1,19 @@
+{%- assign params = site.data.params[include.generator] -%}
+{%- if params.size > 0 %}
+<h4 class="cards-title">Params</h4>
+<div class="auto-grid cards">
+{%- for p in params -%}
+{%- capture title %}<code>{{ p.name }}</code>{% endcapture -%}
+{%- assign text = p.description | default: "" | escape -%}
+{%- assign meta = "" -%}
+{%- assign label = "" -%}
+{%- if p.required -%}
+{%- assign label = "required" -%}
+{%- elsif p.default -%}
+{%- assign label = "default" -%}
+{%- capture meta %}<code>{{ p.default | escape }}</code>{% endcapture -%}
+{%- endif -%}
+{% include card.html key=p.name title=title text=text meta=meta label=label fallback="sliders" %}
+{%- endfor %}
+</div>
+{%- endif %}

@@ -78,15 +78,15 @@ export function pageHtml(file: string, o: PageOptions): string {
 const pageGenerator: Generator = {
   description: 'create an HTML page (after matuzo.at\'s boilerplate), linked to the stylesheet, palette and icons',
   params: {
-    name: {},
-    title: { default: '' },
-    site: { default: '' },
-    description: { default: 'Page description' },
-    lang: { default: 'en' },
-    url: { default: '' },
-    image: { default: '' },
-    imageAlt: { default: '' },
-    script: { path: true, default: '' },
+    name: { description: 'file name: about makes about.html' },
+    title: { default: '', description: 'page title (default: from --name, e.g. About)' },
+    site: { default: '', description: 'site name, appended to the title: "title – site"' },
+    description: { default: 'Page description', description: 'for search results and link previews' },
+    lang: { default: 'en', description: 'page language; with a region (en-GB), it also sets og:locale' },
+    url: { default: '', description: 'the site\'s address, for link previews' },
+    image: { default: '', description: 'image that link previews show' },
+    imageAlt: { default: '', description: 'alt text for --image' },
+    script: { path: true, default: '', description: 'a module script to load at the end of the body' },
   },
   actions: (answers, { kebab }, ctx) => {
     const name = kebab(String(answers.name));

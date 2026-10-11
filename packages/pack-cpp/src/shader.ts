@@ -22,8 +22,8 @@ const shaderGenerator: Generator = {
   description:
     'embed an existing GLSL file as a C string via cmake/embed-glsl.cmake, wired in at # jen:embed (write the shader with glsl:frag or by hand)',
   params: {
-    file: { path: true },
-    name: { default: '' },
+    file: { path: true, description: 'the GLSL file to embed, e.g. shaders/tonemap.frag.glsl' },
+    name: { default: '', description: 'C++ variable name (default: from the file name, e.g. tonemapFragmentShader)' },
   },
   actions: ({ file, name }, { camel }, ctx) => {
     const shader = String(file).slice(1); // a path param: /… from the project root

@@ -64,10 +64,10 @@ function wire(into: string, file: string, ctx: Context, extension: string): Acti
 const swGenerator: Generator = {
   description: 'create a service worker (network-first pages, cached assets, an offline page) and a module that registers it',
   params: {
-    precache: { default: '' },
-    strategy: { default: 'cache-first' },
-    offline: { default: false },
-    into: { path: true, default: '' },
+    precache: { default: '', description: 'comma-separated files to cache on install, relative to sw.js (default: the pages and stylesheets)' },
+    strategy: { default: 'cache-first', description: 'for assets: cache-first, or swr (stale-while-revalidate); pages stay network-first' },
+    offline: { default: false, description: 'also write offline.html, shown for pages that aren\'t cached' },
+    into: { path: true, default: '', description: 'a page (script tag) or module (import line) that loads register-sw' },
     ...TYPES_PARAM,
   },
   actions: (answers, { kebab }, ctx) => {

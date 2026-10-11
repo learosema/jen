@@ -5,6 +5,8 @@
  *   jen class                    first generator named "class" in the search path
  *   jen cpp:class --name=Foo     explicitly from pack "jen-cpp", answer via CLI
  *   jen --list                   all generators and where they come from
+ *   jen --list --json            the same for programs, with every param
+ *   jen cpp:class --help         one generator and its params
  *
  * Search path (first match wins):
  *   1. .jen/             in the project (searched upwards from cwd)
@@ -48,7 +50,7 @@ const BUILTINS: Pack = {
     description: 'create a new generator (project or user-wide)',
     params: {
       name: {},
-      location: { default: 'project' },
+      location: { default: 'project', description: 'project (.jen/) or user (your user directory)' },
     },
     actions: ({ name, location }, { kebab }) => [
       {
@@ -267,11 +269,12 @@ function install(spec: string, extra: Extra): string {
     remove();
   });
 
-  console.log(dim(`Fetching ${name}@${version} …`));
+  // progress goes to stderr, so stdout stays clean for --list --json
+  console.error(dim(`Fetching ${name}@${version} …`));
   const result = spawnSync(
     'npm',
     ['install', `${name}@${version}`, '--prefix', dir, '--no-save', '--no-audit', '--no-fund', '--ignore-scripts'],
-    { stdio: 'inherit', shell: process.platform === 'win32' },
+    { stdio: ['inherit', process.stderr, 'inherit'], shell: process.platform === 'win32' },
   );
   if (result.error || result.status !== 0) {
     fail(`npm install ${name}@${version} failed${result.error ? `: ${result.error.message}` : ''}.`);
@@ -356,11 +359,18 @@ async function fetchFallback(entries: Entry[], query: string, extra: Extra): Pro
   }
 }
 
-async function list(entries: Entry[]): Promise<void> {
+/** Each entry with whether an earlier one of the same name shadows it. */
+function withShadowing(entries: Entry[]): Array<{ entry: Entry; shadowed: boolean }> {
   const seen = new Set<string>();
-  for (const e of entries) {
-    const shadowed = seen.has(e.name);
-    seen.add(e.name);
+  return entries.map((entry) => {
+    const shadowed = seen.has(entry.name);
+    seen.add(entry.name);
+    return { entry, shadowed };
+  });
+}
+
+async function list(entries: Entry[]): Promise<void> {
+  for (const { entry: e, shadowed } of withShadowing(entries)) {
     const description = await e.load().then(
       (g) => g.description ?? '',
       (err: Error) => styleText('red', err.message),
@@ -368,6 +378,62 @@ async function list(entries: Entry[]): Promise<void> {
     const line = `  ${qualified(e).padEnd(22)} ${e.source.padEnd(26)} ${description}`;
     console.log(shadowed ? dim(`${line} (shadowed)`) : line);
   }
+}
+
+interface ParamInfo {
+  type: 'string' | 'boolean';
+  required: boolean;
+  default?: string | boolean;
+  path?: true;
+  description?: string;
+}
+
+/** What a param declaration means: its type follows from the default, and no default means required. */
+function paramInfo(spec: Params[string]): ParamInfo {
+  return {
+    type: typeof spec.default === 'boolean' ? 'boolean' : 'string',
+    required: spec.default === undefined,
+    ...(spec.default !== undefined && { default: spec.default }),
+    ...(spec.path && { path: true as const }),
+    ...(spec.description && { description: spec.description }),
+  };
+}
+
+/** A param the way it's typed on the command line: `--name (required)`, `--dir=src`, `--namespace=""`, `--moveOnly`. */
+function paramUsage(name: string, p: ParamInfo): string {
+  if (p.required) return `--${name} (required)`;
+  if (p.default === false) return `--${name}`;
+  const value = String(p.default);
+  return `--${name}=${/^[^\s"'`$\\]+$/.test(value) ? value : JSON.stringify(value)}`;
+}
+
+/** One generator and its params, plain like the CLI itself – the single text format for `--help`. */
+function formatGenerator(name: string, gen: AnyGenerator): string {
+  const lines = [gen.description ? `${name} – ${gen.description}` : name];
+  for (const [param, spec] of Object.entries(gen.params ?? {})) {
+    const p = paramInfo(spec);
+    lines.push(`  ${paramUsage(param, p)}${p.description ? `  ${p.description}` : ''}`);
+  }
+  return lines.join('\n');
+}
+
+/** `jen --list --json`: the catalog for programs – JSON only on stdout. */
+async function listJson(entries: Entry[]): Promise<void> {
+  const catalog = [];
+  for (const { entry: e, shadowed } of withShadowing(entries)) {
+    const head = { name: qualified(e), source: e.source, shadowed };
+    catalog.push(
+      await e.load().then(
+        (g) => ({
+          ...head,
+          description: g.description ?? '',
+          params: Object.fromEntries(Object.entries(g.params ?? {}).map(([n, spec]) => [n, paramInfo(spec)])),
+        }),
+        (err: Error) => ({ ...head, error: err.message }),
+      ),
+    );
+  }
+  console.log(JSON.stringify(catalog, null, 2));
 }
 
 // ─── Params ─────────────────────────────────────────────────────────────────
@@ -405,12 +471,13 @@ const HELP = `jen – the code jen(erator)
 
   generator       name ("class"), with pack ("cpp:class") or source ("user:class")
   --list,    -l   list all generators and where they come from
+  --json          with --list: the same as JSON, with every generator's params
   --dry-run, -n   only show the plan
   --force,   -f   overwrite existing files
   --dir           where the files go instead of the current directory
   --from          fetch a pack via npm, run it once, then remove it – or a package
                   a pack runs, e.g. a Yeoman generator: --from generator-code yeoman:code
-  --help,    -h   show this help
+  --help,    -h   show this help, or a generator's params: jen cpp:class --help
 
   CLI answers always use "=": --name=Foo (flags like --moveOnly work without).
   Without a generator name, jen lists the available ones.
@@ -426,7 +493,8 @@ const FLAGS = {
 
 export async function main(): Promise<void> {
   const { values, positionals } = parseArgs({ allowPositionals: true, strict: false, options: FLAGS });
-  if (values.help) return void console.log(HELP);
+  const query = positionals[0];
+  if (values.help && !query) return void console.log(HELP);
 
   const extra = noExtra();
   try {
@@ -438,9 +506,9 @@ export async function main(): Promise<void> {
     } else {
       entries = await collect(extra);
     }
-    if (values.list) return void (await list(entries));
+    // --json only means something here, so it isn't reserved: a generator may still have a "json" param
+    if (values.list) return void (await (values.json ? listJson(entries) : list(entries)));
 
-    const query = positionals[0];
     if (!query) {
       await list(entries);
       process.exitCode = 1;
@@ -448,12 +516,15 @@ export async function main(): Promise<void> {
     }
     let entry = find(entries, query);
     if (!entry) {
-      // a fetched pack is the whole search path; a fetched package for a pack still needs that pack
-      const fallback = values.from && extra.packages.length === 0 ? undefined : await fetchFallback(entries, query, extra);
+      // a fetched pack is the whole search path; a fetched package for a pack still needs that pack.
+      // --help never fetches – the not-found hint shows how.
+      const skip = values.help || (values.from && extra.packages.length === 0);
+      const fallback = skip ? undefined : await fetchFallback(entries, query, extra);
       if (!fallback) notFound(entries, query);
       entry = fallback;
     }
     const gen = await entry.load();
+    if (values.help) return void console.log(formatGenerator(qualified(entry), gen));
     // --where was removed: fail rather than quietly write into the cwd, unless it's the generator's own param
     if ('w' in values || ('where' in values && !('where' in (gen.params ?? {})))) {
       fail('--where/-w was removed – cd into the directory and run jen there.');
