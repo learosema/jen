@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/learosema/jen/compare/pack-web-v1.2.0...pack-web-v1.2.1) (2026-10-11)
+
+
+### Bug Fixes
+
+* **pack-web:** fix codeql issues ([1eafce4](https://github.com/learosema/jen/commit/1eafce4e3871cdee0861407e16df18c6172f6819))
+
 ## [1.2.0](https://github.com/learosema/jen/compare/pack-web-v1.1.0...pack-web-v1.2.0) (2026-10-11)
 
 
