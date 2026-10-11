@@ -680,3 +680,20 @@ describe('glsl:webgl --shaderDir', () => {
     assert.match(files.get('index.html')!, /<shader-canvas src="glsl\/x.frag.glsl" live>/);
   });
 });
+
+// ─── Param descriptions ─────────────────────────────────────────────────────
+
+/** Params that say what they're for by their name alone: the required name, and namespace. */
+const selfExplanatory = (param: string, spec: { default?: unknown }): boolean =>
+  (param === 'name' && spec.default === undefined) || param === 'namespace';
+
+describe('param descriptions', () => {
+  for (const [gen, g] of Object.entries(pack)) {
+    it(`${gen}: every param says what it's for`, () => {
+      const missing = Object.entries(g.params ?? {})
+        .filter(([param, spec]) => !selfExplanatory(param, spec) && !spec.description?.trim())
+        .map(([param]) => `--${param}`);
+      assert.deepEqual(missing, []);
+    });
+  }
+});

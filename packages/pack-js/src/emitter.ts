@@ -14,8 +14,8 @@ export function emitterSource(types: Types, cls: string, events: EventSpec[]): s
 const emitterGenerator: Generator = {
   description: 'create an EventTarget subclass with a typed event map',
   params: {
-    name: {},
-    events: {},
+    name: { description: 'the type, any case: user-id and UserId both make UserId in user-id.ts' },
+    events: { description: 'comma-separated name:{detail} events, e.g. "change:{value: number}"; without a detail type, none' },
     ...WITH_TEST_PARAMS,
     ...TYPES_PARAM,
   },

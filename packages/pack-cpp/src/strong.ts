@@ -12,10 +12,10 @@ const strongGenerator: Generator = {
   description: 'create a strong typedef: explicit constructor, optional <=> / arithmetic / std::hash (header-only)',
   params: {
     name: {},
-    underlying: {},
-    ops: { default: 'compare' },
+    underlying: { description: 'the wrapped type, e.g. float or int' },
+    ops: { default: 'compare', description: 'comma-separated: compare (<=>), arith (+ - * /), hash (std::hash)' },
     namespace: { default: '' },
-    withTest: { default: false },
+    withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
   actions: ({ name, underlying, ops, namespace, withTest }, { pascal, constant }) => {
     const ns = String(namespace);

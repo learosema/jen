@@ -12,10 +12,10 @@ const embedGenerator: Generator = {
   description:
     'embed a binary file as a constexpr byte array, generated at build time by cmake/embed.cmake and wired in at # jen:embed',
   params: {
-    file: {},
-    name: {},
-    target: { default: '' },
-    method: { default: 'cmake' },
+    file: { description: 'the binary file to embed, relative to the project root' },
+    name: { description: 'C++ variable name for the byte array' },
+    target: { default: '', description: 'CMake target that gets the array (default: <project>-core)' },
+    method: { default: 'cmake', description: 'how to embed: only cmake so far (#embed isn\'t portable yet)' },
   },
   actions: ({ file, name, target, method }, { camel }) => {
     if (String(method) !== 'cmake') {

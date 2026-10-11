@@ -39,13 +39,13 @@ const isVoid = (ret: string): boolean => /(^|\s)void$/.test(ret);
 
 const interfaceGenerator: Generator = {
   description:
-    'create a polymorphic interface class (virtual dtor, protected copy/move, pure virtual --methods); --impl scaffolds a final implementation',
+    'create a polymorphic interface class (virtual dtor, protected copy/move, pure virtual methods)',
   params: {
     name: {},
-    methods: { default: '' },
-    impl: { default: '' },
+    methods: { default: '', description: 'comma-separated pure virtual methods, e.g. "void draw() const, bool resize(int w, int h)"' },
+    impl: { default: '', description: 'also create a final class with this name that implements the interface' },
     namespace: { default: '' },
-    withTest: { default: false },
+    withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
   actions: ({ name, methods, impl, namespace, withTest }, { pascal, constant }) => {
     const ns = String(namespace);

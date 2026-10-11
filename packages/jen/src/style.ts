@@ -7,7 +7,7 @@ export type Types = 'ts' | 'jsdoc' | 'none';
 const TYPES: Types[] = ['ts', 'jsdoc', 'none'];
 
 /** The `--types` param: empty means detect it from the project. */
-export const TYPES_PARAM = { types: { default: '' } };
+export const TYPES_PARAM = { types: { default: '', description: 'ts, jsdoc or none (default: from the nearest tsconfig.json or jsconfig.json)' } };
 
 type Where = Probe & Pick<Context, 'destDir'>;
 

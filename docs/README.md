@@ -8,5 +8,6 @@ Preview locally with `jekyll serve` (or `bundle exec jekyll serve` with the `git
 - `_data/nav.yml`: the header and footer links, shared by every page. Add a page here to get it into the navigation.
 - `_data/terminals.yml` + `_includes/terminal.html`: every terminal block. Add the lines to the data file, then `{% include terminal.html id="..." %}`.
 - `_data/langs.yml`: the language badges on the landing page.
+- `_data/params.json` + `_includes/params.html`: a generator's Params cards, `{% include params.html generator="cpp:class" %}`. The data is generated from the packs' param descriptions by `node scripts/docs-params.ts` (gitignored; `npm run docs` and the Pages workflow run it), so edit the description in the pack, not here.
 - `_includes/`: the landing page's design pieces (`hero`, `langs`, `actions`, `generator-example`, `finale`), `copy-button`, and `head`/`header`/`footer`.
 - `css/*.css`, `site.js`: styles (one file per part of the site, linked in order from `_includes/head.html`) and progressive enhancement. The hero demo's scenes live in `SCENES` in `site.js`.

@@ -99,10 +99,10 @@ const cpackGenerator: Generator = {
   description:
     'add install rules and CPack packaging (ZIP/NSIS, DragNDrop, TGZ/DEB), SDL3 runtime, RPATH and a macOS bundle',
   params: {
-    assets: { default: 'assets' },
-    staticSdl: { default: false },
-    bundleId: { default: '' },
-    maintainer: { default: '' },
+    assets: { default: 'assets', description: 'folder to install next to the app, if it exists' },
+    staticSdl: { default: false, description: 'link SDL3 statically instead of shipping its shared library' },
+    bundleId: { default: '', description: 'macOS bundle identifier (default: com.example.<project>)' },
+    maintainer: { default: '', description: 'package vendor and Debian maintainer, e.g. "Jane Doe <jane@example.com>"' },
   },
   actions: ({ assets, staticSdl, bundleId, maintainer }) => {
     const bundle = String(bundleId) || 'com.example.${PROJECT_NAME}';

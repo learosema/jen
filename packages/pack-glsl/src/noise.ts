@@ -69,13 +69,13 @@ ${setup.join('\n')}
 const noiseGenerator: Generator = {
   description: 'add GLSL noise, tileable',
   params: {
-    kind: { default: '' },
-    dim: { default: '2' },
-    base: { default: 'simplex' },
-    into: { path: true, default: '' },
-    name: { default: '' },
-    tile: { default: false },
-    version: { default: '300es' },
+    kind: { default: '', description: 'pick one: value, perlin, simplex, worley; fractals fbm, turbulence, ridged, warp; or curl (flow)' },
+    dim: { default: '2', description: '2 or 3 dimensions' },
+    base: { default: 'simplex', description: 'for fractals: the noise they are built from – value, perlin, simplex or worley' },
+    into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
+    name: { default: '', description: 'instead of --into: create a preview shader with this name that shows the noise' },
+    tile: { default: false, description: 'with --name: draw the tileable noise 2×2 times, to show it is seamless' },
+    version: { default: '300es', description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
   },
   actions: ({ kind, dim, base, into, name, tile, version }, { kebab }) => {
     const k = String(kind);

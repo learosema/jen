@@ -20,9 +20,9 @@ const TONEMAP_NAMES: Record<string, string> = { aces: 'color/aces', reinhard: 'c
 const lightingGenerator: Generator = {
   description: 'add lighting and color output',
   params: {
-    models: { default: '' },
-    tonemap: { default: '' },
-    into: { path: true, default: '' },
+    models: { default: '', description: 'comma-separated shading models: lambert, blinn, toon, pbr – or all' },
+    tonemap: { default: '', description: 'comma-separated color output: aces, reinhard (HDR to [0, 1]), srgb (display encoding) – or all' },
+    into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
   },
   actions: ({ models, tonemap, into }) => {
     const modelList = parseList(String(models));

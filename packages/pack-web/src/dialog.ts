@@ -13,7 +13,7 @@ export const dialogMarkup = (id: string, title: string): string => fill(template
 const dialogGenerator: Generator = {
   description: 'create a modal .dialog block (and its markup, opened via the command API, with --into)',
   params: {
-    name: {},
+    name: { description: 'id, and the title from it: settings makes "Settings"' },
     ...LINE_PARAMS,
   },
   actions: (answers, { kebab }, ctx) => {

@@ -7,7 +7,7 @@ import { WITH_TEST_PARAMS, testAction } from './testing.ts';
 const moduleGenerator: Generator = {
   description: 'create a module exporting a function of the same name',
   params: {
-    name: {},
+    name: { description: 'any case: format-date makes formatDate() in format-date.ts' },
     ...WITH_TEST_PARAMS,
     ...TYPES_PARAM,
   },

@@ -53,11 +53,11 @@ ${element}
 const webglGenerator: Generator = {
   description: 'create a no-build WebGL2 playground',
   params: {
-    name: {},
-    dir: { default: '.' },
-    shaderDir: { default: 'shaders' },
-    tag: { default: 'shader-canvas' },
-    inline: { default: false },
+    name: { description: 'page title and shader name: Clouds makes shaders/clouds.frag.glsl' },
+    dir: { default: '.', description: 'folder for the playground, relative to the current directory' },
+    shaderDir: { default: 'shaders', description: 'folder for the shader inside it' },
+    tag: { default: 'shader-canvas', description: 'custom element name, if shader-canvas clashes with something on the page' },
+    inline: { default: false, description: 'put the shader into the page, so it opens from disk without a web server' },
   },
   actions: ({ name, dir, shaderDir, tag, inline }, { kebab, pascal }) => {
     const t = String(tag);

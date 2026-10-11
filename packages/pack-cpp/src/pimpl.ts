@@ -11,7 +11,7 @@ const pimplGenerator: Generator = {
   params: {
     name: {},
     namespace: { default: '' },
-    withTest: { default: false },
+    withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
   actions: ({ name, namespace, withTest }, { pascal, constant }) => {
     const ns = String(namespace);

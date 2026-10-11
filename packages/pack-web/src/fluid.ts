@@ -102,13 +102,13 @@ ${tailwind ? theme : ''}`;
 }
 
 export const FLUID_PARAMS = {
-  minWidth: { default: '20' },
-  maxWidth: { default: '77.5' },
-  minSize: { default: '1.125' },
-  maxSize: { default: '1.25' },
-  minRatio: { default: '1.2' },
-  maxRatio: { default: '1.25' },
-  tailwind: { default: false },
+  minWidth: { default: '20', description: 'smallest viewport width in rem, where sizes stop shrinking' },
+  maxWidth: { default: '77.5', description: 'largest viewport width in rem, where sizes stop growing' },
+  minSize: { default: '1.125', description: 'base font size (step 0) in rem at --minWidth' },
+  maxSize: { default: '1.25', description: 'base font size (step 0) in rem at --maxWidth' },
+  minRatio: { default: '1.2', description: 'how much each type step grows over the last, at --minWidth' },
+  maxRatio: { default: '1.25', description: 'how much each type step grows over the last, at --maxWidth' },
+  tailwind: { default: false, description: 'also map the scales into Tailwind\'s text-* and spacing' },
 };
 
 const fluidGenerator: Generator = {

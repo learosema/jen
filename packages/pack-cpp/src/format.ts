@@ -4,9 +4,9 @@ import type { Generator } from '@codejen/jen';
 const formatGenerator: Generator = {
   description: 'add a .clang-format matching the generated code style (Google-based), aligned with .editorconfig',
   params: {
-    basedOn: { default: 'Google' },
-    indent: { default: '2' },
-    columnLimit: { default: '120' },
+    basedOn: { default: 'Google', description: 'clang-format base style, e.g. LLVM, Chromium, Mozilla, WebKit' },
+    indent: { default: '2', description: 'indent width in spaces' },
+    columnLimit: { default: '120', description: 'maximum line length' },
   },
   actions: ({ basedOn, indent, columnLimit }) => {
     // Keep these in line with .editorconfig: indent_style = space, indent_size, end_of_line = lf,

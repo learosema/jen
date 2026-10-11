@@ -8,7 +8,7 @@ import type { Generator } from '@codejen/jen';
 const warningsGenerator: Generator = {
   description: 'add a project_warnings INTERFACE target (-Wall -Wextra … resp. /W4) and link it into the core library',
   params: {
-    werror: { default: false },
+    werror: { default: false, description: 'treat warnings as errors (-Werror, /WX)' },
   },
   actions: ({ werror }) => {
     const warnings = `# Warning flags as an INTERFACE target, so they are linked into our own targets only

@@ -93,16 +93,7 @@ JSDoc can't add to a global type from a `.js` file, so in the JSDoc style the ta
 
 {% include terminal.html id="js_element_jsdoc" %}
 
-{% capture rows %}
-`name` | — | required; the tag, lowercase with a hyphen – `star-rating` makes the class `StarRating`
-`attrs` | — | `name:type` pairs: `string` (the default), `number` or `boolean`
-`events` | — | `name:{detail}` pairs; quote them for the shell. Without a detail type, the event has none
-`shadow` | `none` | light DOM, or `open` or `closed` for a shadow root
-`form` | `false` | form-associated, with a `value` attribute
-`into` | — | a page or module to load the element from
-`types` | detected | `ts`, `jsdoc` or `none`
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="js:element" %}
 
 ## Keyboard patterns {#keyboard}
 
@@ -116,6 +107,8 @@ Roving tabindex: a group of controls is one stop in the tab order, and arrow key
 
 {% include web-preview.html base="/js/" src="roving.html" title="Roving tabindex" height="21rem" dual=true caption="Click a control, or Tab into a group, then use the arrow keys" %}
 
+{% include params.html generator="js:roving" %}
+
 ### `js:menu` {#js-menu}
 
 Menus and menubars: arrow keys move through the items, Home and End jump to the ends, and typing a letter or two moves to the item that starts with them. On a `popover` menu, its `popovertarget` button opens it with Arrow Down or Arrow Up (at the last item), the first item gets focus, and Escape, Tab or choosing an item closes it and returns focus to the button. A submenu's items stay out of their parent's way.
@@ -123,6 +116,8 @@ Menus and menubars: arrow keys move through the items, Home and End jump to the 
 {% include terminal.html id="js_menu" %}
 
 {% include web-preview.html base="/js/" src="menu.html" title="Menus" height="18rem" dual=true caption="Open the menu, then try the arrow keys and typing S" %}
+
+{% include params.html generator="js:menu" %}
 
 ### `js:grid` {#js-grid}
 
@@ -132,6 +127,8 @@ Two-dimensional navigation for `role="grid"`: arrow keys move between cells, Hom
 
 {% include web-preview.html base="/js/" src="grid.html" title="Grid navigation" height="18rem" caption="Click a day, then use the arrow keys" %}
 
+{% include params.html generator="js:grid" %}
+
 ### `js:hotkeys` {#js-hotkeys}
 
 A registry for keyboard shortcuts: `const keys = createHotkeys()`, then `keys.bind('mod+k', openSearch, { description: 'Search' })`. `mod` is ⌘ on Apple devices and Ctrl elsewhere. Symbols like `?` match whatever Shift your keyboard layout needs for them. Bindings are ignored while someone types in a field, unless they set `inputs: true`. A binding with a `scope` only fires inside that element, and wins over a global one. `createHotkeys({ help: true })` binds `?` to a dialog that lists every binding with a description.
@@ -139,6 +136,8 @@ A registry for keyboard shortcuts: `const keys = createHotkeys()`, then `keys.bi
 {% include terminal.html id="js_hotkeys" %}
 
 {% include web-preview.html base="/js/" src="hotkeys.html" title="Hotkeys" height="16rem" dual=true caption="Click into the frame, then press ?" %}
+
+{% include params.html generator="js:hotkeys" %}
 
 ## Type patterns {#types}
 
@@ -150,11 +149,15 @@ A class with `#private` fields, a getter for each, and a static `create()` to pu
 
 {% include terminal.html id="js_class" %}
 
+{% include params.html generator="js:class" %}
+
 ### `js:enum` {#js-enum}
 
 An object `as const` instead of TypeScript's `enum`: `Direction.Up` is `'up'`, the type `Direction` is the union of the values, and `isDirection(value)` checks a value from outside.
 
 {% include terminal.html id="js_enum" %}
+
+{% include params.html generator="js:enum" %}
 
 ### `js:union` {#js-union}
 
@@ -162,11 +165,15 @@ A tagged union: an interface for each case with a `kind`, the union of them, and
 
 {% include terminal.html id="js_union" %}
 
+{% include params.html generator="js:union" %}
+
 ### `js:brand` {#js-brand}
 
 A branded type: a `UserId` is a string, but not every string is a `UserId`. `userId(value)` checks a value and brands it, `isUserId(value)` is the check on its own – put your validation there. `--underlying` takes `string` (the default), `number` (finite only) or `bigint`.
 
 {% include terminal.html id="js_brand" %}
+
+{% include params.html generator="js:brand" %}
 
 ### `js:error` {#js-error}
 
@@ -174,25 +181,15 @@ An `Error` subclass, named after itself so stack traces and logs say what went w
 
 {% include terminal.html id="js_error" %}
 
+{% include params.html generator="js:error" %}
+
 ### `js:emitter` {#js-emitter}
 
 An event emitter on the platform's own `EventTarget`, with the same typed event map, `emit()` and listeners as [`js:element`](#js-element) – for stores and services outside the DOM.
 
 {% include terminal.html id="js_emitter" %}
 
-{% capture rows %}
-`name` | — | required; the type, any case – `user-id` and `UserId` both make `UserId` in `user-id.ts`
-`fields` | — | `js:class`, `js:error`: `name:type` pairs
-`values` | — | `js:enum`: required, the values
-`cases` | — | `js:union`: required, `kind:{fields}` pairs, or a bare `kind` without fields
-`underlying` | `string` | `js:brand`: `string`, `number` or `bigint`
-`events` | — | `js:emitter`: required, like `js:element`'s
-`disposable` | `false` | `js:class`: add `Symbol.dispose`
-`withTest` | `false` | a test next to it
-`runner` | detected | `node` or `vitest`
-`types` | detected | `ts`, `jsdoc` or `none`
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="js:emitter" %}
 
 ## Modules and tests {#tests}
 
@@ -202,11 +199,15 @@ A module with one exported function of the same name, to fill in – and with `-
 
 {% include terminal.html id="js_module" %}
 
+{% include params.html generator="js:module" %}
+
 ### `js:test` {#js-test}
 
 A test file for a module that's already there: it imports every function, class and constant the module exports and starts a test for each, with `node:test` or Vitest. For a module that doesn't exist yet, it imports the module as a whole, ready for test-first.
 
 {% include terminal.html id="js_test" %}
+
+{% include params.html generator="js:test" %}
 
 ## Credits {#credits}
 

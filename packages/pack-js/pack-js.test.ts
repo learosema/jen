@@ -364,3 +364,20 @@ describe('tests', () => {
     assert.match(template(run('test', { name: 'missing' }), 'missing.test.js'), /import \* as missing from '\.\/missing\.js';/);
   });
 });
+
+// ─── Param descriptions ─────────────────────────────────────────────────────
+
+/** Params that say what they're for by their name alone: the required name, and namespace. */
+const selfExplanatory = (param: string, spec: { default?: unknown }): boolean =>
+  (param === 'name' && spec.default === undefined) || param === 'namespace';
+
+describe('param descriptions', () => {
+  for (const [gen, g] of Object.entries(pack)) {
+    it(`${gen}: every param says what it's for`, () => {
+      const missing = Object.entries(g.params ?? {})
+        .filter(([param, spec]) => !selfExplanatory(param, spec) && !spec.description?.trim())
+        .map(([param]) => `--${param}`);
+      assert.deepEqual(missing, []);
+    });
+  }
+});

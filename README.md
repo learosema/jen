@@ -115,16 +115,21 @@ Generator files can be `.mjs`, `.js`, `.ts` or `.mts`. TypeScript generators run
 
 ### Params
 
-A param is just a name and an optional `default`:
+A param is just a name, an optional `default` and an optional `description`:
 
 ```js
 export const params = {
   name: {},                     // required – jen fails with a clear message if it's missing
   namespace: { default: "" },   // string, used as-is when not given
-  moveOnly: { default: false }, // boolean – its default's type decides how the CLI value is parsed
+  moveOnly: {                   // boolean – its default's type decides how the CLI value is parsed
+    default: false,
+    description: "RAII wrapper: copy deleted, move defaulted (Rule of Five)",
+  },
   into: { path: true, default: "" }, // a path the user types, relative to where they stand
 };
 ```
+
+A `description` is a short phrase for anything the name doesn't already say. It doesn't change how the generator runs; `jen <generator> --help` and `jen --list --json` show it, so keep it in the words people would ask with.
 
 A `path: true` param reaches `actions()` ready to use as an action path (`/shaders/main.glsl`, from the project root), however deep in the project the user typed it. jen fails if it points outside the project.
 
@@ -314,17 +319,50 @@ jen [generator] [--param=value …] [options]
 
   generator       name ("class"), with pack ("cpp:class") or source ("user:class")
   --list,    -l   list all generators and where they come from
+  --json          with --list: the same as JSON, with every generator's params
   --dry-run, -n   only show the plan
   --force,   -f   overwrite existing files
   --dir           where the files go instead of the current directory
   --from          fetch a pack via npm, run it once, then remove it – or a package
                   a pack runs, e.g. a Yeoman generator: --from generator-code yeoman:code
-  --help,    -h   show this help
+  --help,    -h   show this help, or a generator's params: jen cpp:class --help
 ```
 
 Without a generator name, jen lists all available generators and exits with code 1.
 
-Params always use the `=` form (`--name=Foo`). The option names `list`, `dry-run`, `force`, `from` and `help` are reserved, so don't use them as param names.
+`jen <generator> --help` shows one generator and its params the way you'd type them: required ones marked `(required)`, strings with their default (`--dir=src`, `--namespace=""`), booleans as a bare flag, each followed by its description:
+
+```
+cpp:class – create a C++ class (header + source)
+  --name (required)
+  --namespace=""
+  --moveOnly  RAII wrapper: copy deleted, move defaulted (Rule of Five)
+  --withTest  add a doctest case
+```
+
+`jen --list --json` prints the same catalog for scripts and tools, as JSON on stdout. Each generator has its `name` (with the pack prefix), `source`, whether another one of the same name `shadowed` it, its `description`, and its `params`, each with a `type` (`string` or `boolean`, from its default), whether it's `required`, and its `default`, `path` and `description` where given. A generator that fails to load gets an `error` instead, and the listing goes on:
+
+```json
+[
+  {
+    "name": "cpp:class",
+    "source": "pack @codejen/pack-cpp",
+    "shadowed": false,
+    "description": "create a C++ class (header + source)",
+    "params": {
+      "name": { "type": "string", "required": true },
+      "moveOnly": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "RAII wrapper: copy deleted, move defaulted (Rule of Five)"
+      }
+    }
+  }
+]
+```
+
+Params always use the `=` form (`--name=Foo`). The option names `list`, `dry-run`, `force`, `from` and `help` are reserved, so don't use them as param names. `json` isn't: it only means something next to `--list`.
 
 Files go into the current directory (see [Project root and destination](#project-root-and-destination)). To generate somewhere else, `cd` there first, or use `--dir` within the project.
 

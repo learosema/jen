@@ -83,15 +83,15 @@ ${indent}}${close}`;
 
 const classGenerator: Generator = {
   description:
-    'create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources; --moveOnly for a Rule-of-Five RAII wrapper, --withTest for a doctest case',
+    'create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources',
   params: {
     name: {},
     namespace: { default: '' },
-    moveOnly: { default: false },
-    resource: { default: 'Resource*' },
-    nullValue: { default: 'nullptr' },
-    destroy: { default: 'destroy' },
-    withTest: { default: false },
+    moveOnly: { default: false, description: 'RAII wrapper: copy deleted, move defaulted (Rule of Five)' },
+    resource: { default: 'Resource*', description: 'with --moveOnly: the handle type it owns, e.g. SDL_Window* or GLuint' },
+    nullValue: { default: 'nullptr', description: 'with --moveOnly: the empty handle value, e.g. 0 for GLuint' },
+    destroy: { default: 'destroy', description: 'with --moveOnly: the function that frees the handle, e.g. SDL_DestroyWindow' },
+    withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
   actions: ({ name, namespace, moveOnly, resource, nullValue, destroy, withTest }, { pascal, constant }) => {
     const className = pascal(String(name));

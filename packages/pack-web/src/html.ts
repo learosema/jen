@@ -36,8 +36,8 @@ export function lineParam(generator: string, { into, line }: Answers, ctx: Conte
 }
 
 export const LINE_PARAMS = {
-  into: { path: true, default: '' },
-  line: { default: '' },
+  into: { path: true, default: '', description: 'a page to put the markup into, before </body>' },
+  line: { default: '', description: 'with --into: put it before this line instead, e.g. a </nav>' },
 };
 
 /** A file next to the page, as an action path (`/…`), and how the page refers to it. */

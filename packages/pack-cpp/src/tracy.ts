@@ -32,11 +32,11 @@ FetchContent_MakeAvailable(tracy)
 
 const tracyGenerator: Generator = {
   description:
-    'add the Tracy profiler (PROFILING option, FetchContent) and a FrameMark at the app starter\'s frame end; --gpu for OpenGL GPU zones',
+    'add the Tracy profiler (PROFILING option, FetchContent) and a FrameMark at the app starter\'s frame end',
   params: {
-    gpu: { default: false },
-    file: { path: true, default: '' },
-    tracyTag: { default: TRACY_TAG_DEFAULT },
+    gpu: { default: false, description: 'also profile OpenGL on the GPU (GPU zones)' },
+    file: { path: true, default: '', description: 'the app source to hook into (default: the one with the starter\'s // jen:includes marker)' },
+    tracyTag: { default: TRACY_TAG_DEFAULT, description: 'Tracy git tag to fetch' },
   },
   actions: ({ gpu, file, tracyTag }) => {
     // the app source carrying the starter's markers, unless --file (relative to the cwd) says which

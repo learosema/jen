@@ -85,9 +85,9 @@ target_sources(${core} PRIVATE
 const libGenerator: Generator = {
   description: 'create a library starter: include/<name>/, BUILD_INTERFACE/INSTALL_INTERFACE, export header, install + package config',
   params: {
-    name: {},
-    folderCase: { default: 'kebab' },
-    dir: { default: '' },
+    name: { description: 'project and target name; headers go in include/<name>/' },
+    folderCase: { default: 'kebab', description: 'project folder name from --name: kebab (my-game) or pascal (MyGame)' },
+    dir: { default: '', description: 'project folder instead of one named after --name; . for the current directory' },
   },
   actions: ({ name, folderCase, dir }, helpers) => {
     const { kebab, snake, constant } = helpers;

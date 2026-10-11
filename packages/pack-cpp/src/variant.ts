@@ -26,9 +26,9 @@ const variantGenerator: Generator = {
   description: 'create a std::variant of case structs plus the overloaded visitor helper (header-only)',
   params: {
     name: {},
-    cases: {},
+    cases: { description: 'comma-separated case structs, e.g. "click, keyPress, resize"' },
     namespace: { default: '' },
-    withTest: { default: false },
+    withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
   actions: ({ name, cases, namespace, withTest }, { pascal, constant }) => {
     const ns = String(namespace);

@@ -10,7 +10,7 @@ import { tokensFrom, utilitiesCss } from './utilities.ts';
 
 const cubeGenerator: Generator = {
   description: 'create a CUBE CSS starter: base, fluid scales, compositions, utilities (+ palette and buttons with --primary)',
-  params: { ...PALETTE_PARAMS, primary: { default: '' }, ...FLUID_PARAMS },
+  params: { ...PALETTE_PARAMS, primary: { default: '', description: 'brand color – adds the palette and buttons: #rrggbb, #rgb, oklch(L C H) or a hue in degrees' }, ...FLUID_PARAMS },
   actions: (answers, _helpers, ctx) => {
     const tailwind = Boolean(answers.tailwind) || usesTailwind(ctx);
     const palette = answers.primary ? paletteCss(answers, tailwind) : null;

@@ -127,10 +127,10 @@ function preview(base: string, kind: string, version: Version): Action[] {
 const displaceGenerator: Generator = {
   description: 'displace surfaces in the vertex shader with correct normals',
   params: {
-    kind: { default: 'noise' },
-    into: { path: true, default: '' },
-    name: { default: '' },
-    version: { default: '300es' },
+    kind: { default: 'noise', description: 'noise (3D simplex along the normal), wobble (sine) or waves (Gerstner waves on a flat surface)' },
+    into: { path: true, default: '', description: 'existing vertex shader to insert the functions into (default: one file each in lib/)' },
+    name: { default: '', description: 'instead of --into: create a preview vertex + fragment shader pair with this name' },
+    version: { default: '300es', description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
   },
   actions: ({ kind, into, name, version }, { kebab }) => {
     const k = String(kind);

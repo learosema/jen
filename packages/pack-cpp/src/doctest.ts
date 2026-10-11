@@ -40,7 +40,7 @@ const doctestGenerator: Generator = {
   description:
     'set up doctest: tests/ with a main, a tests target linked against <name>-core, ctest discovery, and the # jen:tests marker for --withTest',
   params: {
-    doctestTag: { default: DOCTEST_TAG_DEFAULT },
+    doctestTag: { default: DOCTEST_TAG_DEFAULT, description: 'doctest git tag to fetch' },
   },
   actions: ({ doctestTag }) => [
     { add: '/tests/CMakeLists.txt', template: testsCMake(String(doctestTag)) },

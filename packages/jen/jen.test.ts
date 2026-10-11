@@ -116,7 +116,7 @@ describe('CLI', () => {
     const r = jen(['lua:function'], { cwd: fixture() });
     assert.equal(r.code, 1);
     assert.match(r.stderr, /jen --from @codejen\/pack-lua lua:function/);
-    assert.doesNotMatch(r.stdout, /Fetching/);
+    assert.doesNotMatch(r.stdout + r.stderr, /Fetching/);
   });
 
   it('gives no --from hint for unprefixed names or known sources', () => {
@@ -393,6 +393,16 @@ describe('params', () => {
     assert.match(read(dir, 'src/Foo.h'), /move-only/);
   });
 
+  it('runs a generator whose params have descriptions', () => {
+    const dir = fixture({
+      '.jen/greet.mjs': `export const params = { who: { default: 'world', description: 'whom to greet' } };
+        export const actions = ({ who }) => [{ add: 'hi.txt', template: \`hi \${who}\` }];`,
+    });
+    const r = jen(['greet', '--who=jen'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(read(dir, 'hi.txt'), 'hi jen');
+  });
+
   it('overrides a string default via CLI', () => {
     const gen = `export const params = { lang: { default: 'c' } };
       export const actions = ({ lang }) => [{ add: 'out.txt', template: lang }];`;
@@ -403,6 +413,133 @@ describe('params', () => {
     const b = fixture({ '.jen/pick.mjs': gen });
     jen(['pick', '--lang=cpp'], { cwd: b });
     assert.equal(read(b, 'out.txt'), 'cpp');
+  });
+});
+
+// ─── Describing generators ──────────────────────────────────────────────────
+
+const DESCRIBED_GEN = `
+export default {
+  description: 'create a C++ class (header + source)',
+  params: {
+    name: {},
+    namespace: { default: '' },
+    dir: { default: 'src' },
+    members: { default: 'int a, int b' },
+    into: { default: '', path: true },
+    moveOnly: { default: false, description: 'RAII wrapper: copy deleted, move defaulted (Rule of Five)' },
+    withTest: { default: false, description: 'add a doctest case' },
+  },
+  actions: () => [{ add: 'never.txt', template: '' }],
+};
+`;
+
+describe('jen <generator> --help', () => {
+  it('shows the generator and its params, plain like the CLI', () => {
+    const dir = fixture({ '.jen/class.mjs': DESCRIBED_GEN });
+    const r = jen(['class', '--help'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(
+      r.stdout,
+      [
+        'class – create a C++ class (header + source)',
+        '  --name (required)',
+        '  --namespace=""',
+        '  --dir=src',
+        '  --members="int a, int b"',
+        '  --into=""',
+        '  --moveOnly  RAII wrapper: copy deleted, move defaulted (Rule of Five)',
+        '  --withTest  add a doctest case',
+        '',
+      ].join('\n'),
+    );
+    assert.ok(!existsSync(join(dir, 'never.txt')));
+  });
+
+  it('shows a boolean that defaults to true with its value', () => {
+    const dir = fixture({ '.jen/on.mjs': `export const params = { cmake: { default: true } }; export const actions = () => [];` });
+    assert.equal(jen(['on', '--help'], { cwd: dir }).stdout, 'on\n  --cmake=true\n');
+  });
+
+  it('shows the pack prefix', () => {
+    const dir = fixture({
+      'package.json': JSON.stringify({ dependencies: { '@codejen/pack-demo': '*' } }),
+      'node_modules/@codejen/pack-demo/package.json': JSON.stringify({ name: '@codejen/pack-demo', type: 'module', exports: './index.mjs' }),
+      'node_modules/@codejen/pack-demo/index.mjs': `export default { hello: { description: 'say hi', actions: () => [] } };`,
+    });
+    assert.equal(jen(['demo:hello', '--help'], { cwd: dir }).stdout, 'demo:hello – say hi\n');
+  });
+
+  it('reports an unknown generator without fetching anything', () => {
+    const r = jen(['lua:function', '--help'], { cwd: fixture() });
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /"lua:function" not found/);
+  });
+
+  it('still shows the general help without a generator', () => {
+    assert.match(jen(['--help'], { cwd: fixture() }).stdout, /--list,\s+-l/);
+  });
+});
+
+describe('jen --list --json', () => {
+  it('lists every generator with typed params', () => {
+    const dir = fixture({ '.jen/class.mjs': DESCRIBED_GEN });
+    const r = jen(['--list', '--json'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    const catalog = JSON.parse(r.stdout);
+    const cls = catalog.find((g: { name: string }) => g.name === 'class');
+    assert.deepEqual(cls, {
+      name: 'class',
+      source: 'project',
+      shadowed: false,
+      description: 'create a C++ class (header + source)',
+      params: {
+        name: { type: 'string', required: true },
+        namespace: { type: 'string', required: false, default: '' },
+        dir: { type: 'string', required: false, default: 'src' },
+        members: { type: 'string', required: false, default: 'int a, int b' },
+        into: { type: 'string', required: false, default: '', path: true },
+        moveOnly: {
+          type: 'boolean',
+          required: false,
+          default: false,
+          description: 'RAII wrapper: copy deleted, move defaulted (Rule of Five)',
+        },
+        withTest: { type: 'boolean', required: false, default: false, description: 'add a doctest case' },
+      },
+    });
+    assert.ok(catalog.some((g: { name: string; source: string }) => g.name === 'generator' && g.source === 'built-in'));
+  });
+
+  it('marks shadowed generators', () => {
+    const userDir = fixture({ 'jen/class.mjs': `export const actions = () => [];` });
+    const r = jen(['--list', '--json'], { cwd: fixture({ '.jen/class.mjs': DESCRIBED_GEN }), userDir });
+    const classes = JSON.parse(r.stdout).filter((g: { name: string }) => g.name === 'class');
+    assert.deepEqual(
+      classes.map((g: { source: string; shadowed: boolean }) => [g.source, g.shadowed]),
+      [
+        ['project', false],
+        ['user', true],
+      ],
+    );
+  });
+
+  it('reports broken generators with an error instead of aborting', () => {
+    const r = jen(['--list', '--json'], { cwd: fixture({ '.jen/broken.mjs': `export const foo = 1;` }) });
+    assert.equal(r.code, 0);
+    const broken = JSON.parse(r.stdout).find((g: { name: string }) => g.name === 'broken');
+    assert.match(broken.error, /does not export an actions\(\) function/);
+    assert.equal(broken.params, undefined);
+  });
+
+  it('leaves --json to a generator that has a param of that name', () => {
+    const dir = fixture({
+      '.jen/cfg.mjs': `export const params = { json: { default: false } };
+        export const actions = ({ json }) => [{ add: 'out.txt', template: String(json) }];`,
+    });
+    const r = jen(['cfg', '--json'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(read(dir, 'out.txt'), 'true');
   });
 });
 
@@ -736,7 +873,7 @@ describe('--from', () => {
     const r = jen(['--from', 'lodash', 'x'], { cwd: fixture() });
     assert.equal(r.code, 1);
     assert.match(r.stderr, /"lodash" isn't a jen pack – name the pack's generator that runs it/);
-    assert.doesNotMatch(r.stdout, /Fetching/);
+    assert.doesNotMatch(r.stdout + r.stderr, /Fetching/);
   });
 
   it('strips the version from a scoped package spec before checking it', () => {

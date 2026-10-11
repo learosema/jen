@@ -11,10 +11,10 @@ const enumGenerator: Generator = {
   description: 'create an enum class with to_string() and a std::formatter specialization (header-only)',
   params: {
     name: {},
-    values: {},
+    values: { description: 'comma-separated enumerators, e.g. "idle, running, paused"' },
     namespace: { default: '' },
-    std: { default: '23' },
-    withTest: { default: false },
+    std: { default: '23', description: 'C++ standard: 23, or 20 (std::abort instead of std::unreachable)' },
+    withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
   actions: ({ name, values, namespace, std, withTest }, { pascal, constant }) => {
     const ns = String(namespace);

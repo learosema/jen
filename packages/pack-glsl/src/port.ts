@@ -12,8 +12,8 @@ import { header, parseVersion } from './dialect.ts';
 const portGenerator: Generator = {
   description: 'switch a shader between GLSL dialects by rewriting its header',
   params: {
-    file: { path: true },
-    to: {},
+    file: { path: true, description: 'the shader to convert' },
+    to: { description: 'target dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
   },
   actions: ({ file, to }) => {
     const target = String(file);

@@ -3,7 +3,7 @@ name: Pages
 on:
   push:
     branches: [main]
-    paths: [docs/**, packages/pack-glsl/**, packages/pack-web/**, packages/pack-js/**, .github/workflows/pages.yml]
+    paths: [docs/**, packages/jen/**, packages/pack-cpp/**, packages/pack-glsl/**, packages/pack-web/**, packages/pack-js/**, scripts/**, .github/workflows/pages.yml]
   workflow_dispatch:
 
 permissions:
@@ -51,6 +51,10 @@ jobs:
 
       - name: Generate js previews
         run: node packages/pack-js/scripts/docs-assets.ts
+
+      # The Params cards (docs/_data/params.json, gitignored) come from the packs' own param descriptions.
+      - name: Generate param data
+        run: node scripts/docs-params.ts
 
       - name: Build with Jekyll
         uses: actions/jekyll-build-pages@v1

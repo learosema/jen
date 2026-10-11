@@ -58,7 +58,7 @@ Ask for a `glsl:` generator without the pack installed and jen fetches `@codejen
 
 ## Where files go {#where}
 
-Generators write into the folder you run them in, or `--dir`: from the project root, `glsl:frag --name=Clouds --dir=shaders` writes `shaders/clouds.frag.glsl`. `--into` and `--file` are relative to the current directory. `glsl:webgl` makes a new project folder in the current directory instead, with the shader in `shaders/` inside it (`--shaderDir` renames that). The [home page]({{ '/#where' | relative_url }}) has the general rules.
+Generators write into the folder you run them in, or `--dir`: from the project root, `glsl:frag --name=Clouds --dir=shaders` writes `shaders/clouds.frag.glsl`. `--into` and `--file` are relative to the current directory. `glsl:webgl` makes a new project folder in the current directory instead, with the shader in `shaders/` inside it (`--shaderDir` renames that). The [home page]({{ '/#where' | relative_url }}) has the general rules. `jen glsl:noise --help` lists a generator's params in the terminal.
 
 ## Starters {#starters}
 
@@ -74,14 +74,7 @@ A playground without a build step: an `index.html`, the [`<shader-canvas>`](http
 {% include shader.html src="starter.frag.glsl" caption="<code>shaders/clouds.frag.glsl</code>, as generated" %}
 </div>
 
-{% capture rows %}
-`name` | — | required; the shader's name (`Clouds` becomes `shaders/clouds.frag.glsl`)
-`inline` | `false` | put the shader into the page instead, so it opens straight from disk without a server
-`tag` | `shader-canvas` | another element name, if `shader-canvas` collides with something
-`dir` | `.` | the new project folder, inside the current directory
-`shaderDir` | `shaders` | the shader's folder inside it
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="glsl:webgl" %}
 
 ### `glsl:frag` {#glsl-frag}
 
@@ -89,25 +82,23 @@ A full-screen fragment shader: centered, aspect-correct coordinates from `gl_Fra
 
 {% include terminal.html id="glsl_frag" %}
 
+{% include params.html generator="glsl:frag" %}
+
 ### `glsl:vert` {#glsl-vert}
 
 A vertex shader: `--kind=quad` (default) takes a full-screen quad at attribute location 0 like `cpp:sdl3-opengl`, `triangle` covers the screen from `gl_VertexID` without any buffer, and `mesh` has position, normal and UV attributes with `uModel`/`uView`/`uProjection`.
 
 {% include terminal.html id="glsl_vert" %}
 
-{% capture rows %}
-`name` | — | required
-`kind` | `quad` | `vert` only: `quad`, `triangle` or `mesh`
-`version` | `300es` | `300es`, `330` or `410`
-`dir` | — | where the shader goes, relative to the current directory; else the current directory
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="glsl:vert" %}
 
 ### `glsl:port` {#glsl-port}
 
 Switches a shader between dialects by rewriting only its header: the `#version` line and the default precisions. For moving a WebGL prototype into `cpp:sdl3-opengl`, and back. To compile such a shader into a C++ build, `cpp:shader --file=shaders/clouds.frag.glsl` from the [cpp pack]({{ '/recipes.html#cpp-shader' | relative_url }}) embeds it as a C string.
 
 {% include terminal.html id="glsl_port" %}
+
+{% include params.html generator="glsl:port" %}
 
 ## Functions {#functions}
 
@@ -139,15 +130,7 @@ Value, Perlin, simplex and Worley noise; fBm, turbulence, ridged and domain-warp
 
 Fractals are written once and renamed for the base you pick – `simplexFbm`, `perlinFbm` – so several can share a shader. They take an optional `gain` for roughness; warp takes a `strength` instead.
 
-{% capture rows %}
-`kind` | — | required: `value`, `perlin`, `simplex`, `worley`, `fbm`, `turbulence`, `ridged`, `warp` or `curl`
-`base` | `simplex` | the noise under a fractal
-`dim` | `2` | `2` or `3`
-`tile` | `false` | `--name` only: draw the period 2×2
-`into` | — | the shader to insert into, relative to the current directory; else files in `lib/` next to where the shaders go
-`name` | — | instead: a preview shader
-{% endcapture %}
-{% include cards.html rows=rows label="default" heading="Params" %}
+{% include params.html generator="glsl:noise" %}
 
 ### `glsl:sdf` {#glsl-sdf}
 
@@ -168,6 +151,8 @@ Signed distance functions: shapes, operators to combine them, and – in 2D – 
 {% endcapture %}
 {% include cards.html rows=rows label="—" icon="list" heading="What to pick" %}
 
+{% include params.html generator="glsl:sdf" %}
+
 ### `glsl:raymarch` {#glsl-raymarch}
 
 A raymarching starter: a `scene()` distance function, an orbiting camera, soft shadows, ambient occlusion and fog, lit with any model from [`glsl:lighting`](#glsl-lighting). `--materials` gives every surface a material id; `--minimal` leaves out shadows, AO and fog. With `--into`, you get just the helpers – `raymarch`, `calcNormal`, `softShadow`, `calcAO`, `cameraMatrix` – for your own `float scene(vec3 p)`.
@@ -180,11 +165,15 @@ A raymarching starter: a `scene()` distance function, an orbiting camera, soft s
 {% include shader.html src="raymarch-materials.frag.glsl" caption="<code>--lighting=pbr --materials</code>" %}
 </div>
 
+{% include params.html generator="glsl:raymarch" %}
+
 ### `glsl:lighting` {#glsl-lighting}
 
 Shading models with one signature – normal, view and light direction, then the material – so you can swap them: `lambert`, `blinnPhong`, `toon` with a rim light, and `pbr` (Cook-Torrance: GGX, Smith-Schlick, Schlick Fresnel, metallic/roughness) with an ambient light that needs no environment map. Plus color output: ACES and Reinhard tonemapping, and the exact sRGB curve.
 
 {% include terminal.html id="glsl_lighting" %}
+
+{% include params.html generator="glsl:lighting" %}
 
 ### `glsl:displace` {#glsl-displace}
 
@@ -197,17 +186,23 @@ Moves surfaces in the vertex shader and keeps the normals right, so the lighting
 {% include shader.html src="displace-waves.frag.glsl" vert="displace-waves.vert.glsl" mesh="plane" detail="128" caption="<code>--kind=waves</code> on <code>mesh=&quot;plane&quot;</code>" %}
 </div>
 
+{% include params.html generator="glsl:displace" %}
+
 ### `glsl:matrix` {#glsl-matrix}
 
 Matrices for GPU-side transforms, following OpenGL conventions: `rotateX/Y/Z` and `rotateAxis`, `perspective`, `lookAt`, `translate`, `scale`, and `transform` to lift a `mat3` into a `mat4`.
 
 {% include terminal.html id="glsl_matrix" %}
 
+{% include params.html generator="glsl:matrix" %}
+
 ### `glsl:util` {#glsl-util}
 
 Small helpers the other functions build on: `PI`/`TAU`, `rot2`, `remap`, `saturate`, and integer hashes for lattice cells.
 
 {% include terminal.html id="glsl_util" %}
+
+{% include params.html generator="glsl:util" %}
 
 ## Licenses and credits {#credits}
 

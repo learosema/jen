@@ -51,9 +51,9 @@ const PRIMITIVE = /^(string|number|boolean|bigint)$/;
 const classGenerator: Generator = {
   description: 'create a class with #private fields, getters and a static create() (--disposable adds Symbol.dispose)',
   params: {
-    name: {},
-    fields: { default: '' },
-    disposable: { default: false },
+    name: { description: 'the type, any case: user-id and UserId both make UserId in user-id.ts' },
+    fields: { default: '', description: 'comma-separated name:type fields, e.g. id:number,label:string' },
+    disposable: { default: false, description: 'add Symbol.dispose, for using declarations' },
     ...WITH_TEST_PARAMS,
     ...TYPES_PARAM,
   },
