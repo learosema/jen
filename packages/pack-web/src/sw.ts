@@ -50,7 +50,7 @@ function stylesheets(ctx: Context, file: string, seen = new Set<string>()): stri
 
 /** The register module in the project's style. */
 function registerSource(types: Types, url: string, when: string): string {
-  const text = types === 'ts' ? template(`sw/${REGISTER}.ts`) : template(`sw/${REGISTER}.js`);
+  const text = types === 'ts' ? template(`sw/${REGISTER}.ts.tmpl`) : template(`sw/${REGISTER}.js.tmpl`);
   return fill(types === 'none' ? stripTypes(text) : text, { url, when });
 }
 
@@ -106,7 +106,7 @@ const swGenerator: Generator = {
 
     actions.unshift({
       add: sw.add,
-      template: fill(template('sw/sw.js'), {
+      template: fill(template('sw/sw.js.tmpl'), {
         cache: kebab(packageName(ctx) ?? 'site'),
         offline: offline ? quote(`./${OFFLINE}`) : 'null',
         precache: [...new Set(precache)].map((url) => `${quote(url)},`).join('\n'),
