@@ -114,6 +114,9 @@ export function colorAtLuminance(y: number, c: number, h: number): string {
   return linearToHex(fitChroma((lo + hi) / 2, c, h));
 }
 
+/** An OKLCH color as sRGB hex, its chroma reduced until it fits. */
+export const oklchToHex = ({ l, c, h }: Oklch): string => linearToHex(fitChroma(l, c, h));
+
 /**
  * Parses a color flag: `#rgb`, `#rrggbb`, `oklch(L C H)` (L as 0…1 or %), or a
  * bare hue in degrees (`264`), which gets a medium chroma.

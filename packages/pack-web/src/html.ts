@@ -8,6 +8,7 @@ import { fail } from './common.ts';
 import { template } from './templates.ts';
 
 const BODY_END = /<\/body>/;
+export const HEAD_END = /<\/head>/;
 
 /** "confirm-delete" → "Confirm delete": a visible label from a kebab-case id. */
 export const sentence = (id: string): string => {
@@ -16,7 +17,7 @@ export const sentence = (id: string): string => {
 };
 
 /** Inserts `blocks` into the page at `into` (a path param: root-relative, `/…`), before line `at` or `</body>`. */
-export const intoPage = (into: string, blocks: string[], at: number | null = null): Action[] =>
+export const intoPage = (into: string, blocks: string[], at: number | RegExp | null = null): Action[] =>
   blocks.map((line) => ({ insert: into, before: at ?? BODY_END, line }));
 
 /**

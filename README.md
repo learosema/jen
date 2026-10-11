@@ -358,6 +358,8 @@ export default {
 
 The exported types are `Generator`, `Params`, `Action`, `Answers`, `Helpers` and `Pack`. If jen isn't installed locally, you simply lose autocompletion; the generator still runs.
 
+For generators that write code in the project's style (TypeScript, JavaScript with JSDoc types, or plain JavaScript), jen also exports what pack-js and pack-web use: `typesFor` and `detectTypes` (`--types`, else the nearest tsconfig.json or jsconfig.json), `TYPES_PARAM`, `ext`, `importExt`, `source`, `stripTypes` and `pick`. Importing them makes `@codejen/jen` a peer dependency of your pack.
+
 ### VS Code tasks
 
 Hook generators into the command palette with a task in `.vscode/tasks.json`:

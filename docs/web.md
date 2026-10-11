@@ -39,6 +39,8 @@ toc:
   - title: Pages and platform
     links:
       - { title: "web:page", id: web-page }
+      - { title: "web:manifest", id: web-manifest }
+      - { title: "web:sw", id: web-sw }
       - { title: "web:dialog", id: web-dialog }
       - { title: "web:popover", id: web-popover }
       - { title: "web:scroll", id: web-scroll }
@@ -267,6 +269,50 @@ A new page after [Manuel Matuzović's HTML boilerplate](https://matuzo.at/blog/h
 {% endcapture %}
 {% include cards.html rows=rows label="default" heading="Params" %}
 
+### `web:manifest` {#web-manifest}
+
+Makes the site installable with a `manifest.webmanifest`. It goes into `public/` in a Vite project or any project with that folder, else where you run jen. The colors come from the palette – `theme_color` from `primary`, `background_color` from `surface` – or from `--themeColor` and `--backgroundColor` (`#hex`, `oklch()` or a hue), and white without either. They're written as hex, which every browser reads. The manifest lists only the icons that exist, at the root or in `public/`. Next to a `favicon.svg`, it also writes `icon-maskable.svg`: the same icon on the background color, shrunk into the safe zone that round and rounded-square icon masks leave alone. `--into=<page.html>` links the manifest and adds `theme-color` to the page's head, one per color scheme when there's a palette. Pages you make later with `web:page` link the manifest by themselves.
+
+{% include terminal.html id="web_manifest" %}
+
+{% include terminal.html id="web_manifest_file" %}
+
+Some browsers, and iOS for the home screen, still want PNGs. `--png` renders `icon-192.png`, `icon-512.png` and `apple-touch-icon.png` from `favicon.svg` and lists them. The apple-touch icon goes on the background color with some room around it, because iOS fills transparent corners with black. jen bundles no image library: `--png` uses `rsvg-convert` (librsvg) or ImageMagick, whichever is installed, and stops with a message if neither is.
+
+{% include terminal.html id="web_manifest_png" %}
+
+{% capture rows %}
+`name` | — | required; the app's name, as the install prompt shows it
+`shortName` | the name | under the icon; without it, the name, or its first word if it's longer than 12 characters
+`display` | `standalone` | `fullscreen`, `standalone`, `minimal-ui` or `browser`
+`themeColor`, `backgroundColor` | palette | the browser's toolbar and the splash screen; `#ffffff` without a palette
+`lang` | `en` | also sets `dir`: `rtl` for Arabic, Hebrew, Persian, Urdu and other right-to-left languages
+`png` | — | also render the PNG icons from `favicon.svg`, with rsvg-convert or ImageMagick
+`into` | — | a page to link the manifest from (and with `--png`, the apple-touch icon)
+{% endcapture %}
+{% include cards.html rows=rows label="default" heading="Params" %}
+
+### `web:sw` {#web-sw}
+
+A service worker without dependencies, short enough to read and own, with the caching strategies of Jake Archibald's [Offline Cookbook](https://web.dev/articles/offline-cookbook). Pages go network first: fresh when online, from the cache when not, and the offline page for anything never visited. Everything else is cache first, or stale-while-revalidate with `--strategy=swr`: served from the cache right away, and refreshed in the background for next time. On install, it caches the pages next to it and the entry stylesheet with everything it imports, or what `--precache=app.css,logo.svg` lists. `--offline` adds an `offline.html`, made from `web:page`'s template. The cache name carries a version: bump `VERSION` in `sw.js` and activating the new worker removes the old caches.
+
+`register-sw.js` registers the worker. Like pack-js, it comes in the project's style: TypeScript, JavaScript with JSDoc types, or plain JavaScript, by `--types` or else the nearest `tsconfig.json` or `jsconfig.json`. The service worker itself is always plain JavaScript, since browsers load it as it is. When a new version is waiting, `sw-update` fires on `window`, and `event.detail.apply()` switches to it and reloads the page – ask first, or apply it right away. In a Vite project, `sw.js` goes into `public/` and registers at Vite's base URL, and only in production builds, so the dev server's modules never end up in a cache. There, Vite builds the stylesheets, so they're cached as they load rather than on install.
+
+{% include terminal.html id="web_sw" %}
+
+A live preview is no use for a service worker, so here's the start of the file it writes:
+
+{% include terminal.html id="web_sw_file" %}
+
+{% capture rows %}
+`precache` | pages and stylesheets | files to cache on install, comma-separated, relative to `sw.js`
+`strategy` | `cache-first` | `swr` for stale-while-revalidate (pages stay network first)
+`offline` | — | also write `offline.html`, shown for pages that aren't cached
+`types` | from the project | `ts`, `jsdoc` or `none`, for `register-sw`
+`into` | — | a page (script tag) or module (import line) that loads `register-sw`
+{% endcapture %}
+{% include cards.html rows=rows label="default" heading="Params" %}
+
 ### `web:dialog` {#web-dialog}
 
 A modal `.dialog` that fades and rises in and out (`@starting-style`) above a dimmed backdrop. The markup opens it with the command API – `<button commandfor="confirm" command="show-modal">` – so no JavaScript is needed; `commands.js` stands in for browsers that don't have the command API yet. `closedby="any"` lets a click outside close it.
@@ -319,5 +365,8 @@ Every file credits the work it builds on, in a comment at the top of the part it
 - **[Reasonable Colors](https://www.reasonable.work/colors/)** by Matthew Howell: the idea of shade distances that guarantee contrast
 - **[OKLab](https://bottosson.github.io/posts/oklab/)** by Björn Ottosson: the color math behind the shades
 - **[HTML boilerplate](https://matuzo.at/blog/html-boilerplate/)** by Manuel Matuzović: `web:page`
+- **[How to Favicon in 2021](https://evilmartians.com/chronicles/how-to-favicon-in-2021-six-files-that-fit-most-needs)** by Andrey Sitnik (Evil Martians): the icon set `web:page` links and `web:manifest` lists
+- **[Web app manifest](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest)** reference by MDN: `web:manifest`
+- **[The Offline Cookbook](https://web.dev/articles/offline-cookbook)** by Jake Archibald: the caching strategies in `web:sw`
 
 The code is written fresh for this pack, not copied. The pack is ISC licensed.

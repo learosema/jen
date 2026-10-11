@@ -8,10 +8,12 @@ import compositionsGenerator from './compositions.ts';
 import cubeGenerator from './cube.ts';
 import dialogGenerator from './dialog.ts';
 import fluidGenerator from './fluid.ts';
+import manifestGenerator from './manifest.ts';
 import pageGenerator from './page.ts';
 import paletteGenerator from './palette.ts';
 import popoverGenerator from './popover.ts';
 import scrollGenerator from './scroll.ts';
+import swGenerator from './sw.ts';
 import tailwindGenerator from './tailwind.ts';
 import transitionsGenerator from './transitions.ts';
 import utilitiesGenerator from './utilities.ts';
@@ -27,6 +29,8 @@ const pack: Pack = {
   utilities: utilitiesGenerator,
   cube: cubeGenerator,
   page: pageGenerator,
+  manifest: manifestGenerator,
+  sw: swGenerator,
   dialog: dialogGenerator,
   popover: popoverGenerator,
   scroll: scrollGenerator,
