@@ -1,6 +1,6 @@
 {
   "name": "@codejen/pack-web",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "jen pack for web development: contrast-checked color palettes, CUBE CSS layers, reset and base styles, buttons",
   "type": "module",
   "main": "./dist/index.js",
