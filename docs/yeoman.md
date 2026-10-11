@@ -91,10 +91,6 @@ The first positional picks a JHipster command, the same as with `jhipster`: `jen
 
 {% include terminal.html id="yeoman_jdl" %}
 
-## Coming from jen 2 {#jen-2}
-
-jen 2 ran Yeoman generators itself, under their short name: `jen code`. That moved into this pack, so it's `jen yeoman:code` now, and `jen --from generator-code yeoman:code`. jen 3 points it out when you use the old name.
-
 ## Credits {#credits}
 
 - **[Yeoman](https://yeoman.io)** by the Yeoman team: the generators, and the environment the pack stands in for
