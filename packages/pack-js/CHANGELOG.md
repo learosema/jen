@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/learosema/jen/compare/pack-js-v1.1.0...pack-js-v1.2.0) (2026-10-11)
+
+
+### Features
+
+* **pack-web:** implement pwa utilities ([c818417](https://github.com/learosema/jen/commit/c818417171b56e9a3a5293d18c992ce31b579fcf))
+
 ## [1.1.0](https://github.com/learosema/jen/compare/pack-js-v1.0.0...pack-js-v1.1.0) (2026-10-11)
 
 
