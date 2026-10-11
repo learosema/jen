@@ -47,7 +47,7 @@ Why
 - **Deterministic.** Same params, same output. Every time.
 - **Language-agnostic.** Scaffolds C++, CMake, Rust, shaders, or anything else that's text.
 - **Try before you install.** `--from` fetches a pack or generator via npm, runs it once, and cleans up after itself. Ask for `lua:function` without the pack and jen fetches `@codejen/pack-lua` for you.
-- {: .wide} **Runs real Yeoman generators, too.** No extra dependency for that either. jen borrows yeoman-generator, mem-fs and EJS straight from the generator's own install.
+- {: .wide} **Runs real Yeoman generators, too** – JHipster included – with [`@codejen/pack-yeoman`](yeoman.html). No extra dependency for that either: it borrows yeoman-generator, mem-fs and EJS straight from the generator's own install.
 {: .why .auto-grid .reveal}
 
 </section>
@@ -140,7 +140,7 @@ Bring your own ecosystem
 ## Not just your own generators.
 {: .big}
 
-jen also runs real [Yeoman](https://yeoman.io/) generators, and can fetch one on the fly without ever touching your project's own dependencies.
+With [`@codejen/pack-yeoman`](yeoman.html), jen also runs real [Yeoman](https://yeoman.io/) generators – JHipster included. `generator-code` and `generator-jhipster` are fetched on the fly, without ever touching your project's own dependencies.
 
 </div>
 {% include terminal.html id="yeoman" title="~/projects" %}

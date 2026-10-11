@@ -25,15 +25,16 @@ hello:
   - "✓ 1 written"
 
 yeoman:
-  - '$ jen --from generator-code code --extensionType=command-ts --extensionDisplayName="My Extension"'
+  - '$ jen yeoman:code --extensionType=command-ts --extensionDisplayName="My Extension"'
+  - "# Fetching @codejen/pack-yeoman@latest …"
+  - "yeoman:code (pack @codejen/pack-yeoman) – Yeoman generator-code – fetched when run"
   - "# Fetching generator-code@latest …"
-  - "code (yeoman generator-code) – Yeoman generator"
   - ""
   - "  + my-extension/package.json"
   - "  + my-extension/src/extension.ts"
   - "  …"
   - ""
-  - "✓ 12 written"
+  - "✓ 15 written"
 
 install_global:
   - "$ npm install -g @codejen/jen @codejen/pack-cpp"
@@ -846,3 +847,56 @@ js_test:
   - "  + src/lib/slugify.test.ts"
   - ""
   - "✓ 1 written"
+
+yeoman_install_global:
+  - "$ npm install -g @codejen/jen @codejen/pack-yeoman generator-code"
+  - '$ jen yeoman:code --extensionType=command-ts --extensionDisplayName="My Extension"'
+
+yeoman_install_local:
+  - "$ npm install --save-dev @codejen/jen @codejen/pack-yeoman generator-code"
+  - '$ npx jen yeoman:code --extensionType=command-ts --extensionDisplayName="My Extension"'
+
+yeoman_install_from:
+  - '$ npx @codejen/jen --from generator-code yeoman:code --extensionType=command-ts --extensionDisplayName="My Extension"'
+
+yeoman_code:
+  - '$ jen yeoman:code --extensionType=command-ts --extensionDisplayName="My Extension"'
+  - "yeoman:code (pack @codejen/pack-yeoman) – Yeoman generator-code"
+  - "…"
+  - ""
+  - "  + my-extension/.vscode/extensions.json"
+  - "  + my-extension/.vscode/launch.json"
+  - "  + my-extension/package.json"
+  - "  + my-extension/tsconfig.json"
+  - "  + my-extension/src/extension.ts"
+  - "  + my-extension/src/test/extension.test.ts"
+  - "  …"
+  - ""
+  - "✓ 15 written"
+
+yeoman_jhipster:
+  - "$ jen yeoman:jhipster --defaults --base-name=demo"
+  - "yeoman:jhipster (pack @codejen/pack-yeoman) – JHipster: an app, or a command like jdl"
+  - "…"
+  - ""
+  - "  + package.json"
+  - "  + .yo-rc.json"
+  - "  + sonar-project.properties"
+  - "  …"
+  - "  + src/main/java/com/mycompany/myapp/repository/package-info.java"
+  - ""
+  - "✓ 482 written"
+
+yeoman_jdl:
+  - "$ jen yeoman:jhipster jdl blog.jdl --force"
+  - "yeoman:jhipster (pack @codejen/pack-yeoman) – JHipster: an app, or a command like jdl"
+  - "…"
+  - ""
+  - "  + .jhipster/Post.json"
+  - "  ! .yo-rc.json  will be overwritten"
+  - "  + src/test/java/com/mycompany/myapp/domain/PostTest.java"
+  - "  + src/main/resources/config/liquibase/fake-data/blob/hipster.png"
+  - "  + src/main/webapp/app/entities/post/post.model.ts"
+  - "  …"
+  - ""
+  - "✓ 40 written"

@@ -3,5 +3,6 @@
   "packages/pack-cpp": "1.0.1",
   "packages/pack-glsl": "2.0.1",
   "packages/pack-web": "1.0.0",
-  "packages/pack-js": "1.0.0"
+  "packages/pack-js": "1.0.0",
+  "packages/pack-yeoman": "0.0.0"
 }

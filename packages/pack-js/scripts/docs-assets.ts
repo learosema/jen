@@ -42,7 +42,7 @@ const helpers = {
 function run(generator: string, answers: Record<string, string | boolean> = {}): void {
   const g = pack[generator];
   const defaults = Object.fromEntries(Object.entries(g.params ?? {}).map(([k, p]) => [k, p.default]));
-  for (const a of g.actions({ ...defaults, ...answers, types: 'jsdoc' }, helpers, ctx)) if ('add' in a) files.set(a.add, a.template);
+  for (const a of g.actions({ ...defaults, ...answers, types: 'jsdoc' }, helpers, ctx)) if ('template' in a) files.set(a.add, a.template);
 }
 
 run('element', { name: 'my-counter', attrs: 'count:number,label,open:boolean', events: 'change:{value:number}' });

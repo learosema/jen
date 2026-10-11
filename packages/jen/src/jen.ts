@@ -14,7 +14,7 @@ import { realpathSync } from 'node:fs';
 import { styleText } from 'node:util';
 import { main } from './cli.ts';
 
-export type { Action, Answers, Context, Find, Generator, Helpers, Pack, Params, Probe } from './core.ts';
+export type { Action, AnyGenerator, Answers, Args, Context, Find, Generator, Helpers, Pack, PackEnv, PackFactory, Params, Probe } from './core.ts';
 export { helpers } from './core.ts';
 
 // Only run as a program, not when jen.ts is imported (e.g. for its types).

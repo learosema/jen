@@ -41,6 +41,8 @@ export interface Find {
 export type Action =
   /** Create a file. Skipped if it exists (unless force / --force). */
   | { add: string; template: string; force?: boolean }
+  /** Create a binary file, written byte for byte – otherwise like the above. */
+  | { add: string; bytes: Uint8Array; force?: boolean }
   /**
    * Insert `line` before the marker line: the first line containing
    * `before`, the first line matching it if it's a RegExp, or – a number –
@@ -64,6 +66,7 @@ export type Action =
 /** An action with its file resolved – a path from the project root – or skipped with a note. */
 export type Placed =
   | { add: string; template: string; force?: boolean }
+  | { add: string; bytes: Uint8Array; force?: boolean }
   | { insert: string; before: string | RegExp | number; line: string }
   | { modify: string; pattern: RegExp; replace: string }
   | { delete: string }
@@ -102,16 +105,43 @@ export interface Context extends Probe {
   cwd: string;
   /** Where the files go, relative to the root: `--dir`, else the current directory. Action paths are relative to it. */
   destDir: string;
+  /** Every `--flag` given besides jen's own (and `--dir`, unless it's a param), plus the positionals after the generator name – declared params or not. */
+  args?: Args;
 }
 
-export interface Generator {
+export interface Args {
+  flags: Record<string, string | boolean>;
+  positionals: string[];
+}
+
+/** `actions` may be async – a pack's own generators usually aren't, so `Generator` defaults to sync. */
+export interface Generator<Result extends Action[] | Promise<Action[]> = Action[]> {
   description?: string;
   params?: Params;
-  actions(answers: Answers, helpers: Helpers, ctx: Context): Action[];
+  actions(answers: Answers, helpers: Helpers, ctx: Context): Result;
 }
 
-/** Default export of a jen pack: generator name → generator. */
+/** A generator whose actions may or may not be async. */
+export type AnyGenerator = Generator<Action[] | Promise<Action[]>>;
+
+/** Default export of a jen pack: generator name → generator – or a `PackFactory`. */
 export type Pack = Record<string, Generator>;
+
+/** What a pack factory can find out about installed packages, from the same places jen looks for packs. */
+export interface PackEnv {
+  /** Names of dependencies matching `re`: the project's, the user directory's, global ones, and a `--from` package. */
+  packages(re: RegExp): string[];
+  /** The file `name` (or `name/sub/path`) resolves to from those places, first match; null if it's not installed. */
+  resolve(name: string): string | null;
+  /**
+   * Installs `name` into a throwaway directory for this run, like `--from`, and resolves it; null if fetching is
+   * off (JEN_NO_FETCH). Only for names the pack itself knows – never one taken from the command line.
+   */
+  fetch(name: string): Promise<string | null>;
+}
+
+/** A pack's default export, when its generators depend on what's installed, e.g. one per package of a kind. */
+export type PackFactory = (env: PackEnv) => Record<string, AnyGenerator> | Promise<Record<string, AnyGenerator>>;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -158,10 +188,13 @@ const isInside = (root: string, f: string): boolean => {
  */
 export async function plan(actions: Placed[], force: boolean, extraRoots: string[] = []) {
   const steps: Step[] = [];
-  const changes = new Map<string, string | null>();
+  const changes = new Map<string, string | Uint8Array | null>();
   const added = new Set<string>();
-  const read = async (f: string): Promise<string | null> =>
-    changes.has(f) ? (changes.get(f) ?? null) : isFile(f) ? await readFile(f, 'utf8') : null;
+  const read = async (f: string): Promise<string | null> => {
+    const change = changes.get(f);
+    if (change !== undefined) return typeof change === 'string' || change === null ? change : Buffer.from(change).toString('utf8');
+    return isFile(f) ? await readFile(f, 'utf8') : null;
+  };
 
   for (const a of actions) {
     if ('skip' in a) {
@@ -181,7 +214,7 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
         steps.push({ mark: '=', file, note: 'exists, skipped' });
         continue;
       }
-      changes.set(file, a.template);
+      changes.set(file, 'bytes' in a ? a.bytes : a.template);
       added.add(file);
       steps.push(exists ? { mark: '!', file, note: 'will be overwritten' } : { mark: '+', file });
       continue;
@@ -270,7 +303,7 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
 }
 
 /** Writes or deletes everything the plan computed. */
-export async function apply(changes: Map<string, string | null>): Promise<{ written: number; deleted: number }> {
+export async function apply(changes: Map<string, string | Uint8Array | null>): Promise<{ written: number; deleted: number }> {
   let written = 0;
   let deleted = 0;
   for (const [file, content] of changes) {

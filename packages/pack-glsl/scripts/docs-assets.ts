@@ -32,7 +32,7 @@ const helpers: Helpers = {
 
 function apply(actions: Action[], files: Map<string, string>): void {
   for (const a of actions) {
-    if ('add' in a) {
+    if ('template' in a) {
       if (!files.has(a.add)) files.set(a.add, a.template);
     } else if ('insert' in a) {
       // the GLSL generators insert into a shader they name, with a plain line
@@ -41,7 +41,7 @@ function apply(actions: Action[], files: Map<string, string>): void {
       const block = a.line.split('\n');
       if (lines.some((_, k) => block.every((b, j) => lines[k + j]?.trim() === b.trim()))) continue;
       const marker = a.before;
-      const i = lines.findIndex((l) => (typeof marker === 'string' ? l.includes(marker) : marker.test(l)));
+      const i = typeof marker === 'number' ? marker - 1 : lines.findIndex((l) => (typeof marker === 'string' ? l.includes(marker) : marker.test(l)));
       if (i < 0) throw new Error(`docs-assets: marker ${String(marker)} not found in ${a.insert}`);
       lines.splice(i, 0, ...block);
       files.set(a.insert, lines.join('\n'));
