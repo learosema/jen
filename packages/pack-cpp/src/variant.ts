@@ -25,9 +25,9 @@ overloaded(Ts...) -> overloaded<Ts...>;
 const variantGenerator: Generator = {
   description: 'create a std::variant of case structs plus the overloaded visitor helper (header-only)',
   params: {
-    name: {},
+    name: { description: 'the variant, any case: input-event and InputEvent both make InputEvent in InputEvent.h, plus a shared overloaded.h' },
     cases: { description: 'comma-separated case structs, e.g. "click, keyPress, resize"' },
-    namespace: { default: '' },
+    namespace: { default: '', description: 'C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace' },
     withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
   actions: ({ name, cases, namespace, withTest }, { pascal, constant }) => {

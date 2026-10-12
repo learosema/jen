@@ -9,8 +9,8 @@ import { inNamespace, qualified, testActions } from './util.ts';
 const pimplGenerator: Generator = {
   description: 'create a pimpl class: unique_ptr<Impl>, special members defaulted in the .cpp; wired into the CMakeLists.txt with # jen:sources',
   params: {
-    name: {},
-    namespace: { default: '' },
+    name: { description: 'the class, any case: renderer and Renderer both make Renderer.h and Renderer.cpp' },
+    namespace: { default: '', description: 'C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace' },
     withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
   actions: ({ name, namespace, withTest }, { pascal, constant }) => {

@@ -5,9 +5,9 @@ import { fail, includeBlock, nsWrap, parseMembers, qualified, stdIncludes, testA
 const r0Generator: Generator = {
   description: 'create a Rule of Zero class: members generated from constructor params, no special member functions (header-only)',
   params: {
-    name: {},
+    name: { description: 'the class, any case: movie-info and MovieInfo both make MovieInfo in MovieInfo.h' },
     members: { description: 'comma-separated "Type name" pairs, e.g. "std::string title, int year"' },
-    namespace: { default: '' },
+    namespace: { default: '', description: 'C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace' },
     compare: { default: false, description: 'add a defaulted <=> (comparison and ==)' },
     withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },

@@ -5,8 +5,8 @@ import { nsWrap } from './util.ts';
 const handleGenerator: Generator = {
   description: 'create a generic Handle<T, Deleter, Null> RAII template for non-pointer handles (header-only)',
   params: {
-    name: {},
-    namespace: { default: '' },
+    name: { description: 'the template, any case: gl-handle and GlHandle both make GlHandle in GlHandle.h' },
+    namespace: { default: '', description: 'C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace' },
   },
   actions: ({ name, namespace }, { pascal, constant }) => {
     const className = pascal(String(name));
