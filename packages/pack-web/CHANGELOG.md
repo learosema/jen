@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/learosema/jen/compare/pack-web-v1.3.0...pack-web-v1.4.0) (2026-10-12)
+
+
+### Features
+
+* **pack-cpp:** add json documentation ([df31758](https://github.com/learosema/jen/commit/df31758c6d1e3ac341570906d1ee8c893c1c9641))
+
 ## [1.3.0](https://github.com/learosema/jen/compare/pack-web-v1.2.1...pack-web-v1.3.0) (2026-10-11)
 
 
