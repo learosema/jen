@@ -49,7 +49,7 @@ const BUILTINS: Pack = {
   generator: {
     description: 'create a new generator (project or user-wide)',
     params: {
-      name: {},
+      name: { description: 'the generator, any case: MyWidget and my-widget both make my-widget.mjs, run as jen my-widget' },
       location: { default: 'project', description: 'project (.jen/) or user (your user directory)' },
     },
     actions: ({ name, location }, { kebab }) => [

@@ -85,8 +85,8 @@ const classGenerator: Generator = {
   description:
     'create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources',
   params: {
-    name: {},
-    namespace: { default: '' },
+    name: { description: 'the class, any case: player-controller and PlayerController both make PlayerController.h and PlayerController.cpp' },
+    namespace: { default: '', description: 'C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace' },
     moveOnly: { default: false, description: 'RAII wrapper: copy deleted, move defaulted (Rule of Five)' },
     resource: { default: 'Resource*', description: 'with --moveOnly: the handle type it owns, e.g. SDL_Window* or GLuint' },
     nullValue: { default: 'nullptr', description: 'with --moveOnly: the empty handle value, e.g. 0 for GLuint' },

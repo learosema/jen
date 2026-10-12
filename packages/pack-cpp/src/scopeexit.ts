@@ -5,8 +5,8 @@ import { nsWrap } from './util.ts';
 const scopeExitGenerator: Generator = {
   description: 'create a ScopeExit scope-guard template (nothrow-enforced, header-only)',
   params: {
-    name: {},
-    namespace: { default: '' },
+    name: { description: 'the template, any case: scope-exit and ScopeExit both make ScopeExit in ScopeExit.h' },
+    namespace: { default: '', description: 'C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace' },
   },
   actions: ({ name, namespace }, { pascal, constant }) => {
     const className = pascal(String(name));

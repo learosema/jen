@@ -41,10 +41,10 @@ const interfaceGenerator: Generator = {
   description:
     'create a polymorphic interface class (virtual dtor, protected copy/move, pure virtual methods)',
   params: {
-    name: {},
+    name: { description: 'the interface, any case: shape and Shape both make Shape in Shape.h' },
     methods: { default: '', description: 'comma-separated pure virtual methods, e.g. "void draw() const, bool resize(int w, int h)"' },
     impl: { default: '', description: 'also create a final class with this name that implements the interface' },
-    namespace: { default: '' },
+    namespace: { default: '', description: 'C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace' },
     withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
   actions: ({ name, methods, impl, namespace, withTest }, { pascal, constant }) => {

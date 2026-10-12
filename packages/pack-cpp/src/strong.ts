@@ -11,10 +11,10 @@ const OPS = ['compare', 'arith', 'hash'];
 const strongGenerator: Generator = {
   description: 'create a strong typedef: explicit constructor, optional <=> / arithmetic / std::hash (header-only)',
   params: {
-    name: {},
+    name: { description: 'the type, any case: pixels and Pixels both make Pixels in Pixels.h' },
     underlying: { description: 'the wrapped type, e.g. float or int' },
     ops: { default: 'compare', description: 'comma-separated: compare (<=>), arith (+ - * /), hash (std::hash)' },
-    namespace: { default: '' },
+    namespace: { default: '', description: 'C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace' },
     withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
   actions: ({ name, underlying, ops, namespace, withTest }, { pascal, constant }) => {

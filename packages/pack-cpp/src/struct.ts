@@ -18,10 +18,10 @@ function withInitializer(member: string): string {
 const structGenerator: Generator = {
   description: 'create an aggregate struct with default member initializers for plain data bundles (header-only)',
   params: {
-    name: {},
+    name: { description: 'the struct, any case: window-config and WindowConfig both make WindowConfig in WindowConfig.h' },
     members: { description: 'comma-separated "Type name [= value]" entries, e.g. "int width = 800, int height = 600"' },
     compare: { default: false, description: 'add a defaulted <=> (comparison and ==)' },
-    namespace: { default: '' },
+    namespace: { default: '', description: 'C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace' },
     withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
   actions: ({ name, members, compare, namespace, withTest }, { pascal, constant }) => {
