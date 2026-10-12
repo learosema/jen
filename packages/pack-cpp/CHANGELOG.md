@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/learosema/jen/compare/pack-cpp-v1.1.0...pack-cpp-v1.2.0) (2026-10-12)
+
+
+### Features
+
+* **pack-cpp:** add param descriptions ([6c05dd6](https://github.com/learosema/jen/commit/6c05dd62c39c53346680ff6a36ca54b8606d5ff2))
+
 ## [1.1.0](https://github.com/learosema/jen/compare/pack-cpp-v1.0.1...pack-cpp-v1.1.0) (2026-10-12)
 
 
