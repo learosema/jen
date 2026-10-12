@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.0](https://github.com/learosema/jen/compare/pack-glsl-v2.2.0...pack-glsl-v2.3.0) (2026-10-12)
+
+
+### Features
+
+* **pack-cpp:** add json documentation ([df31758](https://github.com/learosema/jen/commit/df31758c6d1e3ac341570906d1ee8c893c1c9641))
+
 ## [2.2.0](https://github.com/learosema/jen/compare/pack-glsl-v2.1.0...pack-glsl-v2.2.0) (2026-10-11)
 
 
