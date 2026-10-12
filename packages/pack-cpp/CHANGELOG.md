@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/learosema/jen/compare/pack-cpp-v1.0.1...pack-cpp-v1.1.0) (2026-10-12)
+
+
+### Features
+
+* **main:** add --list --json command ([5040305](https://github.com/learosema/jen/commit/5040305f61f0a3414d04ede4084d7565e3c14e15))
+
 ## [1.0.1](https://github.com/learosema/jen/compare/pack-cpp-v1.0.0...pack-cpp-v1.0.1) (2026-10-06)
 
 
