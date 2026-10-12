@@ -2,6 +2,13 @@
 
 > Renamed from `@lea.rosema/jen` to `@codejen/jen` and republished as 1.0.0. The history below (up to 1.1.0) is `@lea.rosema/jen`'s; `@lea.rosema/jen` is deprecated in favor of this package.
 
+## [2.3.1](https://github.com/learosema/jen/compare/jen-v2.3.0...jen-v2.3.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* **jen:** describe --name of the generator built-in ([be9d479](https://github.com/learosema/jen/commit/be9d4794ce313b6bd3a1a744f00b7f5000441ead))
+
 ## [2.3.0](https://github.com/learosema/jen/compare/jen-v2.2.0...jen-v2.3.0) (2026-10-11)
 
 
