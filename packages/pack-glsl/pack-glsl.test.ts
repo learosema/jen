@@ -448,6 +448,11 @@ describe('glsl:noise', () => {
     assert.throws(() => run('noise', { kind: 'gabor' }), /--kind: expected one of/);
     assert.throws(() => run('noise', { kind: 'value', dim: '4' }), /--dim: expected "2" or "3", got "4"/);
     assert.throws(() => run('noise', { kind: 'fbm', base: 'curl' }), /--base: expected one of "value", "perlin", "simplex", "worley", got "curl"/);
+    assert.throws(() => run('noise', { kind: 'worley', base: 'value' }), /--base: only for fractals \(fbm, turbulence, ridged, warp\); --kind=worley is a base noise itself/);
+    assert.throws(() => run('noise', { kind: 'curl', base: 'perlin' }), /--base: only for fractals .*; curl is always built on simplex/);
+    assert.doesNotThrow(() => run('noise', { kind: 'fbm', base: 'worley' }));
+    assert.doesNotThrow(() => run('noise', { kind: 'perlin' }));
+    assert.doesNotThrow(() => run('noise', { kind: 'perlin', base: 'simplex' }));
     assert.throws(() => run('noise', { kind: 'value', name: 'x', into: 'y' }), /either --name .* or --into/);
   });
 
@@ -464,7 +469,7 @@ describe('glsl:noise', () => {
       let files = emptyShader(version);
       for (const kind of KINDS) {
         for (const dim of ['2', '3']) {
-          for (const base of kind === 'fbm' || kind === 'turbulence' || kind === 'ridged' || kind === 'warp' ? NOISE_BASES : ['perlin']) {
+          for (const base of kind === 'fbm' || kind === 'turbulence' || kind === 'ridged' || kind === 'warp' ? NOISE_BASES : ['simplex']) {
             files = into(files, { kind, dim, base });
           }
         }

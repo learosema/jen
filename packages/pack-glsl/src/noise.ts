@@ -86,6 +86,10 @@ const noiseGenerator: Generator = {
     if (d !== 2 && d !== 3) fail(`glsl:noise --dim: expected "2" or "3", got "${String(dim)}"`);
     const b = String(base);
     if (!NOISE_BASES.includes(b)) fail(`glsl:noise --base: expected one of ${NOISE_BASES.map((x) => `"${x}"`).join(', ')}, got "${b}"`);
+    if (b !== 'simplex' && !FRACTALS.includes(k)) {
+      const why = k === 'curl' ? 'curl is always built on simplex' : `--kind=${k} is a base noise itself`;
+      fail(`glsl:noise --base: only for fractals (${FRACTALS.join(', ')}); ${why}`);
+    }
     if (name && into) fail('glsl:noise: use either --name (new preview shader) or --into (existing shader), not both');
 
     const ids = [chunkFor(k, d, b)];
