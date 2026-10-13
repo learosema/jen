@@ -391,6 +391,17 @@ describe('params', () => {
     const dir = cppProject();
     jen(['class', '--name=foo', '--moveOnly=yes'], { cwd: dir });
     assert.match(read(dir, 'src/Foo.h'), /move-only/);
+    for (const no of ['no', 'off']) {
+      const d = cppProject();
+      jen(['class', '--name=foo', `--moveOnly=${no}`], { cwd: d });
+      assert.doesNotMatch(read(d, 'src/Foo.h'), /move-only/);
+    }
+  });
+
+  it('fails on a boolean value it does not understand', () => {
+    const r = jen(['class', '--name=foo', '--moveOnly=nein'], { cwd: cppProject() });
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /--moveOnly: expected true or false/);
   });
 
   it('runs a generator whose params have descriptions', () => {

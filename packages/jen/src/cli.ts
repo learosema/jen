@@ -438,16 +438,20 @@ async function listJson(entries: Entry[]): Promise<void> {
 
 // ─── Params ─────────────────────────────────────────────────────────────────
 
-const TRUE = /^(1|true|y|yes)$/i;
+const TRUE = /^(1|true|y|yes|on)$/i;
+const FALSE = /^(0|false|n|no|off)$/i;
 
 /** Resolves a generator's params from CLI answers and defaults. No prompting. */
-function resolveParams(params: Params, given: Record<string, unknown>): Answers {
+function resolveParams(generator: string, params: Params, given: Record<string, unknown>): Answers {
   const answers: Answers = {};
   const missing: string[] = [];
   for (const [name, spec] of Object.entries(params)) {
     if (name in given) {
       const v = given[name];
-      answers[name] = typeof spec.default === 'boolean' ? v === true || TRUE.test(String(v)) : String(v);
+      if (typeof spec.default !== 'boolean') answers[name] = String(v);
+      else if (v === true || TRUE.test(String(v))) answers[name] = true;
+      else if (FALSE.test(String(v))) answers[name] = false;
+      else fail(`${generator} --${name}: expected true or false (or yes/no), got "${v}"`);
     } else if (spec.default !== undefined) {
       answers[name] = spec.default;
     } else {
@@ -538,7 +542,7 @@ export async function main(): Promise<void> {
     // --dir is the same flag everywhere, unless the generator has a param of that name itself
     const ownDir = 'dir' in (gen.params ?? {});
     const params = { dir: { default: '' }, ...gen.params };
-    const answers = resolveParams(params, given);
+    const answers = resolveParams(qualified(entry), params, given);
     const ctx = buildContext(ownDir ? '' : String(answers.dir), ROOT, cwd);
     const flags = ownDir ? given : Object.fromEntries(Object.entries(given).filter(([k]) => k !== 'dir'));
     ctx.args = { flags, positionals: positionals.slice(1) };
