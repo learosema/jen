@@ -682,6 +682,13 @@ describe('glsl:matrix', () => {
       assertCompiles(files.get('m.vert.glsl')!, 'vert', `mesh starter + matrices (${version})`);
     }
   });
+
+  it('reads translate and scale as the transform chunk, once', () => {
+    for (const fns of ['scale', 'translate,scale', 'transform,scale']) {
+      assert.deepEqual(adds(run('matrix', { fns })).map((a) => a.add), ['shaders/lib/matrix-transform.glsl'], fns);
+    }
+    assert.throws(() => run('matrix', { fns: 'skew' }), /--fns: unknown "skew" – valid: look-at, perspective, rotate, transform \(or "all"\)/);
+  });
 });
 
 describe('glsl:webgl --shaderDir', () => {

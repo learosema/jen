@@ -8,17 +8,22 @@ import type { Generator } from '@codejen/jen';
 import { chunkActions, pickChunks } from './chunks.ts';
 import { parseList } from './common.ts';
 
+/** translate and scale live in the transform chunk – accept the words a request actually uses. */
+const ALIASES: Record<string, string> = { translate: 'transform', scale: 'transform' };
+
 const matrixGenerator: Generator = {
   description: 'add matrix helpers',
   params: {
-    fns: { description: 'comma-separated: rotate, perspective, look-at, transform (translate, scale) – or all' },
+    fns: { description: 'comma-separated: rotate, perspective, look-at, transform (also as translate or scale) – or all' },
     into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
   },
-  actions: ({ fns, into }) =>
-    chunkActions(pickChunks('matrix', parseList(String(fns ?? '')), '--fns', 'glsl:matrix'), {
+  actions: ({ fns, into }) => {
+    const names = [...new Set(parseList(String(fns ?? '')).map((name) => ALIASES[name] ?? name))];
+    return chunkActions(pickChunks('matrix', names, '--fns', 'glsl:matrix'), {
       into: String(into),
       dir: '',
-    }),
+    });
+  },
 };
 
 export default matrixGenerator;
