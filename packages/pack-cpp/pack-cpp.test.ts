@@ -617,6 +617,11 @@ describe('cpp:variant', () => {
 const planTool = (id: string, answers: Record<string, string | boolean> = {}, defaults: Record<string, string | boolean> = {}): Action[] =>
   pack[id].actions({ ...defaults, ...answers }, helpers, ctx(STARTED));
 
+it('spells boolean flags as =false in the param descriptions', () => {
+  assert.match(pack.tidy.params!.cmake.description!, /--cmake=false/);
+  assert.match(pack.compiler.params!.hardening.description!, /--hardening=false/);
+});
+
 describe('cpp:tidy', () => {
   it('enables the guideline checks, with the noisy ones disabled', () => {
     const actions = planTool('tidy', {}, { cmake: true });

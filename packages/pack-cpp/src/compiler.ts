@@ -68,7 +68,7 @@ const compilerGenerator: Generator = {
   description:
     'add guideline-oriented compiler settings (project_options: no extensions, guideline warnings, hardening) and link them into the core library',
   params: {
-    hardening: { default: true, description: 'bounds-checked standard library and exploit mitigations (stack protector, fortify); --hardening=no to leave them out' },
+    hardening: { default: true, description: 'bounds-checked standard library and exploit mitigations (stack protector, fortify); --hardening=false to leave them out' },
   },
   actions: ({ hardening }) => [
     { add: '/cmake/compiler.cmake', template: compilerCMake(Boolean(hardening)) },
