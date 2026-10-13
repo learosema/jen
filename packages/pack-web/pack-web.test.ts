@@ -521,10 +521,25 @@ describe('--line', () => {
   it('defaults to before </body>, and refuses lines that make no sense', () => {
     assert.deepEqual(inserts(run('popover', { name: 'menu', into: '/index.html' }, context(page, 'css')))[1].before, /<\/body>/);
     assert.throws(() => run('popover', { name: 'menu', line: '2' }, context(page, 'css')), /--line: needs --into/);
-    assert.throws(() => run('popover', { name: 'menu', into: '/index.html', line: 'top' }, context(page, 'css')), /"top" is not a line number/);
     assert.throws(() => run('scroll', { into: '/index.html', line: '0' }, context(page, 'css')), /"0" is not a line number/);
     assert.throws(() => run('dialog', { name: 'x', into: '/index.html', line: '40' }, context(page, 'css')), /index\.html has 3 lines, there is no line 40/);
     assert.equal(inserts(run('scroll', { into: '/index.html', line: '4' }, context(page, 'css')))[1].before, 4, 'one past the end appends');
+  });
+
+  it('also takes text on the line, matched literally', () => {
+    const nav = { 'index.html': '<body>\n  <nav class="a.b">\n  </nav>\n</body>\n', 'css/styles.css': '/* jen:imports */' };
+    const [markup, script] = inserts(run('dialog', { name: 'confirm', into: '/index.html', line: '</nav>' }, context(nav, 'css'))).filter(
+      (a) => a.insert === '/index.html',
+    );
+    assert.equal(markup.before, '</nav>');
+    assert.deepEqual(script.before, /<\/body>/);
+    assert.equal(inserts(run('popover', { name: 'menu', into: '/index.html', line: 'a.b' }, context(nav, 'css')))[1].before, 'a.b');
+    assert.throws(() => run('popover', { name: 'menu', into: '/index.html', line: 'a*b' }, context(nav, 'css')), /no line in index\.html contains "a\*b"/);
+  });
+
+  it('refuses text no line contains, before anything is written', () => {
+    assert.throws(() => run('dialog', { name: 'x', into: '/index.html', line: '</footer>' }, context(page, 'css')), /web:dialog --line: no line in index\.html contains "<\/footer>"/);
+    assert.throws(() => run('scroll', { into: '/index.html', line: 'top' }, context(page, 'css')), /no line in index\.html contains "top"/);
   });
 });
 
