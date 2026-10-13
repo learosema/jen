@@ -2,6 +2,13 @@
 
 > Renamed from `@lea.rosema/jen` to `@codejen/jen` and republished as 1.0.0. The history below (up to 1.1.0) is `@lea.rosema/jen`'s; `@lea.rosema/jen` is deprecated in favor of this package.
 
+## [2.4.0](https://github.com/learosema/jen/compare/jen-v2.3.1...jen-v2.4.0) (2026-10-13)
+
+
+### Features
+
+* **jen:** stricter boolean flags, error-handling ([d7f740e](https://github.com/learosema/jen/commit/d7f740e1fb288e2eba478b63001efd207cb9282f))
+
 ## [2.3.1](https://github.com/learosema/jen/compare/jen-v2.3.0...jen-v2.3.1) (2026-10-12)
 
 
