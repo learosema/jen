@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/learosema/jen/compare/pack-cpp-v1.2.0...pack-cpp-v1.3.0) (2026-10-13)
+
+
+### Features
+
+* **pack-cpp:** stricter boolean flags ([e30c5eb](https://github.com/learosema/jen/commit/e30c5ebc303eb4a9bac3d5f33816c5bfdbaa8dcd))
+
 ## [1.2.0](https://github.com/learosema/jen/compare/pack-cpp-v1.1.0...pack-cpp-v1.2.0) (2026-10-12)
 
 
