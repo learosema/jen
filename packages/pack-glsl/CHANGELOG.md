@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.2](https://github.com/learosema/jen/compare/pack-glsl-v2.2.1...pack-glsl-v2.2.2) (2026-10-13)
+
+
+### Bug Fixes
+
+* **pack-glsl:** fix ambiguous description ([f56eb45](https://github.com/learosema/jen/commit/f56eb4529e643de1f2677949f8afc71963ffa34c))
+
 ## [2.2.1](https://github.com/learosema/jen/compare/pack-glsl-v2.2.0...pack-glsl-v2.2.1) (2026-10-13)
 
 
