@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.3](https://github.com/learosema/jen/compare/pack-glsl-v2.2.2...pack-glsl-v2.2.3) (2026-10-13)
+
+
+### Bug Fixes
+
+* **pack-glsl:** glsl:noise base param error handling ([3496c31](https://github.com/learosema/jen/commit/3496c310230141ad8427535b4e01c43a8bf0e6aa))
+
 ## [2.2.2](https://github.com/learosema/jen/compare/pack-glsl-v2.2.1...pack-glsl-v2.2.2) (2026-10-13)
 
 
