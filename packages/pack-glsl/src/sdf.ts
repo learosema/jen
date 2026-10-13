@@ -78,9 +78,9 @@ const sdfGenerator: Generator = {
   description: 'add signed distance functions',
   params: {
     dim: { default: '2', description: '2 (shapes to draw) or 3 (solids to raymarch)' },
-    shapes: { default: '', description: 'comma-separated or all – 2D: circle, box, round-box, segment, polygon, star; 3D: sphere, box, round-box, torus, capsule, cylinder, plane' },
-    ops: { default: '', description: 'comma-separated or all: union, subtract, intersect, smooth-union/-subtract/-intersect, round, onion, repeat, repeat-limited, extrude, revolve' },
-    effects: { default: '', description: '2D only, comma-separated or all: fill, stroke, glow, shadow, inner-shadow' },
+    shapes: { default: '', description: 'comma-separated or all – 2D: circle, box, round-box, segment, polygon, star; 3D: sphere, box, round-box, torus, capsule, cylinder, plane (pick at least one of --shapes, --ops, --effects)' },
+    ops: { default: '', description: 'comma-separated or all: union, subtract, intersect, smooth-union/-subtract/-intersect, round, onion, repeat, repeat-limited, extrude, revolve (pick at least one of --shapes, --ops, --effects)' },
+    effects: { default: '', description: '2D only, comma-separated or all: fill, stroke, glow, shadow, inner-shadow (pick at least one of --shapes, --ops, --effects)' },
     into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
     name: { default: '', description: 'instead of --into: create a preview shader with this name, the shapes side by side' },
     version: { default: '300es', description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },

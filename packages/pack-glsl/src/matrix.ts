@@ -11,11 +11,11 @@ import { parseList } from './common.ts';
 const matrixGenerator: Generator = {
   description: 'add matrix helpers',
   params: {
-    fns: { default: '', description: 'comma-separated: rotate, perspective, look-at, transform (translate, scale) – or all' },
+    fns: { description: 'comma-separated: rotate, perspective, look-at, transform (translate, scale) – or all' },
     into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
   },
   actions: ({ fns, into }) =>
-    chunkActions(pickChunks('matrix', parseList(String(fns)), '--fns', 'glsl:matrix'), {
+    chunkActions(pickChunks('matrix', parseList(String(fns ?? '')), '--fns', 'glsl:matrix'), {
       into: String(into),
       dir: '',
     }),

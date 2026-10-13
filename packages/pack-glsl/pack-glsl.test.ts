@@ -328,6 +328,17 @@ describe('glsl:util', () => {
     assert.throws(() => run('util', { fns: 'rot2,rot4' }), /unknown "rot4"/);
   });
 
+  it('marks what a run needs: required params, or "pick at least one" on each of a group', () => {
+    for (const [generator, param] of [['util', 'fns'], ['matrix', 'fns'], ['noise', 'kind']]) {
+      assert.equal(pack[generator].params?.[param].default, undefined, `glsl:${generator} --${param} is required`);
+    }
+    for (const [generator, group] of [['sdf', ['shapes', 'ops', 'effects']], ['lighting', ['models', 'tonemap']]] as const) {
+      for (const param of group) {
+        assert.match(pack[generator].params?.[param].description ?? '', new RegExp(`\\(pick at least one of ${group.map((p) => `--${p}`).join(', ')}\\)$`));
+      }
+    }
+  });
+
   it('a shader with all helpers inserted compiles in every dialect', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
     for (const version of VERSIONS) {
       const files = applyActions(new Map(), run('frag', { name: 'x', version }));

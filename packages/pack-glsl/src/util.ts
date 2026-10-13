@@ -10,11 +10,11 @@ import { parseList } from './common.ts';
 const utilGenerator: Generator = {
   description: 'add GLSL helpers',
   params: {
-    fns: { default: '', description: 'comma-separated helpers: consts (PI, TAU), rot2, remap, saturate, hash – or all' },
+    fns: { description: 'comma-separated helpers: consts (PI, TAU), rot2, remap, saturate, hash – or all' },
     into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
   },
   actions: ({ fns, into }) =>
-    chunkActions(pickChunks('util', parseList(String(fns)), '--fns', 'glsl:util'), {
+    chunkActions(pickChunks('util', parseList(String(fns ?? '')), '--fns', 'glsl:util'), {
       into: String(into),
       dir: '',
     }),

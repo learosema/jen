@@ -69,7 +69,7 @@ ${setup.join('\n')}
 const noiseGenerator: Generator = {
   description: 'add GLSL noise, tileable',
   params: {
-    kind: { default: '', description: 'pick one: value, perlin, simplex, worley; fractals fbm, turbulence, ridged, warp; or curl (flow)' },
+    kind: { description: 'pick one: value, perlin, simplex, worley; fractals fbm, turbulence, ridged, warp; or curl (flow)' },
     dim: { default: '2', description: '2 or 3 dimensions' },
     base: { default: 'simplex', description: 'for fractals: the noise they are built from – value, perlin, simplex or worley' },
     into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
@@ -78,7 +78,7 @@ const noiseGenerator: Generator = {
     version: { default: '300es', description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
   },
   actions: ({ kind, dim, base, into, name, tile, version }, { kebab }) => {
-    const k = String(kind);
+    const k = String(kind ?? '');
     const valid = KINDS.map((x) => `"${x}"`).join(', ');
     if (!k) fail(`glsl:noise --kind: pick one of ${valid}`);
     if (!KINDS.includes(k)) fail(`glsl:noise --kind: expected one of ${valid}, got "${k}"`);
