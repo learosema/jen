@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/learosema/jen/compare/pack-glsl-v2.2.0...pack-glsl-v2.2.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* **pack-glsl:** annotate params which need at least 1 argument ([5c7d55a](https://github.com/learosema/jen/commit/5c7d55a1c9334343037317a22ba831868c5dcefd))
+
 ## [2.2.0](https://github.com/learosema/jen/compare/pack-glsl-v2.1.0...pack-glsl-v2.2.0) (2026-10-11)
 
 
