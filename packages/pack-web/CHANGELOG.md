@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/learosema/jen/compare/pack-web-v1.3.0...pack-web-v1.4.0) (2026-10-13)
+
+
+### Features
+
+* **pack-web:** support string args for --line ([1211a73](https://github.com/learosema/jen/commit/1211a73cbff4a14346f3301c45a7c3df3d939a01))
+
 ## [1.3.0](https://github.com/learosema/jen/compare/pack-web-v1.2.1...pack-web-v1.3.0) (2026-10-11)
 
 
