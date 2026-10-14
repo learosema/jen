@@ -427,6 +427,50 @@ describe('params', () => {
   });
 });
 
+describe('unknown flags', () => {
+  it('fails on a flag the generator has no param for, listing the known ones', () => {
+    const dir = cppProject();
+    const r = jen(['class', '--name=foo', '--copyable'], { cwd: dir });
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /class has no --copyable\. Known: --name, --dir, --moveOnly\. \(jen class --help\)/);
+    assert.equal(existsSync(join(dir, 'src/Foo.h')), false);
+  });
+
+  it('names every unknown flag in one message', () => {
+    const r = jen(['class', '--name=foo', '--copyable', '--namepsace=gfx'], { cwd: cppProject() });
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /has no --copyable, --namepsace\./);
+  });
+
+  it('suggests the closest param for a near-miss', () => {
+    const r = jen(['class', '--name=foo', '--moveonly'], { cwd: cppProject() });
+    assert.match(r.stderr, /--moveonly \(did you mean --moveOnly\?\)/);
+    // before the missing-param check, so a mistyped required param says what it is
+    const typo = jen(['class', '--nmae=foo'], { cwd: cppProject() });
+    assert.match(typo.stderr, /--nmae \(did you mean --name\?\)/);
+  });
+
+  it('still accepts --dir and jen\'s own flags', () => {
+    const dir = fixture({
+      '.jen/greet.mjs': `export const actions = () => [{ add: 'hi.txt', template: 'hi' }];`,
+    });
+    const r = jen(['greet', '--dir=src', '--dry-run', '--force'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(jen(['greet', '--dir=src', '-n', '-f'], { cwd: dir }).code, 0);
+    assert.equal(jen(['--list', '--json'], { cwd: dir }).code, 0);
+  });
+
+  it('hands unknown flags to a passthrough generator', () => {
+    const dir = fixture({
+      '.jen/pass.mjs': `export const passthrough = true;
+        export const actions = (_a, _h, ctx) => [{ add: 'flags.json', template: JSON.stringify(ctx.args.flags) }];`,
+    });
+    const r = jen(['pass', '--copyable', '--base-name=blog'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(JSON.parse(read(dir, 'flags.json')), { copyable: true, 'base-name': 'blog' });
+  });
+});
+
 // ─── Describing generators ──────────────────────────────────────────────────
 
 const DESCRIBED_GEN = `
@@ -828,6 +872,7 @@ describe('pack factories', () => {
     'node_modules/jen-pack-things/index.mjs': `export default async (env) => Object.fromEntries(
   env.packages(/^thing-/).map((name) => [name.slice(6), {
     description: 'thing at ' + env.resolve(name).split('node_modules/')[1],
+    passthrough: true,
     actions: async (answers, helpers, ctx) => [
       { add: name + '.json', template: JSON.stringify(ctx.args) + '\\n' },
       { add: name + '.fetched.json', template: JSON.stringify(await env.fetch('thing-two')) + '\\n' },
