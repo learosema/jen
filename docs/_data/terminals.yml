@@ -992,3 +992,43 @@ yeoman_jdl:
   - "  …"
   - ""
   - "✓ 40 written"
+
+cli_help:
+  - "$ jen cpp:class --help"
+  - "cpp:class – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources"
+  - "  --name (required)  the class, any case: player-controller and PlayerController both make PlayerController.h and PlayerController.cpp"
+  - '  --namespace=""  C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace'
+  - "  --moveOnly  RAII wrapper: copy deleted, move defaulted (Rule of Five)"
+  - "  --resource=Resource*  with --moveOnly: the handle type it owns, e.g. SDL_Window* or GLuint"
+  - "  …"
+
+cli_unknown:
+  - "$ jen cpp:class --name=Foo --copyable --moveonly"
+  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources"
+  - "cpp:class has no --copyable, --moveonly (did you mean --moveOnly?). Known: --name, --namespace, --moveOnly, --resource, --nullValue, --destroy, --withTest. (jen cpp:class --help)"
+
+cli_json:
+  - "$ jen --list --json"
+  - "["
+  - "  {"
+  - '    "name": "cpp:class",'
+  - '    "source": "pack @codejen/pack-cpp",'
+  - '    "shadowed": false,'
+  - '    "description": "create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources",'
+  - '    "params": {'
+  - '      "name": {'
+  - '        "type": "string",'
+  - '        "required": true,'
+  - '        "description": "the class, any case: player-controller and PlayerController both make PlayerController.h and PlayerController.cpp"'
+  - "      },"
+  - '      "moveOnly": {'
+  - '        "type": "boolean",'
+  - '        "required": false,'
+  - '        "default": false,'
+  - '        "description": "RAII wrapper: copy deleted, move defaulted (Rule of Five)"'
+  - "      },"
+  - "      …"
+  - "    }"
+  - "  },"
+  - "  …"
+  - "]"

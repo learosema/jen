@@ -19,7 +19,7 @@ How it works
 
 1. ### Params
 
-   Answers come from `--flags` or a param's own default. Something required is missing? jen says so and quits. It never prompts.
+   Answers come from `--flags` or a param's own default. Something required is missing, or a flag the generator doesn't know? jen says so and quits. It never prompts.
 
 2. ### Plan
 
@@ -122,7 +122,7 @@ Publish to npm as `jen-pack-<name>` or `@scope/pack-<name>`. Anyone with it in `
 </div>
 </div>
 
-jen looks in `.jen/` (searched upwards like `.git`, but not past the repository or your home folder, and only if it's yours), then your user config, `$JEN_PATH`, installed packs (local or global), and built-ins. First match wins; `jen --list` shows what shadows what, `jen <generator> --help` a generator's params, and `jen --list --json` all of it for scripts. Full reference in the [README](https://github.com/learosema/jen#writing-generators).
+jen looks in `.jen/` (searched upwards like `.git`, but not past the repository or your home folder, and only if it's yours), then your user config, `$JEN_PATH`, installed packs (local or global), and built-ins. First match wins; `jen --list` shows what shadows what, `jen <generator> --help` a generator's params, and `jen --list --json` all of it for scripts – the [command line]({{ '/cli.html' | relative_url }}) has every option. Full reference in the [README](https://github.com/learosema/jen#writing-generators).
 {: .sub}
 
 Paths in your actions are relative to where the files go; start one with `/` for the project root. To wire into an existing file, let jen find it: `{ insert: { find: 'CMakeLists.txt' }, before: '# jen:sources', path: 'Foo.cpp' }`.
