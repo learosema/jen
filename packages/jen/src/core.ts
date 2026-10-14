@@ -119,6 +119,8 @@ export interface Args {
 export interface Generator<Result extends Action[] | Promise<Action[]> = Action[]> {
   description?: string;
   params?: Params;
+  /** Accept flags that aren't params and hand them on through `ctx.args`, e.g. to a Yeoman generator's prompts. */
+  passthrough?: boolean;
   actions(answers: Answers, helpers: Helpers, ctx: Context): Result;
 }
 

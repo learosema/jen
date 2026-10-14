@@ -467,6 +467,40 @@ function resolveParams(generator: string, params: Params, given: Record<string, 
   return answers;
 }
 
+/** Edit distance, for "did you mean" on a mistyped flag. */
+function distance(a: string, b: string): number {
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const row = [i];
+    for (let j = 1; j <= b.length; j++) {
+      row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = row;
+  }
+  return prev[b.length];
+}
+
+function closest(flag: string, names: string[]): string | undefined {
+  return (
+    names.find((n) => n.toLowerCase() === flag.toLowerCase()) ??
+    names.map((n) => ({ n, d: distance(flag, n) })).filter(({ d }) => d <= 2).sort((a, b) => a.d - b.d)[0]?.n
+  );
+}
+
+/** Fails on flags the generator has no param for: a typo would otherwise quietly produce different code. */
+function rejectUnknown(generator: string, own: Params, given: Record<string, unknown>): void {
+  // --dir is everyone's; --json only means something with --list, so it's ignored here like there
+  const unknown = Object.keys(given).filter((k) => !(k in own) && k !== 'dir' && k !== 'json');
+  if (unknown.length === 0) return;
+  const names = Object.keys(own);
+  const flags = unknown.map((k) => {
+    const near = closest(k, names);
+    return near ? `--${k} (did you mean --${near}?)` : `--${k}`;
+  });
+  const known = names.length > 0 ? ` Known: ${names.map((n) => `--${n}`).join(', ')}.` : '';
+  fail(`${generator} has no ${flags.join(', ')}.${known} (jen ${generator} --help)`);
+}
+
 // ─── CLI ────────────────────────────────────────────────────────────────────
 
 const HELP = `jen – the code jen(erator)
@@ -542,6 +576,7 @@ export async function main(): Promise<void> {
     // --dir is the same flag everywhere, unless the generator has a param of that name itself
     const ownDir = 'dir' in (gen.params ?? {});
     const params = { dir: { default: '' }, ...gen.params };
+    if (!gen.passthrough) rejectUnknown(qualified(entry), gen.params ?? {}, given);
     const answers = resolveParams(qualified(entry), params, given);
     const ctx = buildContext(ownDir ? '' : String(answers.dir), ROOT, cwd);
     const flags = ownDir ? given : Object.fromEntries(Object.entries(given).filter(([k]) => k !== 'dir'));

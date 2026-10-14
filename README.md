@@ -189,7 +189,7 @@ Most generators never need it, but the third argument to `actions()` tells a gen
 - `ctx.destDir` – where the files go, relative to the project root.
 - `ctx.root` and `ctx.cwd` – the absolute project root, and the current directory relative to it.
 - `ctx.exists(path)`, `ctx.read(path)`, `ctx.findUp(name, text?)` and `ctx.grep(name, text?)` – a read-only look at the project, with paths relative to the root.
-- `ctx.args` – every flag given (besides jen's own, and `--dir`) and the positionals after the generator name, declared as params or not – for generators that pass them on, like [pack-yeoman](https://learosema.github.io/jen/yeoman.html).
+- `ctx.args` – every flag given (besides jen's own, and `--dir`) and the positionals after the generator name, declared as params or not – for generators that pass them on, like [pack-yeoman](https://learosema.github.io/jen/yeoman.html). jen refuses flags a generator has no param for, unless it sets `passthrough: true`.
 
 If a generator declares its own `dir` param, jen leaves `--dir` to it.
 
