@@ -2,6 +2,17 @@
 
 > Renamed from `@lea.rosema/jen` to `@codejen/jen` and republished as 1.0.0. The history below (up to 1.1.0) is `@lea.rosema/jen`'s; `@lea.rosema/jen` is deprecated in favor of this package.
 
+## [3.0.0](https://github.com/learosema/jen/compare/jen-v2.4.0...jen-v3.0.0) (2026-10-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* **jen:** unknown flags no longer fail silently
+
+### Features
+
+* **jen:** reject unknown flags, suggestions on error ([7d80f36](https://github.com/learosema/jen/commit/7d80f36447f397f116a3ec81b988cadff4899032))
+
 ## [2.4.0](https://github.com/learosema/jen/compare/jen-v2.3.1...jen-v2.4.0) (2026-10-13)
 
 
