@@ -145,6 +145,7 @@ async function run(cliFile: string, baseCoreFile: string, ctx: Context) {
 export function jhipsterGenerator(env: PackEnv, description: string): AnyGenerator {
   return {
     description,
+    passthrough: true,
     actions: async (_answers, _helpers, ctx) => {
       const cliFile = await locate(env, 'generator-jhipster', ['generator-jhipster/cli']);
       const baseCoreFile = await locate(env, 'generator-jhipster', ['generator-jhipster/generators/base-core']);

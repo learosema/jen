@@ -86,6 +86,7 @@ async function run(resolved: string, namespace: string, ctx: Context) {
 export function shimGenerator(name: string, short: string, env: PackEnv, description: string): AnyGenerator {
   return {
     description,
+    passthrough: true,
     actions: async (_answers, _helpers, ctx) => {
       // the package's main, else where yo looks: generators/app, then app
       const resolved = await locate(env, name, [name, `${name}/generators/app`, `${name}/app`]);
