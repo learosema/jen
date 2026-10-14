@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/learosema/jen/compare/pack-yeoman-v1.0.0...pack-yeoman-v2.0.0) (2026-10-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* **pack-yeoman:** Unknown flags are now rejected by default and packs need to opt out explicitly
+
+### Features
+
+* **pack-yeoman:** configure flags passthrough ([aa25e73](https://github.com/learosema/jen/commit/aa25e7365139bacbf48f5e4f279ca8a869e06226))
+
 ## 1.0.0 (2026-10-11)
 
 
