@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/learosema/jen/compare/pack-cpp-v1.3.0...pack-cpp-v1.4.0) (2026-10-18)
+
+
+### Features
+
+* **pack-cpp:** add metadata for pack-cpp ([3319e87](https://github.com/learosema/jen/commit/3319e87866fd3684e15a353fdf9a6d02ddf36976))
+
 ## [1.3.0](https://github.com/learosema/jen/compare/pack-cpp-v1.2.0...pack-cpp-v1.3.0) (2026-10-13)
 
 

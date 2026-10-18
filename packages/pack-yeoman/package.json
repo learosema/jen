@@ -1,6 +1,6 @@
 {
   "name": "@codejen/pack-yeoman",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "jen pack that runs Yeoman generators, JHipster included, through jen's plan: never interactive, nothing written before you see it",
   "homepage": "https://learosema.github.io/jen/yeoman.html",
   "type": "module",

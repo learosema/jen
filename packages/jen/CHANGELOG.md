@@ -2,6 +2,18 @@
 
 > Renamed from `@lea.rosema/jen` to `@codejen/jen` and republished as 1.0.0. The history below (up to 1.1.0) is `@lea.rosema/jen`'s; `@lea.rosema/jen` is deprecated in favor of this package.
 
+## [3.1.0](https://github.com/learosema/jen/compare/jen-v3.0.0...jen-v3.1.0) (2026-10-18)
+
+
+### Features
+
+* **jen:** add pack-level metadata support ([0d153ef](https://github.com/learosema/jen/commit/0d153ef40cedd514d307096d6107ae532e6a2e63))
+
+
+### Bug Fixes
+
+* **pack-yeoman:** clarify offline guardrails ([6157841](https://github.com/learosema/jen/commit/615784180bb917c0bb512e2e2977f16e0f0f6284))
+
 ## [3.0.0](https://github.com/learosema/jen/compare/jen-v2.4.0...jen-v3.0.0) (2026-10-14)
 
 

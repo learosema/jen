@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/learosema/jen/compare/pack-web-v1.4.0...pack-web-v1.5.0) (2026-10-18)
+
+
+### Features
+
+* **pack-web:** add metadata for pack-web ([d791f83](https://github.com/learosema/jen/commit/d791f832fb39ceb4941e14f8ab68da7a164264f4))
+
 ## [1.4.0](https://github.com/learosema/jen/compare/pack-web-v1.3.0...pack-web-v1.4.0) (2026-10-13)
 
 

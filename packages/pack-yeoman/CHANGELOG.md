@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/learosema/jen/compare/pack-yeoman-v2.0.1...pack-yeoman-v2.1.0) (2026-10-18)
+
+
+### Features
+
+* **pack-yeoman:** add metadata for pack-yeoman ([17e54f4](https://github.com/learosema/jen/commit/17e54f4aab5dbac068fda7e7eee88866eb90262f))
+
 ## [2.0.1](https://github.com/learosema/jen/compare/pack-yeoman-v2.0.0...pack-yeoman-v2.0.1) (2026-10-18)
 
 
