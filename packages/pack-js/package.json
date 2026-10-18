@@ -1,7 +1,7 @@
 {
   "name": "@codejen/pack-js",
   "version": "1.3.0",
-  "description": "jen pack for TypeScript and JavaScript: web components, ARIA keyboard patterns and type patterns, as TypeScript, JSDoc or plain JavaScript",
+  "description": "jen pack for TypeScript and JavaScript: Vite and esbuild projects, web components, ARIA keyboard patterns and type patterns, as TypeScript, JSDoc or plain JavaScript",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -34,6 +34,8 @@
     "typescript",
     "javascript",
     "jsdoc",
+    "vite",
+    "esbuild",
     "web-components",
     "a11y"
   ],

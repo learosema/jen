@@ -4,14 +4,17 @@
  * jen's Context, so the tests don't need jen's dist built first).
  */
 import assert from 'node:assert/strict';
-import { posix } from 'node:path';
-import { describe, it } from 'node:test';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { delimiter, join, posix } from 'node:path';
+import { after, before, beforeEach, describe, it } from 'node:test';
 import type { Action, Answers, Context, Helpers } from '@codejen/jen';
 import pack from './src/index.ts';
 import { formatType, parseNamed, splitTop } from './src/common.ts';
 import { detectTypes, importExt, stripTypes, styled } from './src/style.ts';
 import { exportsOf } from './src/test.ts';
 import { sample } from './src/testing.ts';
+import { templatesIn } from './src/vite.ts';
 
 const words = (s: string): string[] => s.replace(/([a-z0-9])([A-Z])/g, '$1 $2').split(/[\s_\-./]+/).filter(Boolean);
 const cap = (w: string): string => w.charAt(0).toUpperCase() + w.slice(1);
@@ -362,6 +365,127 @@ describe('tests', () => {
     assert.match(test, /import \{ format, PATTERN \} from '\.\/format\.js';/);
     assert.match(test, /assert\.equal\(typeof format, 'function'\);/);
     assert.match(template(run('test', { name: 'missing' }), 'missing.test.js'), /import \* as missing from '\.\/missing\.js';/);
+  });
+});
+
+describe('projects', () => {
+  /** A stand-in for npm on PATH: logs its calls, prints versions and create-vite's help, and creates a project. */
+  const FAKE_NPM = `#!/usr/bin/env node
+const fs = require('node:fs');
+const args = process.argv.slice(2);
+fs.appendFileSync(process.env.FAKE_NPM_LOG, JSON.stringify({ args, cwd: process.cwd() }) + '\\n');
+if (args[0] === 'view') console.log('1.2.' + args[1].length);
+else if (args.includes('--help')) console.log('Usage: create-vite\\n\\nAvailable templates:\\nvanilla-ts          vanilla\\nreact-ts            react\\n');
+else {
+  const name = args[3];
+  fs.mkdirSync(name + '/public', { recursive: true });
+  fs.writeFileSync(name + '/package.json', JSON.stringify({ name, template: args[args.indexOf('--template') + 1] }));
+  fs.writeFileSync(name + '/public/logo.png', Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff]));
+}
+`;
+  let root = '';
+  let log = '';
+  const env = { PATH: process.env.PATH, JEN_NO_FETCH: process.env.JEN_NO_FETCH };
+  before(() => {
+    root = mkdtempSync(join(tmpdir(), 'pack-js-'));
+    mkdirSync(join(root, 'bin'));
+    writeFileSync(join(root, 'bin/npm'), FAKE_NPM, { mode: 0o755 });
+    log = join(root, 'npm.log');
+    process.env.FAKE_NPM_LOG = log;
+    process.env.PATH = `${join(root, 'bin')}${delimiter}${env.PATH}`;
+    delete process.env.JEN_NO_FETCH;
+  });
+  after(() => {
+    process.env.PATH = env.PATH;
+    if (env.JEN_NO_FETCH !== undefined) process.env.JEN_NO_FETCH = env.JEN_NO_FETCH;
+    rmSync(root, { recursive: true, force: true });
+  });
+  beforeEach(() => writeFileSync(log, ''));
+  const calls = () => readFileSync(log, 'utf8').split('\n').filter(Boolean).map((line) => JSON.parse(line) as { args: string[]; cwd: string });
+  /** A project in a real directory, so npm has somewhere to run. */
+  const real = (files: Record<string, string> = {}, destDir = '.'): Context => ({ ...context(files, destDir), root });
+  const pkg = (actions: Action[], dir: string) =>
+    JSON.parse(template(actions, `${dir}/package.json`)) as { name: string; template: string; scripts: Record<string, string>; devDependencies: Record<string, string> };
+  /** The files actions add, as a project for the next run. */
+  const files = (actions: Action[]) => Object.fromEntries(actions.flatMap((a) => ('template' in a ? [[a.add, a.template]] : [])));
+
+  it('js:vite runs npm create vite@latest and plans the files it makes', () => {
+    const actions = run('vite', { name: 'Shop', framework: 'react', types: 'ts' }, real());
+    assert.deepEqual(
+      calls().map((c) => c.args.join(' ')),
+      ['--yes create vite@latest -- --help', '--yes create vite@latest shop -- --template react-ts --no-interactive --no-immediate'],
+    );
+    assert.ok(!existsSync(calls()[0].cwd), 'the scratch directory is gone');
+    assert.deepEqual(added(actions), ['shop/package.json', 'shop/public/logo.png']);
+    assert.deepEqual(pkg(actions, 'shop'), { name: 'shop', template: 'react-ts' });
+    const logo = actions.find((a) => 'add' in a && a.add === 'shop/public/logo.png');
+    assert.ok(logo && 'bytes' in logo, 'binary files stay binary');
+    assert.equal(pkg(run('vite', { name: 'shop' }, real()), 'shop').template, 'vanilla');
+  });
+
+  it('js:vite checks --framework against create-vite\'s own list, and --types', () => {
+    assert.throws(() => run('vite', { name: 'shop', framework: 'angular' }, real()), /js:vite --framework: create-vite has no angular template; expected vanilla, react, got "angular"/);
+    assert.throws(() => run('vite', { name: 'shop', types: 'jsdoc' }, real()), /create-vite has no JSDoc templates/);
+    assert.throws(() => run('vite', { name: 'shop', types: 'flow' }, real()), /js:vite --types: expected ts or none, got "flow"/);
+  });
+
+  it('js:esbuild writes a vanilla project at the latest versions', () => {
+    const actions = run('esbuild', { name: 'tool' }, real());
+    assert.deepEqual(added(actions), ['tool/package.json', 'tool/index.html', 'tool/.gitignore', 'tool/src/style.css', 'tool/src/main.js', 'tool/src/counter.js']);
+    assert.deepEqual(calls().map((c) => c.args.join(' ')), ['view esbuild version']);
+    assert.deepEqual(pkg(actions, 'tool').devDependencies, { esbuild: '^1.2.7' });
+    assert.deepEqual(pkg(actions, 'tool').scripts, { dev: 'esbuild src/main.js src/style.css --bundle --outdir=dist --watch --servedir=.', build: 'esbuild src/main.js src/style.css --bundle --outdir=dist' });
+    assert.match(template(actions, 'tool/index.html'), /<link rel="stylesheet" href="dist\/style\.css">\n {4}<script type="module" src="dist\/main\.js"><\/script>/);
+    assert.match(template(actions, 'tool/src/main.js'), /^import \{ setupCounter \} from '\.\/counter\.js';\n/);
+    assert.doesNotMatch(template(actions, 'tool/src/counter.js'), JSDOC);
+    assert.doesNotMatch(template(actions, 'tool/src/style.css'), /\dpx/);
+    assert.ok(!('framework' in pack.esbuild.params!));
+  });
+
+  it('js:esbuild follows --types and ignores a tsconfig.json around it', () => {
+    const ts = run('esbuild', { name: 'tool', types: 'ts', withTest: true }, real());
+    assert.deepEqual(Object.keys(pkg(ts, 'tool').devDependencies), ['@types/node', 'esbuild', 'typescript']);
+    assert.equal(pkg(ts, 'tool').scripts.check, 'tsc');
+    assert.equal(pkg(ts, 'tool').scripts.test, 'node --test');
+    assert.match(template(ts, 'tool/tsconfig.json'), /"allowImportingTsExtensions": true/);
+    assert.match(template(ts, 'tool/src/counter.ts'), /export function setupCounter\(button: Element\): void/);
+    assert.match(template(ts, 'tool/src/counter.test.ts'), /from 'node:test';\nimport \{ setupCounter \} from '\.\/counter\.ts';/);
+    const jsdoc = run('esbuild', { name: 'tool', types: 'jsdoc' }, real());
+    assert.match(template(jsdoc, 'tool/jsconfig.json'), /"checkJs": true/);
+    assert.match(template(jsdoc, 'tool/src/counter.js'), /^\/\/ @ts-check\n\/\*\*\n \* @param \{Element\} button/);
+    assert.deepEqual(added(run('esbuild', { name: 'tool' }, real(TS_PROJECT))).filter((f) => /config|\.ts$/.test(f)), []);
+    assert.throws(() => run('esbuild', { name: 'tool', types: 'flow' }, real()), /js:esbuild --types: expected ts, jsdoc or none/);
+    assert.throws(() => run('esbuild', { name: 'tool', runner: 'jest' }, real()), /js:esbuild --runner: expected node or vitest/);
+  });
+
+  it('later js:* runs in an esbuild project follow its runner and types', () => {
+    const project = files(run('esbuild', { name: 'tool', types: 'ts', withTest: true, runner: 'vitest' }, real()));
+    assert.match(project['tool/package.json'], /"vitest": "\^1\.2\.6"/);
+    assert.match(template(run('test', { name: 'counter' }, context(project, 'tool/src')), 'counter.test.ts'), /from 'vitest'/);
+    assert.deepEqual(added(run('module', { name: 'format-date' }, context(project, 'tool/src'))), ['format-date.ts']);
+  });
+
+  it('refuses a name it can\'t use, a directory that isn\'t empty, and JEN_NO_FETCH', () => {
+    assert.throws(() => run('vite', { name: '' }, real()), /js:vite --name: needs a name/);
+    assert.throws(() => run('vite', { name: '@scope/x' }, real()), /makes no directory or package name/);
+    assert.throws(() => run('vite', { name: 'shop' }, real({ 'shop/notes.md': '' })), /js:vite: shop\/ already exists and isn't empty/);
+    assert.throws(() => run('esbuild', { name: 'tool' }, real({ 'web/tool/a.js': '' }, 'web')), /js:esbuild: web\/tool\/ already exists/);
+    assert.deepEqual(calls(), [], 'no npm call before the checks pass');
+    process.env.JEN_NO_FETCH = '1';
+    try {
+      assert.throws(() => run('vite', { name: 'shop' }, real()), /js:vite needs the npm registry, and JEN_NO_FETCH is set/);
+    } finally {
+      delete process.env.JEN_NO_FETCH;
+    }
+  });
+
+  it('reads the template list from create-vite\'s help', () => {
+    assert.deepEqual(templatesIn('Usage: x\n\nOptions:\n  -t, --template NAME  use a template\n\nAvailable templates:\nvanilla-ts          vanilla\nreact-compiler-ts   react-compiler\n'), [
+      'vanilla-ts',
+      'vanilla',
+      'react-compiler-ts',
+      'react-compiler',
+    ]);
   });
 });
 
