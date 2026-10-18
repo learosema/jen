@@ -8,6 +8,7 @@ const formatGenerator: Generator = {
     indent: { default: '2', description: 'indent width in spaces' },
     columnLimit: { default: '120', description: 'maximum line length' },
   },
+  examples: ['', '--basedOn=LLVM --indent=4 --columnLimit=100'],
   actions: ({ basedOn, indent, columnLimit }) => {
     // Keep these in line with .editorconfig: indent_style = space, indent_size, end_of_line = lf,
     // insert_final_newline, and max_line_length for the column limit.

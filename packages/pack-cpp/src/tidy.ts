@@ -50,6 +50,7 @@ const tidyGenerator: Generator = {
   params: {
     cmake: { default: true, description: 'also add the CLANG_TIDY CMake option (cmake/tidy.cmake); --cmake=false for just .clang-tidy' },
   },
+  examples: ['', '--cmake=false'],
   actions: ({ cmake }) => [
     { add: '/.clang-tidy', template: CLANG_TIDY },
     ...(cmake

@@ -93,6 +93,11 @@ const classGenerator: Generator = {
     destroy: { default: 'destroy', description: 'with --moveOnly: the function that frees the handle, e.g. SDL_DestroyWindow' },
     withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
+  examples: [
+    '--name=Camera',
+    '--name=Camera --namespace=engine --withTest',
+    '--name=Texture --moveOnly --resource=GLuint --nullValue=0 --destroy=glDeleteTextures',
+  ],
   actions: ({ name, namespace, moveOnly, resource, nullValue, destroy, withTest }, { pascal, constant }) => {
     const className = pascal(String(name));
     const guard = `${constant(String(name))}_H`;

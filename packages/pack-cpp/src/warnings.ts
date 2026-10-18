@@ -10,6 +10,7 @@ const warningsGenerator: Generator = {
   params: {
     werror: { default: false, description: 'treat warnings as errors (-Werror, /WX)' },
   },
+  examples: ['', '--werror'],
   actions: ({ werror }) => {
     const warnings = `# Warning flags as an INTERFACE target, so they are linked into our own targets only
 # and never leak onto vendored code.

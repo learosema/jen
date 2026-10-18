@@ -943,3 +943,29 @@ describe('param descriptions', () => {
     });
   }
 });
+
+// ─── Examples ───────────────────────────────────────────────────────────────
+
+/** The flags of an example call: `--name=Foo --moveOnly --members="int a, int b"` → { name: 'Foo', moveOnly: true, members: 'int a, int b' }. */
+const exampleFlags = (args: string): Record<string, string | true> =>
+  Object.fromEntries([...args.matchAll(/--([\w-]+)(?:=("[^"]*"|\S*))?/g)].map(([, k, v]) => [k, v === undefined ? true : v.replace(/^"(.*)"$/, '$1')]));
+
+describe('examples', () => {
+  for (const [gen, g] of Object.entries(pack)) {
+    it(`${gen}: has examples that run as written`, () => {
+      const params = g.params ?? {};
+      assert.ok(g.examples?.length, 'no examples');
+      for (const args of g.examples ?? []) {
+        const flags = exampleFlags(args);
+        for (const [flag, value] of Object.entries(flags)) {
+          if (flag === 'dir' && !('dir' in params)) continue;
+          assert.ok(flag in params, `${args}: no --${flag}`);
+          const choices = params[flag].choices;
+          if (choices) assert.ok(choices.includes(String(value)), `${args}: --${flag} takes ${choices.join(', ')}`);
+        }
+        const missing = Object.keys(params).filter((p) => params[p].default === undefined && !(p in flags));
+        assert.deepEqual(missing, [], args);
+      }
+    });
+  }
+});

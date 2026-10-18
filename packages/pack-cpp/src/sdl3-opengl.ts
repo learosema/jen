@@ -284,6 +284,7 @@ const sdl3OpenglGenerator: Generator = {
   description:
     'create an SDL3 + OpenGL (4.1 core, glad) app starter with a shader-quad demo; vendors glad and wires up cmake/embed-glsl.cmake',
   params: sdlStarterParams,
+  examples: ['--name=MyGame', '--name=MyGame --dir=.'],
   actions: ({ name, width, height, bundleId, sdlTag, folderCase, dir }, helpers) => {
     const { pascal, kebab, constant } = helpers;
     const folder = appFolder(String(name), String(dir), String(folderCase), helpers);

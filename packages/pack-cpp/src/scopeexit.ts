@@ -8,6 +8,7 @@ const scopeExitGenerator: Generator = {
     name: { description: 'the template, any case: scope-exit and ScopeExit both make ScopeExit in ScopeExit.h' },
     namespace: { default: '', description: 'C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace' },
   },
+  examples: ['--name=ScopeExit'],
   actions: ({ name, namespace }, { pascal, constant }) => {
     const className = pascal(String(name));
     const guard = `${constant(String(name))}_H`;

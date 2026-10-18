@@ -8,6 +8,7 @@ const handleGenerator: Generator = {
     name: { description: 'the template, any case: gl-handle and GlHandle both make GlHandle in GlHandle.h' },
     namespace: { default: '', description: 'C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace' },
   },
+  examples: ['--name=Handle', '--name=GlHandle --namespace=gfx'],
   actions: ({ name, namespace }, { pascal, constant }) => {
     const className = pascal(String(name));
     const guard = `${constant(String(name))}_H`;

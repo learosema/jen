@@ -11,6 +11,10 @@ const r0Generator: Generator = {
     compare: { default: false, description: 'add a defaulted <=> (comparison and ==)' },
     withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
+  examples: [
+    '--name=Person --members="std::string name, int age"',
+    '--name=MovieInfo --members="std::string title, int year" --compare --withTest',
+  ],
   actions: ({ name, members, namespace, compare, withTest }, { pascal, constant }) => {
     const className = pascal(String(name));
     const guard = `${constant(String(name))}_H`;

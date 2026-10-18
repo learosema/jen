@@ -70,6 +70,7 @@ const compilerGenerator: Generator = {
   params: {
     hardening: { default: true, description: 'bounds-checked standard library and exploit mitigations (stack protector, fortify); --hardening=false to leave them out' },
   },
+  examples: ['', '--hardening=false'],
   actions: ({ hardening }) => [
     { add: '/cmake/compiler.cmake', template: compilerCMake(Boolean(hardening)) },
     { insert: '/CMakeLists.txt', before: '# jen:options', line: 'include(cmake/compiler.cmake)' },

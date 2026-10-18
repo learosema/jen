@@ -17,6 +17,7 @@ const strongGenerator: Generator = {
     namespace: { default: '', description: 'C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace' },
     withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
+  examples: ['--name=Pixels --underlying=int', '--name=Meters --underlying=float --ops=compare,arith,hash'],
   actions: ({ name, underlying, ops, namespace, withTest }, { pascal, constant }) => {
     const ns = String(namespace);
     const type = pascal(String(name));

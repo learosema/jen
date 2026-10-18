@@ -13,6 +13,7 @@ const pimplGenerator: Generator = {
     namespace: { default: '', description: 'C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace' },
     withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
+  examples: ['--name=Renderer', '--name=Renderer --namespace=gfx --withTest'],
   actions: ({ name, namespace, withTest }, { pascal, constant }) => {
     const ns = String(namespace);
     const type = pascal(String(name));

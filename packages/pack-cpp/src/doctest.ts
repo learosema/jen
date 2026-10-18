@@ -42,6 +42,7 @@ const doctestGenerator: Generator = {
   params: {
     doctestTag: { default: DOCTEST_TAG_DEFAULT, description: 'doctest git tag to fetch' },
   },
+  examples: [''],
   actions: ({ doctestTag }) => [
     { add: '/tests/CMakeLists.txt', template: testsCMake(String(doctestTag)) },
     { add: '/tests/main.cpp', template: MAIN_CPP },

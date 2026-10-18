@@ -10,6 +10,7 @@ function configurePreset(name: string, description: string, cache: Json, inherit
 const presetsGenerator: Generator = {
   description: 'add a CMakePresets.json with debug, release, asan and ubsan presets',
   params: {},
+  examples: [''],
   actions: () => {
     const sanitizer = (flag: string): Json => ({
       CMAKE_BUILD_TYPE: 'Debug',
