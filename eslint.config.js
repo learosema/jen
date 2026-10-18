@@ -5,8 +5,8 @@ import tseslint from 'typescript-eslint';
 import globals from 'globals';
 
 export default defineConfig(
-  // pack-web's service worker templates have {{placeholders}}; its tests check the files they turn into.
-  { ignores: ['docs', '**/dist', 'packages/pack-web/templates/sw'] },
+  // pack-web's service worker and pack-js's esbuild templates have {{placeholders}}; their tests check the files they turn into.
+  { ignores: ['docs', '**/dist', 'packages/pack-web/templates/sw', 'packages/pack-js/templates/esbuild'] },
   eslint.configs.recommended,
   tseslint.configs.recommended,
   {
