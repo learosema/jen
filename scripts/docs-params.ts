@@ -17,13 +17,14 @@ import web from '../packages/pack-web/src/index.ts';
 const docs = join(import.meta.dirname, '../docs');
 const packs: Record<string, Pack> = { cpp, glsl, js, web };
 
-const data: Record<string, Array<{ name: string; required: boolean; default?: string; description?: string }>> = {};
+const data: Record<string, Array<{ name: string; required: boolean; default?: string; choices?: readonly string[]; description?: string }>> = {};
 for (const [prefix, pack] of Object.entries(packs)) {
   for (const [gen, g] of Object.entries(pack)) {
     data[`${prefix}:${gen}`] = Object.entries(g.params ?? {}).map(([name, spec]) => ({
       name,
       required: spec.default === undefined,
       ...(spec.default !== undefined && spec.default !== '' && { default: String(spec.default) }),
+      ...(spec.choices && { choices: spec.choices }),
       ...(spec.description && { description: spec.description }),
     }));
   }
