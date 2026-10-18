@@ -188,11 +188,15 @@ const elementGenerator: Generator = {
     name: { description: 'the tag, lowercase with a hyphen: star-rating makes the class StarRating' },
     attrs: { default: '', description: 'comma-separated name:type attributes – string (default), number or boolean' },
     events: { default: '', description: 'comma-separated name:{detail} events, e.g. "change:{value: number}"; without a detail type, none' },
-    shadow: { default: 'none', description: 'none (light DOM), or open or closed for a shadow root' },
+    shadow: { default: 'none', choices: ['none', 'open', 'closed'], description: 'none (light DOM), or open or closed for a shadow root' },
     form: { default: false, description: 'form-associated, with a value attribute' },
     into: { path: true, default: '', description: 'a page or module to load the element from' },
     ...TYPES_PARAM,
   },
+  examples: [
+    '--name=my-counter --attrs=count:number',
+    '--name=star-rating --attrs=max:number,readonly:boolean --events="change:{value:number}" --form --into=index.html',
+  ],
   actions: (answers, helpers, ctx) => {
     const types = typesFor('js:element', answers, ctx);
     const spec = elementSpec(answers, helpers);

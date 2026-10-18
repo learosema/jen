@@ -19,6 +19,7 @@ const emitterGenerator: Generator = {
     ...WITH_TEST_PARAMS,
     ...TYPES_PARAM,
   },
+  examples: ['--name=store --events="change:{value:number},reset"'],
   actions: (answers, { pascal, camel, kebab }, ctx) => {
     const types = typesFor('js:emitter', answers, ctx);
     const cls = pascal(String(answers.name));

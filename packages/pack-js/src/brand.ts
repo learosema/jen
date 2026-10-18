@@ -47,10 +47,11 @@ const brandGenerator: Generator = {
   description: 'create a branded type with a type guard and a checked constructor',
   params: {
     name: { description: 'the type, any case: user-id and UserId both make UserId in user-id.ts' },
-    underlying: { default: 'string', description: 'the branded type: string, number or bigint' },
+    underlying: { default: 'string', choices: Object.keys(CHECKS), description: 'the branded type: string, number or bigint' },
     ...WITH_TEST_PARAMS,
     ...TYPES_PARAM,
   },
+  examples: ['--name=user-id', '--name=amount --underlying=bigint --withTest'],
   actions: (answers, { pascal, camel, kebab }, ctx) => {
     const types = typesFor('js:brand', answers, ctx);
     const name = pascal(String(answers.name));

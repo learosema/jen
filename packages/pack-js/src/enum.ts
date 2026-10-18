@@ -41,6 +41,7 @@ const enumGenerator: Generator = {
     ...WITH_TEST_PARAMS,
     ...TYPES_PARAM,
   },
+  examples: ['--name=direction --values=up,down,left,right'],
   actions: (answers, { pascal, kebab }, ctx) => {
     const types = typesFor('js:enum', answers, ctx);
     const name = pascal(String(answers.name));

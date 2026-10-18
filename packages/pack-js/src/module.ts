@@ -11,6 +11,7 @@ const moduleGenerator: Generator = {
     ...WITH_TEST_PARAMS,
     ...TYPES_PARAM,
   },
+  examples: ['--name=format-date --withTest'],
   actions: (answers, { camel, kebab }, ctx) => {
     const types = typesFor('js:module', answers, ctx);
     const fn = camel(String(answers.name));

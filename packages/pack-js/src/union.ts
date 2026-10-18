@@ -85,6 +85,7 @@ const unionGenerator: Generator = {
     ...WITH_TEST_PARAMS,
     ...TYPES_PARAM,
   },
+  examples: ['--name=shape --cases="circle:{radius:number},square:{size:number}"'],
   actions: (answers, { pascal, camel, kebab }, ctx) => {
     const types = typesFor('js:union', answers, ctx);
     const name = pascal(String(answers.name));
