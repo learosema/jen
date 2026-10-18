@@ -2,6 +2,7 @@
   "name": "@codejen/pack-glsl",
   "version": "2.2.3",
   "description": "jen pack for GLSL: shader starters, SDF/raymarching, noise and lighting snippets (MIT-licensed, attributed)",
+  "homepage": "https://learosema.github.io/jen/glsl.html",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

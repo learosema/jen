@@ -16,7 +16,7 @@
 import type { Action, Generator } from '@codejen/jen';
 import { chunkActions } from './chunks.ts';
 import { fail } from './common.ts';
-import { parseVersion, withHeader } from './dialect.ts';
+import { VERSIONS, parseVersion, withHeader } from './dialect.ts';
 import type { Version } from './dialect.ts';
 
 const KINDS: Record<string, string[]> = {
@@ -127,11 +127,12 @@ function preview(base: string, kind: string, version: Version): Action[] {
 const displaceGenerator: Generator = {
   description: 'displace surfaces in the vertex shader with correct normals',
   params: {
-    kind: { default: 'noise', description: 'noise (3D simplex along the normal), wobble (sine) or waves (Gerstner waves on a flat surface)' },
+    kind: { default: 'noise', choices: Object.keys(KINDS), description: 'noise (3D simplex along the normal), wobble (sine) or waves (Gerstner waves on a flat surface)' },
     into: { path: true, default: '', description: 'existing vertex shader to insert the functions into (default: one file each in lib/)' },
     name: { default: '', description: 'instead of --into: create a preview vertex + fragment shader pair with this name' },
-    version: { default: '300es', description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
+    version: { default: '300es', choices: VERSIONS, description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
   },
+  examples: ['--kind=noise --name=Blob --dir=shaders', '--kind=waves --into=shaders/water.vert.glsl'],
   actions: ({ kind, into, name, version }, { kebab }) => {
     const k = String(kind);
     if (!KINDS[k]) fail(`glsl:displace --kind: expected one of ${Object.keys(KINDS).map((x) => `"${x}"`).join(', ')}, got "${k}"`);

@@ -9,7 +9,7 @@
  */
 import type { Generator } from '@codejen/jen';
 import { fail, readPackFile } from './common.ts';
-import { parseVersion, withHeader } from './dialect.ts';
+import { VERSIONS, parseVersion, withHeader } from './dialect.ts';
 
 const KINDS = ['quad', 'triangle', 'mesh'];
 
@@ -17,9 +17,10 @@ const vertGenerator: Generator = {
   description: 'create a GLSL vertex shader starter',
   params: {
     name: { description: 'file name: Clouds makes clouds.vert.glsl' },
-    kind: { default: 'quad', description: 'quad (full-screen, matches cpp:sdl3-opengl), triangle (full-screen, no vertex buffer) or mesh (3D model with normals for lighting)' },
-    version: { default: '300es', description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
+    kind: { default: 'quad', choices: KINDS, description: 'quad (full-screen, matches cpp:sdl3-opengl), triangle (full-screen, no vertex buffer) or mesh (3D model with normals for lighting)' },
+    version: { default: '300es', choices: VERSIONS, description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
   },
+  examples: ['--name=Quad', '--name=Mesh --kind=mesh --dir=shaders'],
   actions: ({ name, kind, version }, { kebab }) => {
     const k = String(kind);
     if (!KINDS.includes(k)) fail(`glsl:vert --kind: expected one of ${KINDS.map((x) => `"${x}"`).join(', ')}, got "${k}"`);

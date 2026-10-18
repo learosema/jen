@@ -15,7 +15,7 @@
 import type { Action, Generator } from '@codejen/jen';
 import { NOISE_BASES, chunkActions } from './chunks.ts';
 import { fail } from './common.ts';
-import { parseVersion, withHeader } from './dialect.ts';
+import { VERSIONS, parseVersion, withHeader } from './dialect.ts';
 
 const FRACTALS = ['fbm', 'turbulence', 'ridged', 'warp'];
 const KINDS = [...NOISE_BASES, ...FRACTALS, 'curl'];
@@ -69,14 +69,15 @@ ${setup.join('\n')}
 const noiseGenerator: Generator = {
   description: 'add GLSL noise, tileable',
   params: {
-    kind: { description: 'pick one: value, perlin, simplex, worley; fractals fbm, turbulence, ridged, warp; or curl (flow)' },
-    dim: { default: '2', description: '2 or 3 dimensions' },
-    base: { default: 'simplex', description: 'for fractals: the noise they are built from – value, perlin, simplex or worley' },
+    kind: { choices: KINDS, description: 'pick one: value, perlin, simplex, worley; fractals fbm, turbulence, ridged, warp; or curl (flow)' },
+    dim: { default: '2', choices: ['2', '3'], description: '2 or 3 dimensions' },
+    base: { default: 'simplex', choices: NOISE_BASES, description: 'for fractals: the noise they are built from – value, perlin, simplex or worley' },
     into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
     name: { default: '', description: 'instead of --into: create a preview shader with this name that shows the noise' },
     tile: { default: false, description: 'with --name: draw the tileable noise 2×2 times, to show it is seamless' },
-    version: { default: '300es', description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
+    version: { default: '300es', choices: VERSIONS, description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
   },
+  examples: ['--kind=fbm --into=shaders/clouds.frag.glsl', '--kind=warp --base=perlin --name=Marble --tile --dir=shaders'],
   actions: ({ kind, dim, base, into, name, tile, version }, { kebab }) => {
     const k = String(kind ?? '');
     const valid = KINDS.map((x) => `"${x}"`).join(', ');
