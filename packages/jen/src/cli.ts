@@ -50,8 +50,9 @@ const BUILTINS: Pack = {
     description: 'create a new generator (project or user-wide)',
     params: {
       name: { description: 'the generator, any case: MyWidget and my-widget both make my-widget.mjs, run as jen my-widget' },
-      location: { default: 'project', description: 'project (.jen/) or user (your user directory)' },
+      location: { default: 'project', choices: ['project', 'user'], description: 'project (.jen/) or user (your user directory)' },
     },
+    examples: ['--name=hello', '--name=component --location=user'],
     actions: ({ name, location }, { kebab }) => [
       {
         add: join(location === 'user' ? USER_DIR : join(ROOT, '.jen'), `${kebab(name)}.mjs`),
@@ -79,7 +80,16 @@ interface Entry {
   name: string;
   source: string;
   prefix?: string;
+  pack?: PackMeta;
   load: () => Promise<AnyGenerator>;
+}
+
+/** What `--help` and `--list --json` tell about a pack, from its own package.json. */
+interface PackMeta {
+  name: string;
+  version?: string;
+  description?: string;
+  homepage?: string;
 }
 
 const GEN_FILE = /\.(m?js|m?ts)$/;
@@ -114,6 +124,10 @@ const PACK_RE = /^(?:jen-pack-|@[^/]+\/pack-)(.+)$/;
 const packPrefix = (name: string): string => PACK_RE.exec(name)?.[1] ?? name;
 
 interface PackageJson {
+  name?: string;
+  version?: string;
+  description?: string;
+  homepage?: string;
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
@@ -211,6 +225,17 @@ function packEnv(extra: Extra): PackEnv {
   };
 }
 
+/** The package.json of pack `name`, found upwards from the file it resolves to (exports may hide `name/package.json`). */
+function packMeta(name: string, file: string): PackMeta {
+  for (let dir = dirname(file); dirname(dir) !== dir; dir = dirname(dir)) {
+    const pkg = readPackageJson(dir);
+    if (pkg.name !== name) continue;
+    const { version, description, homepage } = pkg;
+    return { name, ...(version && { version }), ...(description && { description }), ...(homepage && { homepage }) };
+  }
+  return { name };
+}
+
 async function packSource(name: string, bases = defaultBases(), extra: Extra = noExtra()): Promise<Entry[]> {
   // Look locally in the project first, then the user directory, then from
   // jen's own location – for a global install, that finds global packs.
@@ -222,10 +247,12 @@ async function packSource(name: string, bases = defaultBases(), extra: Extra = n
   const mod = (await import(pathToFileURL(file).href)) as { default?: Pack | PackFactory };
   const exported = mod.default ?? (mod as Pack);
   const pack = typeof exported === 'function' ? await exported(packEnv(extra)) : exported;
+  const meta = packMeta(name, file);
   return Object.entries(pack).map(([gen, g]) => ({
     name: gen,
     source: `pack ${name}`,
     prefix: packPrefix(name),
+    pack: meta,
     load: async () => asGenerator(g, `${name}:${gen}`),
   }));
 }
@@ -383,6 +410,7 @@ interface ParamInfo {
   type: 'string' | 'boolean';
   required: boolean;
   default?: string | boolean;
+  choices?: readonly string[];
   path?: true;
   description?: string;
 }
@@ -393,26 +421,48 @@ function paramInfo(spec: Params[string]): ParamInfo {
     type: typeof spec.default === 'boolean' ? 'boolean' : 'string',
     required: spec.default === undefined,
     ...(spec.default !== undefined && { default: spec.default }),
+    ...(spec.choices && { choices: spec.choices }),
     ...(spec.path && { path: true as const }),
     ...(spec.description && { description: spec.description }),
   };
 }
 
-/** A param the way it's typed on the command line: `--name (required)`, `--dir=src`, `--namespace=""`, `--moveOnly`. */
+const shellValue = (value: string): string => (/^[^\s"'`$\\|]+$/.test(value) ? value : JSON.stringify(value));
+
+/**
+ * A param the way it's typed on the command line: `--name (required)`, `--dir=src`, `--namespace=""`, `--moveOnly` –
+ * with choices, all of them, the default first: `--std=23|20`, `--kind=value|perlin (required)`.
+ */
 function paramUsage(name: string, p: ParamInfo): string {
+  const values = [...(p.default === undefined ? [] : [String(p.default)]), ...(p.choices ?? []).filter((c) => c !== p.default)];
+  if (p.choices) return `--${name}=${values.map(shellValue).join('|')}${p.required ? ' (required)' : ''}`;
   if (p.required) return `--${name} (required)`;
   if (p.default === false) return `--${name}`;
-  const value = String(p.default);
-  return `--${name}=${/^[^\s"'`$\\]+$/.test(value) ? value : JSON.stringify(value)}`;
+  return `--${name}=${shellValue(String(p.default))}`;
 }
 
-/** One generator and its params, plain like the CLI itself – the single text format for `--help`. */
-function formatGenerator(name: string, gen: AnyGenerator): string {
+const NPX = 'npx --yes @codejen/jen';
+
+/** A generator's examples as whole calls: with jen installed, and through npx – which needs --from for a pack the @codejen fallback doesn't fetch. */
+function exampleCalls(e: Entry, gen: AnyGenerator): Array<{ jen: string; npx: string }> {
+  const name = qualified(e);
+  const from = e.pack && e.pack.name !== `${FIRST_PARTY_SCOPE}/pack-${e.prefix}` ? ` --from ${e.pack.name}` : '';
+  return (gen.examples ?? []).map((args) => ({ jen: `jen ${name} ${args}`.trimEnd(), npx: `${NPX}${from} ${name} ${args}`.trimEnd() }));
+}
+
+/** One generator, its params and examples, plain like the CLI itself – the single text format for `--help`. */
+function formatGenerator(e: Entry, gen: AnyGenerator): string {
+  const name = qualified(e);
   const lines = [gen.description ? `${name} – ${gen.description}` : name];
   for (const [param, spec] of Object.entries(gen.params ?? {})) {
     const p = paramInfo(spec);
     lines.push(`  ${paramUsage(param, p)}${p.description ? `  ${p.description}` : ''}`);
   }
+  const examples = exampleCalls(e, gen);
+  if (examples.length > 0) {
+    lines.push('', 'examples:', ...examples.map((x) => `  ${x.jen}`), `  ${examples[0].npx}  (without installing jen)`);
+  }
+  if (e.pack?.homepage) lines.push('', `docs: ${e.pack.homepage}`);
   return lines.join('\n');
 }
 
@@ -420,13 +470,14 @@ function formatGenerator(name: string, gen: AnyGenerator): string {
 async function listJson(entries: Entry[]): Promise<void> {
   const catalog = [];
   for (const { entry: e, shadowed } of withShadowing(entries)) {
-    const head = { name: qualified(e), source: e.source, shadowed };
+    const head = { name: qualified(e), source: e.source, ...(e.pack && { pack: e.pack }), shadowed };
     catalog.push(
       await e.load().then(
         (g) => ({
           ...head,
           description: g.description ?? '',
           params: Object.fromEntries(Object.entries(g.params ?? {}).map(([n, spec]) => [n, paramInfo(spec)])),
+          examples: exampleCalls(e, g),
         }),
         (err: Error) => ({ ...head, error: err.message }),
       ),
@@ -447,8 +498,12 @@ function resolveParams(generator: string, params: Params, given: Record<string, 
   for (const [name, spec] of Object.entries(params)) {
     if (name in given) {
       const v = given[name];
-      if (typeof spec.default !== 'boolean') answers[name] = String(v);
-      else if (v === true || TRUE.test(String(v))) answers[name] = true;
+      if (typeof spec.default !== 'boolean') {
+        answers[name] = String(v);
+        if (spec.choices && answers[name] !== spec.default && !spec.choices.includes(answers[name])) {
+          fail(`${generator} --${name}: expected one of ${spec.choices.map((c) => `"${c}"`).join(', ')}, got "${answers[name]}"`);
+        }
+      } else if (v === true || TRUE.test(String(v))) answers[name] = true;
       else if (FALSE.test(String(v))) answers[name] = false;
       else fail(`${generator} --${name}: expected true or false (or yes/no), got "${v}"`);
     } else if (spec.default !== undefined) {
@@ -508,7 +563,7 @@ const HELP = `jen – the code jen(erator)
 
   generator       name ("class"), with pack ("cpp:class") or source ("user:class")
   --list,    -l   list all generators and where they come from
-  --json          with --list: the same as JSON, with every generator's params
+  --json          with --list: the same as JSON, with every generator's params and examples
   --dry-run, -n   only show the plan
   --force,   -f   overwrite existing files
   --dir           where the files go instead of the current directory
@@ -561,7 +616,7 @@ export async function main(): Promise<void> {
       entry = fallback;
     }
     const gen = await entry.load();
-    if (values.help) return void console.log(formatGenerator(qualified(entry), gen));
+    if (values.help) return void console.log(formatGenerator(entry, gen));
     // --where was removed: fail rather than quietly write into the cwd, unless it's the generator's own param
     if ('w' in values || ('where' in values && !('where' in (gen.params ?? {})))) {
       fail('--where/-w was removed – cd into the directory and run jen there.');

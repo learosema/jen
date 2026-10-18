@@ -404,6 +404,21 @@ describe('params', () => {
     assert.match(r.stderr, /--moveOnly: expected true or false/);
   });
 
+  it('only takes a value from the choices, or the default', () => {
+    const dir = fixture({
+      '.jen/pick.mjs': `export const params = { kind: { default: '', choices: ['quad', 'mesh'] } };
+        export const actions = ({ kind }) => [{ add: 'kind.txt', template: kind || 'none' }];`,
+    });
+    const r = jen(['pick', '--kind=Mesh'], { cwd: dir });
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /pick --kind: expected one of "quad", "mesh", got "Mesh"/);
+    assert.ok(!existsSync(join(dir, 'kind.txt')));
+    assert.equal(jen(['pick', '--kind='], { cwd: dir }).code, 0);
+    assert.equal(read(dir, 'kind.txt'), 'none');
+    assert.equal(jen(['pick', '--kind=mesh', '--force'], { cwd: dir }).code, 0);
+    assert.equal(read(dir, 'kind.txt'), 'mesh');
+  });
+
   it('runs a generator whose params have descriptions', () => {
     const dir = fixture({
       '.jen/greet.mjs': `export const params = { who: { default: 'world', description: 'whom to greet' } };
@@ -531,6 +546,52 @@ describe('jen <generator> --help', () => {
     assert.match(r.stderr, /"lua:function" not found/);
   });
 
+  it('shows choices, default first, and the examples with and without jen installed', () => {
+    const dir = fixture({
+      '.jen/enum.mjs': `export default {
+        params: { name: {}, std: { default: '23', choices: ['20', '23'] }, kind: { choices: ['a', 'b c'] } },
+        examples: ['--name=State --kind=a', '--name=State --kind="b c" --std=20'],
+        actions: () => [],
+      };`,
+    });
+    assert.equal(
+      jen(['enum', '--help'], { cwd: dir }).stdout,
+      [
+        'enum',
+        '  --name (required)',
+        '  --std=23|20',
+        '  --kind=a|"b c" (required)',
+        '',
+        'examples:',
+        '  jen enum --name=State --kind=a',
+        '  jen enum --name=State --kind="b c" --std=20',
+        '  npx --yes @codejen/jen enum --name=State --kind=a  (without installing jen)',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it("links a pack's homepage, and has npx fetch a third-party pack with --from", () => {
+    const dir = fixture({
+      'package.json': JSON.stringify({ dependencies: { 'jen-pack-demo': '*' } }),
+      'node_modules/jen-pack-demo/package.json': JSON.stringify({ name: 'jen-pack-demo', type: 'module', exports: './index.mjs', homepage: 'https://example.com/demo' }),
+      'node_modules/jen-pack-demo/index.mjs': `export default { hello: { examples: ['--loud'], actions: () => [] } };`,
+    });
+    assert.equal(
+      jen(['demo:hello', '--help'], { cwd: dir }).stdout,
+      [
+        'demo:hello',
+        '',
+        'examples:',
+        '  jen demo:hello --loud',
+        '  npx --yes @codejen/jen --from jen-pack-demo demo:hello --loud  (without installing jen)',
+        '',
+        'docs: https://example.com/demo',
+        '',
+      ].join('\n'),
+    );
+  });
+
   it('still shows the general help without a generator', () => {
     assert.match(jen(['--help'], { cwd: fixture() }).stdout, /--list,\s+-l/);
   });
@@ -562,8 +623,40 @@ describe('jen --list --json', () => {
         },
         withTest: { type: 'boolean', required: false, default: false, description: 'add a doctest case' },
       },
+      examples: [],
     });
     assert.ok(catalog.some((g: { name: string; source: string }) => g.name === 'generator' && g.source === 'built-in'));
+  });
+
+  it('adds choices, examples and the pack from its package.json', () => {
+    const dir = fixture({
+      'package.json': JSON.stringify({ dependencies: { '@codejen/pack-demo': '*' } }),
+      'node_modules/@codejen/pack-demo/package.json': JSON.stringify({
+        name: '@codejen/pack-demo',
+        version: '1.2.3',
+        description: 'demo pack',
+        homepage: 'https://example.com/demo',
+        type: 'module',
+        exports: './src/index.mjs',
+      }),
+      'node_modules/@codejen/pack-demo/src/index.mjs': `export default {
+        hello: { params: { mood: { default: 'calm', choices: ['calm', 'loud'] } }, examples: ['--mood=loud'], actions: () => [] },
+      };`,
+    });
+    const r = jen(['--list', '--json'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(
+      JSON.parse(r.stdout).find((g: { name: string }) => g.name === 'demo:hello'),
+      {
+        name: 'demo:hello',
+        source: 'pack @codejen/pack-demo',
+        pack: { name: '@codejen/pack-demo', version: '1.2.3', description: 'demo pack', homepage: 'https://example.com/demo' },
+        shadowed: false,
+        description: '',
+        params: { mood: { type: 'string', required: false, default: 'calm', choices: ['calm', 'loud'] } },
+        examples: [{ jen: 'jen demo:hello --mood=loud', npx: 'npx --yes @codejen/jen demo:hello --mood=loud' }],
+      },
+    );
   });
 
   it('marks shadowed generators', () => {
