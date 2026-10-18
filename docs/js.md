@@ -2,11 +2,11 @@
 layout: doc
 permalink: /js.html
 title: jen — js pack recipes
-description: "Every jen command in @codejen/pack-js: custom elements with typed attributes and events, ARIA keyboard patterns, and type patterns – as TypeScript, JSDoc or plain JavaScript, with live previews."
+description: "Every jen command in @codejen/pack-js: new Vite and esbuild projects, custom elements with typed attributes and events, ARIA keyboard patterns, and type patterns – as TypeScript, JSDoc or plain JavaScript, with live previews."
 eyebrow: "@codejen/pack-js"
 mega: scripts
 lede: Every generator, with the command, the output it prints, and the code it makes – running live.
-sub: Web components, keyboard navigation and type patterns for the project you already have. TypeScript, JSDoc or plain JavaScript – whatever your project uses.
+sub: A new Vite or esbuild project, then web components, keyboard navigation and type patterns for it – or for the project you already have. TypeScript, JSDoc or plain JavaScript – whatever your project uses.
 cta: { text: "Three ways to install ↓", url: "#install" }
 toc:
   - title: Install
@@ -17,6 +17,10 @@ toc:
   - title: Output styles
     links:
       - { title: "TypeScript, JSDoc or plain", id: styles }
+  - title: Projects
+    links:
+      - { title: "js:vite", id: js-vite }
+      - { title: "js:esbuild", id: js-esbuild }
   - title: Web components
     links:
       - { title: "js:element", id: js-element }
@@ -74,6 +78,28 @@ Every generator writes in one of three styles, picked from the nearest config fi
 Generators that take `--withTest` write a test next to the file: with Vitest if the nearest `package.json` lists it or there's a Vite or Vitest config, else with `node:test`. `--runner=node` or `--runner=vitest` overrides it.
 
 The keyboard modules are plain files in the pack's [`templates/`](https://github.com/learosema/jen/tree/main/packages/pack-js/templates) folder, as `.ts` and as `.js` with JSDoc; the plain JavaScript is the JSDoc file with its types taken out. Elements and type patterns are made in code, from your names and types.
+
+## Projects {#projects}
+
+A new project in its own directory, at the latest versions on npm – so these two need the network. `--name` is the directory and the package name; jen stops if that directory already exists and isn't empty. Like every jen run, the files go through the plan: `--dry-run` lists them first, and nothing is written before you see it. Nothing is installed either: run `npm install` in the project afterwards.
+
+A new project starts as plain JavaScript, whatever `tsconfig.json` is around it; `--types=ts` makes it TypeScript. Every `js:` generator you run in the project later writes in its style.
+
+### `js:vite` {#js-vite}
+
+Runs `npm create vite@latest` with the template for `--framework` and `--types` – `vanilla`, `vue`, `react`, `svelte` or any other template [create-vite](https://github.com/vitejs/vite/tree/main/packages/create-vite) offers – without its questions, in a scratch directory, and hands what it makes to jen's plan. An unknown framework fails with create-vite's own list.
+
+{% include terminal.html id="js_vite" %}
+
+{% include params.html generator="js:vite" %}
+
+### `js:esbuild` {#js-esbuild}
+
+A page with a counter button, bundled by [esbuild](https://esbuild.github.io/) into `dist/`: `build` bundles once, `dev` rebuilds on every change and serves the project on esbuild's own server. esbuild has no `npm create`, so the files come from the pack, and `package.json` gets the latest versions from npm. Besides `--types=ts` it takes `--types=jsdoc`, with a `jsconfig.json`. esbuild only strips types, so a TypeScript project gets a separate `check` script. `--withTest` adds a first test with `node:test` – `--runner=vitest` switches – and later `--withTest` runs use the same runner.
+
+{% include terminal.html id="js_esbuild" %}
+
+{% include params.html generator="js:esbuild" %}
 
 ## Web components {#components}
 
@@ -212,5 +238,7 @@ A test file for a module that's already there: it imports every function, class 
 ## Credits {#credits}
 
 The keyboard patterns follow the **[ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/)** by the W3C Web Accessibility Initiative – roving tabindex and keyboard shortcuts from its [keyboard interface practices](https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/), menus from the [menu and menubar pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/), grids from the [grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/). Each module credits it in its first line.
+
+`js:vite` runs **[create-vite](https://github.com/vitejs/vite/tree/main/packages/create-vite)** by the Vite team, and `js:esbuild`'s project layout follows it; each esbuild project's `index.html` credits it.
 
 The code is written fresh for this pack, not copied. The pack is ISC licensed.

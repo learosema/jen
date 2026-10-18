@@ -14,6 +14,8 @@ toc:
       - { title: Options, id: options }
       - { title: Params, id: params }
       - { title: Unknown flags, id: unknown }
+      - { title: Reading the plan, id: plan }
+      - { title: Fetching packs, id: fetching }
   - title: Looking around
     links:
       - { title: "--help", id: help }
@@ -54,6 +56,27 @@ A flag the generator has no param for stops jen too. A typo like `--moveonly` or
 {% include terminal.html id="cli_unknown" %}
 
 `--dir` is always accepted, whether the generator has its own `dir` param or not.
+
+### Reading the plan {#plan}
+
+Every run prints its plan: one line per file, and what happens to it.
+
+- **`+`**: the file is created.
+- **`~`**: the file is changed, with the line that goes in.
+- **`!`**: the file is overwritten, with `--force`.
+- **`-`**: the file is deleted.
+- **`=`**: nothing to do – the file exists, the line is already there, or nothing matched.
+- **`?`**: a problem, so the action is skipped – a missing file or marker, or a path outside the project.
+
+When the project root isn't where you stand, the plan says where jen found it and why, e.g. `root: .. (package.json)`. With `--dry-run`, the plan is all there is.
+
+### Fetching packs {#fetching}
+
+`--from <package>` (or `<package>@<version>`) installs a pack into a throwaway directory, runs it once and removes it again – no `package.json` entry, no `node_modules` left in your project. Any other package is installed the same way for a pack to run, e.g. a Yeoman generator: `jen --from generator-code yeoman:code`. The generator name stays the same as for an installed pack: `--from` only changes where jen gets it.
+
+Ask for a prefixed generator whose pack isn't installed, like `lua:function`, and jen fetches `@codejen/pack-lua` the same way. That only ever pulls from jen's own `@codejen` scope, so a typo can't install someone else's package; for any other scope, or an unprefixed name, jen prints a hint to use `--from` instead.
+
+Packs fetch, too – only names fixed in their own code, never one from the command line: pack-yeoman its [fixed list of generators]({{ '/yeoman.html' | relative_url }}), pack-js `npm create vite@latest` and the latest versions for [`js:esbuild`]({{ '/js.html#js-esbuild' | relative_url }}). jen uses your own `npm`, with `--ignore-scripts` for its installs. `JEN_NO_FETCH=1` turns all of it off.
 
 ## Looking around {#looking}
 

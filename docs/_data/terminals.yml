@@ -177,8 +177,8 @@ module:
 class_help:
   - "$ jen cpp:class --help"
   - "cpp:class – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources"
-  - "  --name (required)"
-  - "  --namespace=\"\""
+  - "  --name (required)  the class, any case: player-controller and PlayerController both make PlayerController.h and PlayerController.cpp"
+  - '  --namespace=""  C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace'
   - "  --moveOnly  RAII wrapper: copy deleted, move defaulted (Rule of Five)"
   - "  --resource=Resource*  with --moveOnly: the handle type it owns, e.g. SDL_Window* or GLuint"
   - "  --nullValue=nullptr  with --moveOnly: the empty handle value, e.g. 0 for GLuint"
@@ -940,6 +940,46 @@ js_test:
   - ""
   - "✓ 1 written"
 
+js_vite:
+  - "$ jen js:vite --name=shop --framework=react --types=ts"
+  - "js:vite (pack @codejen/pack-js) – create a new Vite project in its own directory, from npm create vite@latest"
+  - ""
+  - "  + shop/.gitignore"
+  - "  + shop/.oxlintrc.json"
+  - "  + shop/README.md"
+  - "  + shop/index.html"
+  - "  + shop/package.json"
+  - "  + shop/public/favicon.svg"
+  - "  + shop/public/icons.svg"
+  - "  + shop/src/App.css"
+  - "  + shop/src/App.tsx"
+  - "  + shop/src/assets/hero.png"
+  - "  + shop/src/assets/react.svg"
+  - "  + shop/src/assets/vite.svg"
+  - "  + shop/src/index.css"
+  - "  + shop/src/main.tsx"
+  - "  + shop/tsconfig.app.json"
+  - "  + shop/tsconfig.json"
+  - "  + shop/tsconfig.node.json"
+  - "  + shop/vite.config.ts"
+  - ""
+  - "✓ 18 written"
+
+js_esbuild:
+  - "$ jen js:esbuild --name=tool --types=ts --withTest"
+  - "js:esbuild (pack @codejen/pack-js) – create a new project bundled by esbuild, in its own directory"
+  - ""
+  - "  + tool/package.json"
+  - "  + tool/index.html"
+  - "  + tool/.gitignore"
+  - "  + tool/src/style.css"
+  - "  + tool/src/main.ts"
+  - "  + tool/src/counter.ts"
+  - "  + tool/src/counter.test.ts"
+  - "  + tool/tsconfig.json"
+  - ""
+  - "✓ 8 written"
+
 yeoman_install_global:
   - "$ npm install -g @codejen/jen @codejen/pack-yeoman generator-code"
   - '$ jen yeoman:code --extensionType=command-ts --extensionDisplayName="My Extension"'
@@ -1020,6 +1060,12 @@ cli_json:
   - '        "type": "string",'
   - '        "required": true,'
   - '        "description": "the class, any case: player-controller and PlayerController both make PlayerController.h and PlayerController.cpp"'
+  - "      },"
+  - '      "namespace": {'
+  - '        "type": "string",'
+  - '        "required": false,'
+  - '        "default": "",'
+  - '        "description": "C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace"'
   - "      },"
   - '      "moveOnly": {'
   - '        "type": "boolean",'
