@@ -7,6 +7,10 @@ import { shimGenerator } from './shim.ts';
 /** Yeoman's package naming: "generator-code" or "@scope/generator-code" → "code". */
 const YEOMAN_RE = /^(?:@[^/]+\/)?generator-(.+)$/;
 
+const EXAMPLES: Record<string, string[]> = {
+  'generator-code': ['--extensionType=command-ts --extensionDisplayName="My Extension"', '--extensionType=colortheme --extensionDisplayName="My Theme"'],
+};
+
 const pack: PackFactory = (env) => {
   const generators: Record<string, AnyGenerator> = {};
   for (const name of new Set([...env.packages(YEOMAN_RE), ...FETCHABLE])) {
@@ -16,7 +20,7 @@ const pack: PackFactory = (env) => {
     generators[short] =
       name === 'generator-jhipster'
         ? jhipsterGenerator(env, `JHipster: an app, or a command like jdl${fetched}`)
-        : shimGenerator(name, short, env, `Yeoman ${name}${fetched}`);
+        : { ...shimGenerator(name, short, env, `Yeoman ${name}${fetched}`), ...(EXAMPLES[name] && { examples: EXAMPLES[name] }) };
   }
   return generators;
 };
