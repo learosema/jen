@@ -16,6 +16,7 @@ toc:
   - title: Reference
     links:
       - { title: Params, id: params }
+      - { title: Examples, id: examples }
       - { title: Actions, id: actions }
       - { title: EditorConfig, id: editorconfig }
       - { title: Helpers, id: helpers }
@@ -101,7 +102,7 @@ Generators can be `.mjs`, `.js`, `.ts` or `.mts`. TypeScript runs through Node's
 
 ### Params {#params}
 
-A param is a name, an optional `default` and an optional `description`:
+A param is a name, an optional `default`, `description` and `choices`:
 
 ```js
 export const params = {
@@ -112,13 +113,25 @@ export const params = {
     description: "RAII wrapper: copy deleted, move defaulted (Rule of Five)",
   },
   into: { path: true, default: "" }, // a path the user types, relative to where they stand
+  std: { default: "23", choices: ["20", "23"] }, // only these values
 };
 ```
 
 - **`description`**: a short phrase for whatever the name doesn't already say. `jen <generator> --help` and `jen --list --json` show it, so use the words people would ask with.
+- **`choices`**: every value a string param takes. jen refuses anything else before `actions()` runs, `--help` lists them, and `jen --list --json` has them for tools to offer. The default always passes, so `default: ""` can still mean "not given".
 - **`path: true`**: the value reaches `actions()` ready to use as an action path (`/shaders/main.glsl`, from the project root), however deep in the project the user typed it. jen fails if it points outside the project.
 
-Every param is answered on the command line as `--<name>=<value>` – the [command line]({{ '/cli.html#params' | relative_url }}) has the details. There's no prompting, no `validate`, no `select` with choices: to constrain a value, check it at the top of `actions()` and throw.
+Every param is answered on the command line as `--<name>=<value>` – the [command line]({{ '/cli.html#params' | relative_url }}) has the details. There's no prompting and no `validate`: to constrain a value beyond `choices`, check it at the top of `actions()` and throw.
+
+### Examples {#examples}
+
+`examples` shows how a generator is called – each one what follows its name on the command line:
+
+```js
+export const examples = ["--name=Camera", "--name=Texture --moveOnly"];
+```
+
+[`--help`]({{ '/cli.html#help' | relative_url }}) prints them as `jen class --name=Camera`, and [`--list --json`]({{ '/cli.html#json' | relative_url }}) also as `npx --yes @codejen/jen class --name=Camera`, for running without jen installed. Quote values with spaces the way a shell needs them: `--members="int x, int y"`. A generator that takes no params can still show one with `--dir`, or an empty string for the bare call.
 
 ### Actions {#actions}
 
@@ -246,6 +259,7 @@ export default { class: cls, example };
 - **Ship JavaScript.** Node doesn't strip types inside `node_modules`, so `.ts` generators only work outside packages.
 - **No dependency on jen** is needed – unless you import its style helpers, then it's a peer dependency.
 - **The `jen-pack` keyword** makes it easy to find on npm.
+- **`description`, `version` and `homepage`** go into [`--list --json`]({{ '/cli.html#json' | relative_url }}), and `--help` links the `homepage` – point it at the pack's documentation.
 
 jen finds a pack when it's a dependency of any kind in `package.json` – the project's or the user directory's – with no config of its own:
 

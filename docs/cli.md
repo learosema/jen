@@ -47,6 +47,8 @@ Everything else on the command line is a param of the generator. A value always 
 
 A param without a default is required. Leave it out and jen stops with `Missing: --name` before anything is written – it never prompts for it.
 
+Some params only take a few values, like `--std=20` or `--std=23` for `cpp:enum`. Anything else stops jen with the values it does take: `cpp:enum --std: expected one of "20", "23", got "17"`.
+
 `list`, `dry-run`, `force`, `from` and `help` are jen's own, so a generator can't use them as param names. `json` and `dir` can be: a generator with its own `dir` param gets `--dir` for itself.
 
 ### Unknown flags {#unknown}
@@ -82,7 +84,9 @@ Packs fetch, too – only names fixed in their own code, never one from the comm
 
 ### `--help` {#help}
 
-`jen <generator> --help` shows one generator and its params the way you'd type them: required ones marked `(required)`, strings with their default (`--namespace=""`), booleans as a bare flag, each followed by its description.
+`jen <generator> --help` shows one generator and its params the way you'd type them: required ones marked `(required)`, strings with their default (`--namespace=""`), booleans as a bare flag, each followed by its description. A param that only takes a few values lists them all, the default first: `--std=23|20`.
+
+Below the params come the generator's examples, ready to copy – the first one also the way to run it without installing jen, through `npx --yes @codejen/jen`. Last, a link to the pack's documentation, if it has one.
 
 {% include terminal.html id="cli_help" %}
 
@@ -96,14 +100,16 @@ Packs fetch, too – only names fixed in their own code, never one from the comm
 
 - **`name`**: the name to run it by, with the pack prefix, e.g. `cpp:class`.
 - **`source`**: where it comes from, e.g. `pack @codejen/pack-cpp`, `project` or `built-in`.
+- **`pack`**: for a generator from a pack, the pack's `name`, and its `version`, `description` and `homepage` where its `package.json` has them.
 - **`shadowed`**: `true` if another generator of the same name is found first, so this one only runs with its source prefix.
 - **`description`**: what it makes, or `""`.
 - **`params`**: each param by name, in the order `--help` shows them, with
   - **`type`**: `string` or `boolean`, following from its default,
   - **`required`**: `true` if it has no default,
-  - **`default`**, **`path`** and **`description`**, only where the generator gives them.
+  - **`default`**, **`choices`** (every value it takes), **`path`** and **`description`**, only where the generator gives them.
+- **`examples`**: example calls, each as `jen`, with jen installed, and as `npx`, without: `npx --yes @codejen/jen …`, with `--from` for a pack outside `@codejen`. `[]` if the generator has none.
 
-A generator that fails to load gets an `error` with the message instead of `description` and `params`, and the listing goes on with the next one.
+A generator that fails to load gets an `error` with the message instead of `description`, `params` and `examples`, and the listing goes on with the next one.
 
 {% include terminal.html id="cli_json" %}
 

@@ -31,4 +31,7 @@
 {%- if include.meta != "" or include.label != "" %}
 <p class="meta"><span>{{ include.label }}</span> {{ include.meta }}</p>
 {%- endif %}
+{%- if include.choices and include.choices != "" %}
+<p class="meta"><span>one of</span> {{ include.choices }}</p>
+{%- endif %}
 </div>
