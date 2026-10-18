@@ -13,6 +13,7 @@ export const PROGRESS_MARKUP = '<div class="reading-progress" aria-hidden="true"
 const scrollGenerator: Generator = {
   description: 'create scroll-driven animations: reading progress, reveal, parallax',
   params: LINE_PARAMS,
+  examples: ['--into=index.html'],
   actions: (answers, _helpers, ctx) => {
     const at = lineParam('web:scroll', answers, ctx);
     return [

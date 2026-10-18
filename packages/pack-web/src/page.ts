@@ -88,6 +88,7 @@ const pageGenerator: Generator = {
     imageAlt: { default: '', description: 'alt text for --image' },
     script: { path: true, default: '', description: 'a module script to load at the end of the body' },
   },
+  examples: ['--name=about', '--name=about --site="My Site" --lang=en-GB --url=https://example.com'],
   actions: (answers, { kebab }, ctx) => {
     const name = kebab(String(answers.name));
     const file = posix.join(ctx.destDir, `${name}.html`);

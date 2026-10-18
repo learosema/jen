@@ -31,6 +31,7 @@ export function buttonCss(colors: string[]): string {
 
 const buttonGenerator: Generator = {
   description: 'create a contrast-checked .button block on the palette tokens',
+  examples: ['--dir=src/css'],
   actions: (_answers, _helpers, ctx) => [{ add: FILE, template: buttonCss(paletteColors(ctx)) }, ...importActions(ctx, [FILE])],
 };
 

@@ -114,6 +114,7 @@ export const FLUID_PARAMS = {
 const fluidGenerator: Generator = {
   description: 'create fluid type and space scales (Utopia-style clamp() tokens)',
   params: FLUID_PARAMS,
+  examples: ['--dir=src/css', '--maxSize=1.375 --maxRatio=1.333 --tailwind'],
   actions: (answers, _helpers, ctx) => [
     { add: FILE, template: fluidCss(answers, Boolean(answers.tailwind) || usesTailwind(ctx)) },
     ...importActions(ctx, [FILE]),

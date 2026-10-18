@@ -16,6 +16,7 @@ const dialogGenerator: Generator = {
     name: { description: 'id, and the title from it: settings makes "Settings"' },
     ...LINE_PARAMS,
   },
+  examples: ['--name=confirm-delete --into=index.html'],
   actions: (answers, { kebab }, ctx) => {
     const id = kebab(String(answers.name));
     const into = String(answers.into);

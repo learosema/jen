@@ -14,9 +14,10 @@ export const SPA_JS = template('view-transition.js');
 const transitionsGenerator: Generator = {
   description: 'create view transitions between pages (and a same-document helper with --spa)',
   params: {
-    style: { default: 'fade', description: 'fade (the browser\'s crossfade) or slide' },
+    style: { default: 'fade', choices: ['fade', 'slide'], description: 'fade (the browser\'s crossfade) or slide' },
     spa: { default: false, description: 'also add view-transition.js for same-document transitions in a single-page app' },
   },
+  examples: ['', '--style=slide --spa'],
   actions: ({ style, spa }, _helpers, ctx) => {
     if (style !== 'fade' && style !== 'slide') fail(`web:transitions --style: "${style}" – use fade or slide`);
     return [

@@ -16,6 +16,7 @@ const popoverGenerator: Generator = {
     name: { description: 'id, and the label from it: user-menu makes "User menu"' },
     ...LINE_PARAMS,
   },
+  examples: ['--name=user-menu --into=index.html'],
   actions: (answers, { kebab }, ctx) => {
     const at = lineParam('web:popover', answers, ctx);
     return [
