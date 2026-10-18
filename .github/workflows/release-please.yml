@@ -1,9 +1,10 @@
 name: Release Please
 
-# Opens (and keeps updating) one release pull request per package (packages/jen,
-# packages/pack-cpp, ...) with that package's own version bump and CHANGELOG.
-# Merging a release PR creates its tag and GitHub release, after which this
-# workflow dispatches release.yml once per released package to stage it on npm.
+# Opens (and keeps updating) a single release pull request that bumps every
+# package (packages/jen, packages/pack-cpp, ...) with releasable changes, each
+# with its own version and CHANGELOG. Merging it creates one tag and GitHub
+# release per bumped package, after which this workflow dispatches release.yml
+# once per released package to stage it on npm.
 #
 # The dispatch is needed because tags and releases created with GITHUB_TOKEN
 # do not trigger other workflows; workflow_dispatch is the exception.
