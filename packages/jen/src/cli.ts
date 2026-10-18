@@ -244,10 +244,9 @@ const NPM_NAME = /^(?:@[a-z0-9][\w.~-]*\/)?[a-z0-9][\w.~-]*$/;
 
 /**
  * Installs a single package via npm into a throwaway directory (never the
- * project's own node_modules), removed again when the run ends. jen never
- * fetches anything implicitly – only for `--from`, the @codejen fallback
- * and a pack's env.fetch(). Returns the directory's package.json, to
- * resolve from.
+ * project's own node_modules), removed again when the run ends: for `--from`,
+ * the @codejen fallback and a pack's env.fetch(). Returns the directory's
+ * package.json, to resolve from.
  */
 function install(spec: string, extra: Extra): string {
   const [name, version] = splitPkgSpec(spec);
