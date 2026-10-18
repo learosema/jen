@@ -146,6 +146,7 @@ export function jhipsterGenerator(env: PackEnv, description: string): AnyGenerat
   return {
     description,
     passthrough: true,
+    examples: ['--defaults --base-name=demo', 'jdl blog.jdl'],
     actions: async (_answers, _helpers, ctx) => {
       const cliFile = await locate(env, 'generator-jhipster', ['generator-jhipster/cli']);
       const baseCoreFile = await locate(env, 'generator-jhipster', ['generator-jhipster/generators/base-core']);
