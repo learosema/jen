@@ -200,7 +200,7 @@ describe('yeoman generators', () => {
     const dir = project(online, ['generator-online']);
     const r = jen(['yeoman:online'], dir);
     assert.equal(r.code, 1);
-    assert.match(r.stderr, /tried to reach example\.com:443, https:\/\/example\.com\/other\.zip – jen never touches the network/);
+    assert.match(r.stderr, /tried to reach example\.com:443, https:\/\/example\.com\/other\.zip – Yeoman generators run offline under jen/);
     assert.equal(existsSync(join(dir, 'never.txt')), false);
   });
 
