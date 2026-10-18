@@ -24,6 +24,7 @@ const structGenerator: Generator = {
     namespace: { default: '', description: 'C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace' },
     withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
+  examples: ['--name=Config --members="int width = 800, int height = 600"', '--name=Point --members="int x, int y" --compare'],
   actions: ({ name, members, compare, namespace, withTest }, { pascal, constant }) => {
     const ns = String(namespace);
     const type = pascal(String(name));

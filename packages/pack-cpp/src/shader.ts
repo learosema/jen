@@ -25,6 +25,7 @@ const shaderGenerator: Generator = {
     file: { path: true, description: 'the GLSL file to embed, e.g. shaders/tonemap.frag.glsl' },
     name: { default: '', description: 'C++ variable name (default: from the file name, e.g. tonemapFragmentShader)' },
   },
+  examples: ['--file=shaders/vignette.frag.glsl', '--file=shaders/tonemap.frag.glsl --name=tonemapShader'],
   actions: ({ file, name }, { camel }, ctx) => {
     const shader = String(file).slice(1); // a path param: /… from the project root
     if (!ctx.exists(shader)) {

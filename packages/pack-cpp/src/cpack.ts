@@ -104,6 +104,7 @@ const cpackGenerator: Generator = {
     bundleId: { default: '', description: 'macOS bundle identifier (default: com.example.<project>)' },
     maintainer: { default: '', description: 'package vendor and Debian maintainer, e.g. "Jane Doe <jane@example.com>"' },
   },
+  examples: ['', '--staticSdl --maintainer="Jane Doe <jane@example.com>"'],
   actions: ({ assets, staticSdl, bundleId, maintainer }) => {
     const bundle = String(bundleId) || 'com.example.${PROJECT_NAME}';
     const who = String(maintainer) || '${PROJECT_NAME} maintainers';

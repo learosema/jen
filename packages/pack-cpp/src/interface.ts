@@ -47,6 +47,10 @@ const interfaceGenerator: Generator = {
     namespace: { default: '', description: 'C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace' },
     withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
+  examples: [
+    '--name=Drawable --methods="void draw(), void resize(int w, int h)" --impl=SpriteDrawable',
+    '--name=Shape --methods="double area() const" --withTest',
+  ],
   actions: ({ name, methods, impl, namespace, withTest }, { pascal, constant }) => {
     const ns = String(namespace);
     const iface = pascal(String(name));

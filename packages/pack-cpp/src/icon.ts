@@ -12,6 +12,7 @@ const iconGenerator: Generator = {
     ico: { default: 'resources/app.ico', description: 'Windows icon, relative to the project root' },
     icns: { default: 'resources/app.icns', description: 'macOS icon, relative to the project root' },
   },
+  examples: ['', '--ico=assets/app.ico --icns=assets/app.icns'],
   actions: ({ ico, icns }) => {
     const icoPath = String(ico);
     const icnsPath = String(icns);

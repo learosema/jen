@@ -38,6 +38,7 @@ const tracyGenerator: Generator = {
     file: { path: true, default: '', description: 'the app source to hook into (default: the one with the starter\'s // jen:includes marker)' },
     tracyTag: { default: TRACY_TAG_DEFAULT, description: 'Tracy git tag to fetch' },
   },
+  examples: ['', '--gpu'],
   actions: ({ gpu, file, tracyTag }) => {
     // the app source carrying the starter's markers, unless --file (relative to the cwd) says which
     const app = String(file) || { find: /\.cpp$/, containing: '// jen:includes' };

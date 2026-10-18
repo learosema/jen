@@ -106,6 +106,7 @@ const sdl3Generator: Generator = {
   description:
     'create an SDL3 callback-based app starter (<name>-core library + thin executable, vendor/ FetchContent SDL3)',
   params: sdlStarterParams,
+  examples: ['--name=MyGame', '--name=MyGame --folderCase=pascal --width=1280 --height=720 --bundleId=com.example.my-game'],
   actions: ({ name, width, height, bundleId, sdlTag, folderCase, dir }, helpers) => {
     const { kebab, pascal, constant } = helpers;
     const folder = appFolder(String(name), String(dir), String(folderCase), helpers);
