@@ -2,6 +2,7 @@
   "name": "@codejen/jen",
   "version": "3.0.0",
   "description": "",
+  "homepage": "https://learosema.github.io/jen/",
   "type": "module",
   "bin": {
     "jen": "./dist/jen.js"

@@ -19,8 +19,9 @@ export type Answers = Record<string, any>;
  * `path: true` marks a path the user types relative to where they stand; the generator
  * gets it ready to use as an action path (`/…`, from the project root), or `''` if not given.
  * `description` is a short phrase shown by `jen <generator> --help` and `jen --list --json`.
+ * `choices` lists every value a string param takes: jen refuses any other (the default always passes).
  */
-export type Params = Record<string, { default?: string | boolean; path?: boolean; description?: string }>;
+export type Params = Record<string, { default?: string | boolean; path?: boolean; description?: string; choices?: readonly string[] }>;
 
 /**
  * An existing file for jen to find, instead of a path: the nearest file named `find`
@@ -119,6 +120,8 @@ export interface Args {
 export interface Generator<Result extends Action[] | Promise<Action[]> = Action[]> {
   description?: string;
   params?: Params;
+  /** Example calls, each what follows the generator's name: `--name=Player --moveOnly`. */
+  examples?: string[];
   /** Accept flags that aren't params and hand them on through `ctx.args`, e.g. to a Yeoman generator's prompts. */
   passthrough?: boolean;
   actions(answers: Answers, helpers: Helpers, ctx: Context): Result;
