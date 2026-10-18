@@ -95,3 +95,4 @@
 .cards h4 code { color: var(--accent); }
 .cards p { color: var(--muted); line-height: 1.5; }
 .cards .meta { font-size: var(--text-label); margin-block-start: auto; }
+.cards .meta + .meta { margin-block-start: 0; }

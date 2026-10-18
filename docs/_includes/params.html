@@ -13,7 +13,8 @@
 {%- assign label = "default" -%}
 {%- capture meta %}<code>{{ p.default | escape }}</code>{% endcapture -%}
 {%- endif -%}
-{% include card.html key=p.name title=title text=text meta=meta label=label fallback="sliders" %}
+{%- capture choices %}{% for c in p.choices %}<code>{{ c | escape }}</code>{% unless forloop.last %}, {% endunless %}{% endfor %}{% endcapture -%}
+{% include card.html key=p.name title=title text=text meta=meta label=label choices=choices fallback="sliders" %}
 {%- endfor %}
 </div>
 {%- endif %}
