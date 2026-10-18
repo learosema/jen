@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.0](https://github.com/learosema/jen/compare/pack-glsl-v2.2.3...pack-glsl-v2.3.0) (2026-10-18)
+
+
+### Features
+
+* **pack-glsl:** add metadata for pack-glsl ([11dcdf5](https://github.com/learosema/jen/commit/11dcdf562ecedba023d07993afe1356907a14054))
+
 ## [2.2.3](https://github.com/learosema/jen/compare/pack-glsl-v2.2.2...pack-glsl-v2.2.3) (2026-10-13)
 
 

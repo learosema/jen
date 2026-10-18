@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/learosema/jen/compare/pack-js-v1.4.0...pack-js-v1.5.0) (2026-10-18)
+
+
+### Features
+
+* **pack-web:** add metadata for pack-js ([cfc4136](https://github.com/learosema/jen/commit/cfc413627157d930b5c7dd318fadada8eb2e6a48))
+
 ## [1.4.0](https://github.com/learosema/jen/compare/pack-js-v1.3.0...pack-js-v1.4.0) (2026-10-18)
 
 
