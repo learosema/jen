@@ -39,8 +39,9 @@ const viteGenerator: Generator = {
   params: {
     ...NAME_PARAM,
     framework: { default: 'vanilla', description: 'a create-vite template: vanilla, vue, react, preact, lit, svelte, solid, qwik …' },
-    types: { default: 'none', description: 'ts or none (plain JavaScript)' },
+    types: { default: 'none', choices: ['ts', 'none'], description: 'ts or none (plain JavaScript)' },
   },
+  examples: ['--name=shop', '--name=shop --framework=react --types=ts'],
   actions: (answers, helpers, ctx) => {
     const name = projectName('js:vite', answers, helpers, ctx);
     const types = String(answers.types || 'none');

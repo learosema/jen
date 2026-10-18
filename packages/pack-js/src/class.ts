@@ -57,6 +57,7 @@ const classGenerator: Generator = {
     ...WITH_TEST_PARAMS,
     ...TYPES_PARAM,
   },
+  examples: ['--name=timer', '--name=timer --fields=id:number,label:string --disposable --withTest'],
   actions: (answers, { pascal, kebab, camel }, ctx) => {
     const types = typesFor('js:class', answers, ctx);
     const cls = pascal(String(answers.name));

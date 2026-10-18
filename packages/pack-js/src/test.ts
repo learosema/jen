@@ -18,6 +18,7 @@ const testGenerator: Generator = {
     ...RUNNER_PARAM,
     ...TYPES_PARAM,
   },
+  examples: ['--name=slugify', '--name=slugify --runner=vitest'],
   actions: (answers, { kebab, camel }, ctx) => {
     const types = typesFor('js:test', answers, ctx);
     const module = kebab(String(answers.name).replace(/\.[cm]?[jt]s$/, ''));

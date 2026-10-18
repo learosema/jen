@@ -12,10 +12,11 @@ const esbuildGenerator: Generator = {
   description: 'create a new project bundled by esbuild, in its own directory',
   params: {
     ...NAME_PARAM,
-    types: { default: 'none', description: 'ts, jsdoc or none (plain JavaScript)' },
+    types: { default: 'none', choices: ['ts', 'jsdoc', 'none'], description: 'ts, jsdoc or none (plain JavaScript)' },
     withTest: { default: false, description: 'add a test setup and a first test' },
-    runner: { default: 'node', description: 'node (node:test) or vitest' },
+    runner: { default: 'node', choices: ['node', 'vitest'], description: 'node (node:test) or vitest' },
   },
+  examples: ['--name=tool', '--name=tool --types=ts --withTest --runner=vitest'],
   actions: (answers, helpers, ctx) => {
     const name = projectName('js:esbuild', answers, helpers, ctx);
     // A new project starts plain, whatever tsconfig.json is around it.

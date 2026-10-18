@@ -2,6 +2,7 @@
   "name": "@codejen/pack-js",
   "version": "1.4.0",
   "description": "jen pack for TypeScript and JavaScript: Vite and esbuild projects, web components, ARIA keyboard patterns and type patterns, as TypeScript, JSDoc or plain JavaScript",
+  "homepage": "https://learosema.github.io/jen/js.html",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

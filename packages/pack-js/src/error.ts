@@ -49,6 +49,7 @@ const errorGenerator: Generator = {
     ...WITH_TEST_PARAMS,
     ...TYPES_PARAM,
   },
+  examples: ['--name=not-found --fields=path:string'],
   actions: (answers, { pascal, kebab }, ctx) => {
     const types = typesFor('js:error', answers, ctx);
     const base = pascal(String(answers.name));

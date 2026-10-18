@@ -12,6 +12,7 @@ export const KEYBOARD = {
 const keyboardGenerator = (generator: keyof typeof KEYBOARD): Generator => ({
   description: `create ${KEYBOARD[generator].description}`,
   params: { ...TYPES_PARAM },
+  examples: ['', '--types=ts --dir=src/lib'],
   actions: (answers, _helpers, ctx) => {
     const types = typesFor(`js:${generator}`, answers, ctx);
     return [{ add: `${KEYBOARD[generator].file}${ext(types)}`, template: styled(KEYBOARD[generator].file, types) }];

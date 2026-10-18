@@ -5,7 +5,7 @@ import { type Types, ext, importExt, source } from './style.ts';
 
 export type Runner = 'node' | 'vitest';
 
-export const RUNNER_PARAM = { runner: { default: '', description: 'node (node:test) or vitest (default: vitest in a Vite or Vitest project)' } };
+export const RUNNER_PARAM = { runner: { default: '', choices: ['node', 'vitest'], description: 'node (node:test) or vitest (default: vitest in a Vite or Vitest project)' } };
 
 export const WITH_TEST_PARAMS = { withTest: { default: false, description: 'add a test next to it' }, ...RUNNER_PARAM };
 
