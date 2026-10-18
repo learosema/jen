@@ -75,6 +75,7 @@ ${rules.join('\n\n')}
 
 const utilitiesGenerator: Generator = {
   description: 'create utility classes from the palette and fluid tokens',
+  examples: ['--dir=src/css'],
   actions: (_answers, _helpers, ctx) => [{ add: FILE, template: utilitiesCss(projectTokens(ctx)) }, ...importActions(ctx, [FILE])],
 };
 

@@ -65,11 +65,12 @@ const swGenerator: Generator = {
   description: 'create a service worker (network-first pages, cached assets, an offline page) and a module that registers it',
   params: {
     precache: { default: '', description: 'comma-separated files to cache on install, relative to sw.js (default: the pages and stylesheets)' },
-    strategy: { default: 'cache-first', description: 'for assets: cache-first, or swr (stale-while-revalidate); pages stay network-first' },
+    strategy: { default: 'cache-first', choices: Object.keys(STRATEGIES), description: 'for assets: cache-first, or swr (stale-while-revalidate); pages stay network-first' },
     offline: { default: false, description: 'also write offline.html, shown for pages that aren\'t cached' },
     into: { path: true, default: '', description: 'a page (script tag) or module (import line) that loads register-sw' },
     ...TYPES_PARAM,
   },
+  examples: ['--into=index.html', '--strategy=swr --offline --into=index.html'],
   actions: (answers, { kebab }, ctx) => {
     const strategy = String(answers.strategy);
     if (!(strategy in STRATEGIES)) fail(`web:sw --strategy: expected cache-first or swr, got "${strategy}"`);

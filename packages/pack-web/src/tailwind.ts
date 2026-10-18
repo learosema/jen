@@ -4,6 +4,7 @@ import { ENTRY, IMPORTS_MARKER, LAYERS, TAILWIND_IMPORT, entryCss, findEntry, la
 
 const tailwindGenerator: Generator = {
   description: 'set up the stylesheet entry point for Tailwind v4 (layers in CUBE CSS order)',
+  examples: ['--dir=src/css'],
   actions: (_answers, _helpers, ctx) => {
     const entry = findEntry(ctx);
     if (!entry) return [{ add: ENTRY, template: entryCss([], true) }];

@@ -51,13 +51,14 @@ const manifestGenerator: Generator = {
   params: {
     name: { description: 'the app name the install prompt shows' },
     shortName: { default: '', description: 'name under the icon (default: the name, or its first word if it is longer than 12 characters)' },
-    display: { default: 'standalone', description: 'fullscreen, standalone, minimal-ui or browser' },
+    display: { default: 'standalone', choices: DISPLAY, description: 'fullscreen, standalone, minimal-ui or browser' },
     themeColor: { default: '', description: 'browser toolbar color: #hex, oklch() or a hue (default: the palette\'s primary, else white)' },
     backgroundColor: { default: '', description: 'splash screen color: #hex, oklch() or a hue (default: the palette\'s surface, else white)' },
     lang: { default: 'en', description: 'app language; also sets the text direction (rtl for Arabic, Hebrew, …)' },
     png: { default: false, description: 'also render PNG icons from favicon.svg, with rsvg-convert or ImageMagick' },
     into: { path: true, default: '', description: 'a page to link the manifest from (and with --png, the apple-touch icon)' },
   },
+  examples: ['--name="My Site" --into=index.html', '--name="My Site" --display=minimal-ui --png --into=index.html'],
   actions: (answers, _helpers, ctx) => {
     const name = String(answers.name).trim();
     if (!name) fail('web:manifest --name: the app needs a name');

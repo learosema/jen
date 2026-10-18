@@ -10,6 +10,7 @@ export const CARD = template('card.css');
 
 const cardGenerator: Generator = {
   description: 'create a composable .card block on the palette tokens',
+  examples: ['--dir=src/css'],
   actions: (_answers, _helpers, ctx) => {
     paletteColors(ctx);
     return [{ add: FILE, template: CARD }, ...importActions(ctx, [FILE])];

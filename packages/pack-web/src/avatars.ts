@@ -10,6 +10,7 @@ export const AVATARS = template('avatars.css');
 
 const avatarsGenerator: Generator = {
   description: 'create an overlapping .avatars list block',
+  examples: ['--dir=src/css'],
   actions: (_answers, _helpers, ctx) => {
     paletteColors(ctx);
     return [{ add: FILE, template: AVATARS }, ...importActions(ctx, [FILE])];

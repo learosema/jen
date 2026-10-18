@@ -9,6 +9,7 @@ export const BASE = template('base.css');
 
 const baseGenerator: Generator = {
   description: 'create the stylesheet entry point (CUBE CSS layers), a modern reset and base styles',
+  examples: ['--dir=src/css'],
   actions: (_answers, _helpers, ctx) =>
     wireEntry(ctx, [
       { add: 'reset.css', template: RESET },

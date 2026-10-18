@@ -291,13 +291,14 @@ export const PALETTE_PARAMS: Params = {
   warning: { default: '', description: 'overrides the built-in warning color' },
   danger: { default: '', description: 'overrides the built-in danger color' },
   info: { default: '', description: 'overrides the built-in info color' },
-  contrast: { default: 'aaa', description: 'WCAG level the role tokens meet: aaa, or aa (shades 3 apart)' },
+  contrast: { default: 'aaa', choices: ['aaa', 'aa'], description: 'WCAG level the role tokens meet: aaa, or aa (shades 3 apart)' },
   tailwind: { default: false, description: 'write Tailwind\'s @theme instead – on by itself in a Tailwind project' },
 };
 
 const paletteGenerator: Generator = {
   description: 'create a contrast-checked color palette (CSS custom properties)',
   params: PALETTE_PARAMS,
+  examples: ['--primary=#5b5bd6', '--primary=#5b5bd6 --secondary=330 --contrast=aa'],
   actions: (answers, _helpers, ctx) => [
     { add: FILE, template: paletteCss(answers, Boolean(answers.tailwind) || usesTailwind(ctx)) },
     ...importActions(ctx, [FILE]),
