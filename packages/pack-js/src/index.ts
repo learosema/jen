@@ -6,12 +6,16 @@ import elementGenerator from './element.ts';
 import emitterGenerator from './emitter.ts';
 import enumGenerator from './enum.ts';
 import errorGenerator from './error.ts';
+import esbuildGenerator from './esbuild.ts';
 import { gridGenerator, hotkeysGenerator, menuGenerator, rovingGenerator } from './keyboard.ts';
 import moduleGenerator from './module.ts';
 import testGenerator from './test.ts';
 import unionGenerator from './union.ts';
+import viteGenerator from './vite.ts';
 
 const pack: Pack = {
+  vite: viteGenerator,
+  esbuild: esbuildGenerator,
   element: elementGenerator,
   roving: rovingGenerator,
   menu: menuGenerator,
