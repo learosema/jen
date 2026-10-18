@@ -95,7 +95,7 @@ export const toArgv = ({ flags, positionals }: Args): string[] => [
 /**
  * Runs a generator with the network cut off – fetch() and every TCP connection
  * fail – and fails the run if it tried, even when the generator swallowed the
- * error: jen never touches the network, nor do generators it runs.
+ * error: whatever a generator downloads or sends would bypass jen's plan.
  */
 export async function offline<T>(run: () => Promise<T>): Promise<T> {
   const tried: string[] = [];
@@ -104,18 +104,18 @@ export async function offline<T>(run: () => Promise<T>): Promise<T> {
   globalThis.fetch = async (input) => {
     const url = input instanceof Request ? input.url : String(input);
     tried.push(url);
-    throw new Error(`${url}: jen never touches the network.`);
+    throw new Error(`${url}: Yeoman generators run offline under jen.`);
   };
   Socket.prototype.connect = function (this: Socket, ...args: unknown[]) {
     const [target] = args as [{ host?: string; port?: number; path?: string } | number | string];
     const where = typeof target === 'object' ? (target.path ?? `${target.host ?? 'localhost'}:${target.port}`) : String(target);
     tried.push(where);
-    process.nextTick(() => this.destroy(new Error(`${where}: jen never touches the network.`)));
+    process.nextTick(() => this.destroy(new Error(`${where}: Yeoman generators run offline under jen.`)));
     return this;
   } as typeof connect;
   try {
     const result = await run();
-    if (tried.length > 0) throw new Error(`The generator tried to reach ${[...new Set(tried)].join(', ')} – jen never touches the network.`);
+    if (tried.length > 0) throw new Error(`The generator tried to reach ${[...new Set(tried)].join(', ')} – Yeoman generators run offline under jen.`);
     return result;
   } finally {
     globalThis.fetch = fetch;

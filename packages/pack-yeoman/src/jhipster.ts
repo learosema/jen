@@ -109,7 +109,7 @@ async function run(cliFile: string, baseCoreFile: string, ctx: Context) {
   const here = process.cwd();
   const cwd = destination(ctx);
   const { EnvironmentBuilder } = (await import(pathToFileURL(cliFile).href)) as JHipsterCli;
-  // blueprints that aren't installed would be fetched – jen never does that implicitly
+  // blueprints that aren't installed would be fetched by name from the generator's config, outside jen's plan
   const builder = await EnvironmentBuilder.create({ cwd, skipInstall: true }).prepare({ disableBlueprints: true });
   const env = builder.getEnvironment();
   env.adapter.prompt = async (questions) => answerPrompt(questions, args.flags);
