@@ -14,7 +14,7 @@
 import type { Action, Generator } from '@codejen/jen';
 import { chunkActions, chunkIds, pickChunks } from './chunks.ts';
 import { fail, parseList } from './common.ts';
-import { parseVersion, withHeader } from './dialect.ts';
+import { VERSIONS, parseVersion, withHeader } from './dialect.ts';
 import { raymarchStarter } from './raymarch.ts';
 
 /** How the preview draws each shape, centered on `q`. */
@@ -77,14 +77,18 @@ void main() {
 const sdfGenerator: Generator = {
   description: 'add signed distance functions',
   params: {
-    dim: { default: '2', description: '2 (shapes to draw) or 3 (solids to raymarch)' },
+    dim: { default: '2', choices: ['2', '3'], description: '2 (shapes to draw) or 3 (solids to raymarch)' },
     shapes: { default: '', description: 'comma-separated or all – 2D: circle, box, round-box, segment, polygon, star; 3D: sphere, box, round-box, torus, capsule, cylinder, plane (pick at least one of --shapes, --ops, --effects)' },
     ops: { default: '', description: 'comma-separated or all: union, subtract, intersect, smooth-union/-subtract/-intersect, round, onion, repeat, repeat-limited, extrude, revolve (pick at least one of --shapes, --ops, --effects)' },
     effects: { default: '', description: '2D only, comma-separated or all: fill, stroke, glow, shadow, inner-shadow (pick at least one of --shapes, --ops, --effects)' },
     into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
     name: { default: '', description: 'instead of --into: create a preview shader with this name, the shapes side by side' },
-    version: { default: '300es', description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
+    version: { default: '300es', choices: VERSIONS, description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
   },
+  examples: [
+    '--dim=3 --shapes=sphere,torus --ops=smooth-union --into=shaders/scene.frag.glsl',
+    '--shapes=circle,star --effects=glow --name=Shapes',
+  ],
   actions: ({ dim, shapes, ops, effects, into, name, version }, { kebab }) => {
     const d = String(dim);
     if (d !== '2' && d !== '3') fail(`glsl:sdf --dim: expected "2" or "3", got "${d}"`);

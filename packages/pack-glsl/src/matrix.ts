@@ -17,6 +17,7 @@ const matrixGenerator: Generator = {
     fns: { description: 'comma-separated: rotate, perspective, look-at, transform (also as translate or scale) – or all' },
     into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
   },
+  examples: ['--fns=rotate,look-at --into=shaders/mesh.vert.glsl'],
   actions: ({ fns, into }) => {
     const names = [...new Set(parseList(String(fns ?? '')).map((name) => ALIASES[name] ?? name))];
     return chunkActions(pickChunks('matrix', names, '--fns', 'glsl:matrix'), {

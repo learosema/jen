@@ -7,14 +7,15 @@
  */
 import type { Generator } from '@codejen/jen';
 import { fail } from './common.ts';
-import { header, parseVersion } from './dialect.ts';
+import { VERSIONS, header, parseVersion } from './dialect.ts';
 
 const portGenerator: Generator = {
   description: 'switch a shader between GLSL dialects by rewriting its header',
   params: {
     file: { path: true, description: 'the shader to convert' },
-    to: { description: 'target dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
+    to: { choices: VERSIONS, description: 'target dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
   },
+  examples: ['--file=shaders/clouds.frag.glsl --to=410'],
   actions: ({ file, to }) => {
     const target = String(file);
     if (!target) fail('glsl:port --file: the shader to port is required');

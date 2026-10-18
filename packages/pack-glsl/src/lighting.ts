@@ -24,6 +24,7 @@ const lightingGenerator: Generator = {
     tonemap: { default: '', description: 'comma-separated color output: aces, reinhard (HDR to [0, 1]), srgb (display encoding) – or all (pick at least one of --models, --tonemap)' },
     into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
   },
+  examples: ['--models=pbr --tonemap=aces,srgb --into=shaders/scene.frag.glsl'],
   actions: ({ models, tonemap, into }) => {
     const modelList = parseList(String(models));
     const tonemapList = parseList(String(tonemap));

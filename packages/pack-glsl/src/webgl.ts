@@ -59,6 +59,7 @@ const webglGenerator: Generator = {
     tag: { default: 'shader-canvas', description: 'custom element name, if shader-canvas clashes with something on the page' },
     inline: { default: false, description: 'put the shader into the page, so it opens from disk without a web server' },
   },
+  examples: ['--name=Clouds', '--name=Clouds --inline'],
   actions: ({ name, dir, shaderDir, tag, inline }, { kebab, pascal }) => {
     const t = String(tag);
     if (!/^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/.test(t)) {

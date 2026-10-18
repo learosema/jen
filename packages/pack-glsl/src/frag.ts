@@ -6,14 +6,15 @@
  */
 import type { Generator } from '@codejen/jen';
 import { readPackFile } from './common.ts';
-import { parseVersion, withHeader } from './dialect.ts';
+import { VERSIONS, parseVersion, withHeader } from './dialect.ts';
 
 const fragGenerator: Generator = {
   description: 'create a full-screen GLSL fragment shader starter',
   params: {
     name: { description: 'file name: Clouds makes clouds.frag.glsl' },
-    version: { default: '300es', description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
+    version: { default: '300es', choices: VERSIONS, description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
   },
+  examples: ['--name=Plasma --dir=shaders', '--name=Vignette --version=410'],
   actions: ({ name, version }, { kebab }) => [
     {
       add: `${kebab(String(name))}.frag.glsl`,

@@ -17,7 +17,7 @@
 import type { Action, Generator } from '@codejen/jen';
 import { chunkActions, pickChunks } from './chunks.ts';
 import { fail, parseList } from './common.ts';
-import { parseVersion, withHeader } from './dialect.ts';
+import { VERSIONS, parseVersion, withHeader } from './dialect.ts';
 import type { Version } from './dialect.ts';
 
 const SCENE_CHUNKS = ['sdf3d/plane', 'sdf3d/sphere', 'sdf3d/torus', 'sdf3d/round-box', 'sdfop/smooth-union'];
@@ -161,11 +161,16 @@ const raymarchGenerator: Generator = {
     name: { default: '', description: 'create a starter shader with this name: a small scene, orbiting camera, shadows, AO and fog' },
     minimal: { default: false, description: 'with --name: leave out soft shadows, ambient occlusion and fog' },
     materials: { default: false, description: 'with --name: a material id per surface, for different colors' },
-    lighting: { default: 'lambert', description: 'with --name: lambert, blinn, toon or pbr (see glsl:lighting)' },
+    lighting: { default: 'lambert', choices: LIGHTING_MODELS, description: 'with --name: lambert, blinn, toon or pbr (see glsl:lighting)' },
     parts: { default: 'all', description: 'with --into, comma-separated: march, normal, soft-shadow, ao, camera – or all' },
     into: { path: true, default: '', description: 'existing shader to add the raymarching helpers to, for your own scene()' },
-    version: { default: '300es', description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
+    version: { default: '300es', choices: VERSIONS, description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
   },
+  examples: [
+    '--name=Scene',
+    '--name=Scene --lighting=pbr --materials --dir=shaders',
+    '--parts=march,normal --into=shaders/scene.frag.glsl',
+  ],
   actions: ({ name, minimal, materials, lighting, parts, into, version }, { kebab }) => {
     const model = String(lighting);
     if (!LIGHTING_MODELS.includes(model)) {
