@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/learosema/jen/compare/pack-yeoman-v2.0.0...pack-yeoman-v2.0.1) (2026-10-18)
+
+
+### Bug Fixes
+
+* **pack-yeoman:** clarify offline guardrails ([6157841](https://github.com/learosema/jen/commit/615784180bb917c0bb512e2e2977f16e0f0f6284))
+
 ## [2.0.0](https://github.com/learosema/jen/compare/pack-yeoman-v1.0.0...pack-yeoman-v2.0.0) (2026-10-14)
 
 

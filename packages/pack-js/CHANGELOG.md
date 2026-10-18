@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/learosema/jen/compare/pack-js-v1.3.0...pack-js-v1.4.0) (2026-10-18)
+
+
+### Features
+
+* **pack-js:** add vite and esbuild scaffolds ([86fba26](https://github.com/learosema/jen/commit/86fba268c1e36e28e662de5d51be8ab6efda8250))
+
 ## [1.3.0](https://github.com/learosema/jen/compare/pack-js-v1.2.0...pack-js-v1.3.0) (2026-10-11)
 
 
