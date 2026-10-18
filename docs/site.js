@@ -57,14 +57,14 @@
 
   const SCENES = [
     {
-      cmd: 'jen cpp:class --name=rigid_body --moveOnly',
+      cmd: 'jen cpp:class --name=rigid_body --moveOnly --dir=src',
       head: 'cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources',
       rows: [['add', '+ src/RigidBody.h'], ['add', '+ src/RigidBody.cpp'], ['mod', '~ src/CMakeLists.txt  + RigidBody.cpp']],
       done: '✓ 3 written',
     },
     {
       cmd: 'jen cpp:shader --file=shaders/vignette.frag.glsl',
-      head: 'cpp:shader (pack @codejen/pack-cpp) – embed an existing GLSL file via CMake',
+      head: 'cpp:shader (pack @codejen/pack-cpp) – embed an existing GLSL file as a C string via cmake/embed-glsl.cmake, wired in at # jen:embed (write the shader with glsl:frag or by hand)',
       rows: [
         ['dim', '= cmake/embed-glsl.cmake  exists, skipped'],
         ['mod', '~ src/CMakeLists.txt  + include(${PROJECT_SOURCE_DIR}/cmake/embed-glsl.cmake)'],
@@ -74,7 +74,7 @@
     },
     {
       cmd: 'jen cpp:sdl3 --name=MyGame',
-      head: 'cpp:sdl3 (pack @codejen/pack-cpp) – SDL3 callback-based app starter',
+      head: 'cpp:sdl3 (pack @codejen/pack-cpp) – create an SDL3 callback-based app starter (<name>-core library + thin executable, vendor/ FetchContent SDL3)',
       rows: [['add', '+ my-game/CMakeLists.txt'], ['add', '+ my-game/vendor/CMakeLists.txt'], ['add', '+ my-game/src/CMakeLists.txt'], ['add', '+ my-game/src/main.cpp'], ['add', '+ my-game/src/app.h'], ['add', '+ my-game/src/app.cpp']],
       done: '✓ 6 written',
     },

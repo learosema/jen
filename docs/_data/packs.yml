@@ -22,7 +22,7 @@
     name: "@codejen/pack-js",
     langs: [TypeScript, JavaScript],
     url: "/js.html",
-    text: "Web components, ARIA keyboard patterns and type patterns – as TypeScript, JSDoc or plain JavaScript.",
+    text: "New Vite and esbuild projects, web components, ARIA keyboard patterns and type patterns – as TypeScript, JSDoc or plain JavaScript.",
   }
 - {
     name: "@codejen/pack-yeoman",

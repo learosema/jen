@@ -87,7 +87,7 @@ Nothing to install but jen itself, or not even that with `npx`. When you ask for
 
 {% include terminal.html id="install_npx" %}
 
-That automatic fetch only ever pulls from the `@codejen` scope, so a mistyped name can't install someone else's package; set `JEN_NO_FETCH=1` to turn it off. For a pack from any other scope, or a Yeoman generator, be explicit with `--from`. Apart from these two, jen never touches the network.
+That automatic fetch only ever pulls from the `@codejen` scope, so a mistyped name can't install someone else's package; set `JEN_NO_FETCH=1` to turn it off. For a pack from any other scope, or a Yeoman generator, be explicit with `--from`.
 
 {% include terminal.html id="install_from" %}
 

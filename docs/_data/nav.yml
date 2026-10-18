@@ -11,6 +11,7 @@ header:
 
 footer:
   - { title: command line, url: "/cli.html" }
+  - { title: writing generators, url: "/generators.html" }
   - { title: cpp pack recipes, url: "/recipes.html" }
   - { title: glsl pack recipes, url: "/glsl.html" }
   - { title: web pack recipes, url: "/web.html" }
