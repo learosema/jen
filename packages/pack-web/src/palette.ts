@@ -139,14 +139,8 @@ function claimsFor(groups: Group[], level: Level): Claim[] {
   return claims;
 }
 
-/** Measures every shade distance and every claimed pair; fails on any miss. */
-export function verify(groups: Group[], roles: Role[], level: Level): void {
-  const byName = new Map(groups.map((g) => [g.name, g]));
-  const roleByName = new Map(roles.map((r) => [r.name, r]));
-  const hex = (role: string, mode: 'light' | 'dark'): string => {
-    const r = roleByName.get(role) ?? fail(`web:palette: unknown role ${role}`);
-    return shadeHex(byName.get(r.group)!, r[mode]);
-  };
+/** Measures every shade distance, across colors too; fails on any miss. */
+export function verifyShades(groups: Group[], generator = 'web:palette'): void {
   for (const a of groups) {
     for (const b of groups) {
       for (let i = 0; i < SHADES; i++) {
@@ -155,12 +149,23 @@ export function verify(groups: Group[], roles: Role[], level: Level): void {
           if (j >= SHADES) continue;
           const got = contrast(a.shades[i], b.shades[j]);
           if (got < ratio) {
-            fail(`web:palette: ${a.name}-${i + 1} vs ${b.name}-${j + 1} only reach ${got.toFixed(2)}:1, below ${ratio}:1 – please report this with your flags`);
+            fail(`${generator}: ${a.name}-${i + 1} vs ${b.name}-${j + 1} only reach ${got.toFixed(2)}:1, below ${ratio}:1 – please report this with your flags`);
           }
         }
       }
     }
   }
+}
+
+/** Measures every shade distance and every claimed pair; fails on any miss. */
+export function verify(groups: Group[], roles: Role[], level: Level): void {
+  const byName = new Map(groups.map((g) => [g.name, g]));
+  const roleByName = new Map(roles.map((r) => [r.name, r]));
+  const hex = (role: string, mode: 'light' | 'dark'): string => {
+    const r = roleByName.get(role) ?? fail(`web:palette: unknown role ${role}`);
+    return shadeHex(byName.get(r.group)!, r[mode]);
+  };
+  verifyShades(groups);
   for (const claim of claimsFor(groups, level)) {
     const light = contrast(hex(claim.fg, 'light'), hex(claim.bg, 'light'));
     const dark = contrast(hex(claim.fg, 'dark'), hex(claim.bg, 'dark'));
@@ -185,7 +190,7 @@ const declarations = (groups: Group[], roles: Role[], mode: 'light' | 'dark' | '
   roles.map((r) => `${indent}--color-${r.name}: ${roleValue(groups, r, mode)};`).join('\n');
 
 /** A value as one shell word: `#5b5bd6` as is, `rgb(255 51 119)` quoted. */
-const shellWord = (value: string): string => (/^[\w#.%+-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`);
+export const shellWord = (value: string): string => (/^[\w#.%+-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`);
 
 function command(answers: Answers, tailwind: boolean): string {
   const flags = ['primary', ...BRAND.slice(1), 'neutral', ...Object.keys(STATUS)]

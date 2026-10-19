@@ -2,11 +2,12 @@
 import type { Generator } from '@codejen/jen';
 import { BASE, RESET } from './base.ts';
 import { buttonCss } from './button.ts';
-import { compositionsCss, pickCompositions } from './compositions.ts';
+import { NAMES, compositionItem } from './compositions.ts';
 import { usesTailwind, wireEntry } from './entry.ts';
 import { FLUID_PARAMS, fluidCss } from './fluid.ts';
 import { PALETTE_PARAMS, groupsFor, paletteCss } from './palette.ts';
-import { tokensFrom, utilitiesCss } from './utilities.ts';
+import { newFiles } from './single.ts';
+import { allItems, tokensFrom } from './utilities.ts';
 
 const cubeGenerator: Generator = {
   description: 'create a CUBE CSS starter: base, fluid scales, compositions, utilities (+ palette and buttons with --primary)',
@@ -21,8 +22,8 @@ const cubeGenerator: Generator = {
       { add: 'base.css', template: BASE },
       ...(palette ? [{ add: 'palette.css', template: palette }] : []),
       { add: 'fluid.css', template: fluid },
-      { add: 'compositions.css', template: compositionsCss(pickCompositions('')) },
-      ...(tailwind ? [] : [{ add: 'utilities.css', template: utilitiesCss(tokensFrom(palette, fluid)) }]),
+      ...newFiles(ctx, NAMES.map(compositionItem)),
+      ...(tailwind ? [] : newFiles(ctx, allItems(tokensFrom(palette, fluid)))),
       ...(palette ? [{ add: 'button.css', template: buttonCss(groupsFor(answers).map((g) => g.name)) }] : []),
     ];
     return wireEntry(ctx, files, tailwind);
