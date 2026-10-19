@@ -32,6 +32,8 @@ export type Params = Record<string, { default?: string | boolean; path?: boolean
 export interface Find {
   find: string | RegExp;
   containing?: string;
+  /** What the plan says if there is no such file, e.g. how to make one – instead of `no <find> containing "…" found`. */
+  missing?: string;
 }
 
 /**
@@ -72,6 +74,7 @@ export type Placed =
   | { insert: string; before: string | RegExp | number; line: string }
   | { modify: string; pattern: RegExp; replace: string }
   | { delete: string }
+  /** `skip` is the file it was about, or `''` if there is none to name. */
   | { skip: string; note: string };
 
 export interface Helpers {
@@ -204,7 +207,7 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
 
   for (const a of actions) {
     if ('skip' in a) {
-      steps.push({ mark: '?', file: resolve(ROOT, a.skip), note: a.note });
+      steps.push({ mark: '?', file: a.skip && resolve(ROOT, a.skip), note: a.note });
       continue;
     }
 
@@ -338,7 +341,8 @@ const MARK_STYLE = {
 
 export function printPlan(steps: Step[]): void {
   for (const s of steps) {
-    const note = s.note ? dim(`  ${s.note}`) : '';
-    console.log(`  ${styleText(MARK_STYLE[s.mark], s.mark)} ${relative(process.cwd(), s.file)}${note}`);
+    const file = s.file && relative(process.cwd(), s.file);
+    const note = s.note ? dim(file ? `  ${s.note}` : s.note) : '';
+    console.log(`  ${styleText(MARK_STYLE[s.mark], s.mark)} ${file}${note}`);
   }
 }

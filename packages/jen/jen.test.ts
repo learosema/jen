@@ -124,10 +124,20 @@ describe('CLI', () => {
     assert.doesNotMatch(jen(['project:nope'], { cwd: cppProject() }).stderr, /--from/);
   });
 
-  it('lists generators and exits 1 when none is given', () => {
+  it('shows the help and exits 1 when no generator is given', () => {
     const r = jen([], { cwd: cppProject() });
     assert.equal(r.code, 1);
-    assert.match(r.stdout, /class\s+project\s+C\+\+ class/);
+    assert.match(r.stdout, /the code jen\(erator\)/);
+    assert.doesNotMatch(r.stdout, /C\+\+ class/);
+  });
+
+  it("shows jen's version", () => {
+    const { version } = JSON.parse(read(import.meta.dirname, 'package.json')) as { version: string };
+    for (const flag of ['--version', '-v']) {
+      const r = jen([flag], { cwd: fixture() });
+      assert.equal(r.code, 0, r.stderr);
+      assert.equal(r.stdout, `${version}\n`);
+    }
   });
 
   it('does not run main() on import', async () => {
@@ -381,10 +391,12 @@ describe('params', () => {
     assert.equal(read(dir, 'src/Foo.h'), 'class Foo {};\n');
   });
 
-  it('fails with exit code 1 when a required param is missing', () => {
+  it('shows the params and fails with exit code 1 when a required param is missing', () => {
     const r = jen(['class'], { cwd: cppProject() });
     assert.equal(r.code, 1);
     assert.match(r.stderr, /Missing: --name/);
+    assert.match(r.stderr, /^class – C\+\+ class\n {2}--name \(required\)/);
+    assert.equal(r.stdout, '');
   });
 
   it('understands boolean values via CLI', () => {
@@ -540,7 +552,32 @@ describe('jen <generator> --help', () => {
     assert.equal(jen(['demo:hello', '--help'], { cwd: dir }).stdout, 'demo:hello – say hi\n');
   });
 
-  it('reports an unknown generator without fetching anything', () => {
+  it("lists one pack's generators by its prefix", () => {
+    const dir = fixture({
+      'package.json': JSON.stringify({ dependencies: { '@codejen/pack-demo': '*' } }),
+      'node_modules/@codejen/pack-demo/package.json': JSON.stringify({ name: '@codejen/pack-demo', type: 'module', exports: './index.mjs' }),
+      'node_modules/@codejen/pack-demo/index.mjs': `export default { hello: { description: 'say hi', actions: () => [] } };`,
+      '.jen/mine.mjs': `export const actions = () => [];`,
+    });
+    for (const args of [['demo', '--list'], ['demo']]) {
+      const r = jen(args, { cwd: dir });
+      assert.equal(r.code, 0, r.stderr);
+      assert.match(r.stdout, /demo:hello\s+pack @codejen\/pack-demo\s+say hi/);
+      assert.doesNotMatch(r.stdout, /mine|generator/);
+    }
+    const json = JSON.parse(jen(['demo', '--list', '--json'], { cwd: dir }).stdout) as Array<{ name: string }>;
+    assert.deepEqual(json.map((g) => g.name), ['demo:hello']);
+    assert.match(jen(['project', '--list'], { cwd: dir }).stdout, /mine\s+project/);
+  });
+
+  it('fails for an unknown pack when fetching is off', () => {
+    const r = jen(['lua', '--list'], { cwd: fixture() });
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /"lua" is no pack or source jen knows/);
+    assert.doesNotMatch(r.stdout + r.stderr, /Fetching/);
+  });
+
+  it('reports an unknown generator when fetching is off', () => {
     const r = jen(['lua:function', '--help'], { cwd: fixture() });
     assert.equal(r.code, 1);
     assert.match(r.stderr, /"lua:function" not found/);
@@ -1213,6 +1250,17 @@ describe('find targets', () => {
     assert.equal(r.code, 0, r.stderr);
     assert.equal(read(dir, 'src/app.cpp'), '#include <tracy>\n// jen:includes\nint main() {}\n');
     assert.equal(read(dir, 'src/other.cpp'), 'int x;\n');
+  });
+
+  it('never shows a RegExp name in the note, and takes a note of its own', () => {
+    const dir = fixture({
+      '.jen/plain.mjs': `export const actions = () => [{ insert: { find: /\\.css$/, containing: 'jen:imports' }, before: 'jen:imports', line: 'x' }];`,
+      '.jen/own.mjs': `export const actions = () => [{ insert: { find: /\\.css$/, missing: 'run jen web:base first' }, before: 'x', line: 'x' }];`,
+    });
+    const plain = jen(['plain'], { cwd: dir });
+    assert.equal(plain.code, 0, plain.stderr);
+    assert.match(plain.stdout, /\n {2}\? no file containing "jen:imports" found, skipped\n/);
+    assert.match(jen(['own'], { cwd: dir }).stdout, /\n {2}\? run jen web:base first\n/);
   });
 });
 
