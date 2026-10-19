@@ -1,15 +1,33 @@
-/** `web:compositions`: layout primitives after Every Layout (Heydon Pickering, Andy Bell) and SmolCSS (Stephanie Eckles). */
+/** Layout compositions after Every Layout (Heydon Pickering, Andy Bell) and SmolCSS (Stephanie Eckles): `web:flow`, `web:cluster`, … and `web:compositions` for several. */
 import type { Generator } from '@codejen/jen';
 import { fail } from './common.ts';
-import { importActions } from './entry.ts';
+import { bulkActions, singleActions } from './single.ts';
+import type { Item } from './single.ts';
 import { fill, template } from './templates.ts';
 
-export const FILE = 'compositions.css';
+/** Each composition, in the order `web:compositions` writes them – one template each in templates/compositions/. */
+const DESCRIPTIONS: Record<string, string> = {
+  flow: 'space the children of an element evenly, one below the other (.flow)',
+  cluster: 'wrap items in rows with even gaps, like tags or buttons (.cluster)',
+  repel: 'push two items to opposite ends of a row, like a logo and a nav (.repel)',
+  sidebar: 'a sidebar next to the content that wraps below it when space runs out (.sidebar)',
+  switcher: 'items side by side that switch to one column when there\'s too little room (.switcher)',
+  grid: 'a responsive grid with as many equal columns as fit (.grid)',
+  wrapper: 'center the content with a maximum width and room at the sides (.wrapper)',
+  center: 'center something horizontally and vertically (.center)',
+  overlay: 'stack children on top of each other, like text over an image (.overlay)',
+  breakout: 'a content column whose children can break out wide or full width (.breakout)',
+  reel: 'a row that scrolls sideways and snaps to each item (.reel)',
+  gallery: 'a gallery of images or videos in one aspect ratio (.gallery)',
+};
 
-/** The compositions, in the order they're written – one file each in templates/compositions/. */
-const NAMES = ['flow', 'cluster', 'repel', 'sidebar', 'switcher', 'grid', 'wrapper', 'center', 'overlay', 'breakout', 'reel', 'gallery'];
+export const NAMES = Object.keys(DESCRIPTIONS);
 
-export const COMPOSITIONS: Record<string, string> = Object.fromEntries(NAMES.map((n) => [n, template(`compositions/${n}.css`)]));
+export const compositionItem = (name: string): Item => ({
+  path: `compositions/${name}.css`,
+  css: fill(template('compositions.css'), { compositions: template(`compositions/${name}.css`).trimEnd() }),
+  defines: `.${name}`,
+});
 
 /** The compositions `--only` names (all if empty). */
 export function pickCompositions(only: string): string[] {
@@ -18,19 +36,24 @@ export function pickCompositions(only: string): string[] {
     .map((s) => s.trim())
     .filter(Boolean);
   for (const n of names) {
-    if (!(n in COMPOSITIONS)) fail(`web:compositions --only: unknown "${n}" – pick from ${Object.keys(COMPOSITIONS).join(', ')}`);
+    if (!NAMES.includes(n)) fail(`web:compositions --only: unknown "${n}" – pick from ${NAMES.join(', ')}`);
   }
-  return names.length ? Object.keys(COMPOSITIONS).filter((n) => names.includes(n)) : Object.keys(COMPOSITIONS);
+  return names.length ? NAMES.filter((n) => names.includes(n)) : NAMES;
 }
 
-export const compositionsCss = (names: string[]): string =>
-  fill(template('compositions.css'), { compositions: names.map((n) => COMPOSITIONS[n].trimEnd()).join('\n\n') });
+const compositionGenerator = (name: string): Generator => ({
+  description: DESCRIPTIONS[name],
+  examples: ['', '--dir=src/css'],
+  actions: (_answers, _helpers, ctx) => singleActions(ctx, `web:${name}`, compositionItem(name)),
+});
+
+export const compositionGenerators: Record<string, Generator> = Object.fromEntries(NAMES.map((n) => [n, compositionGenerator(n)]));
 
 const compositionsGenerator: Generator = {
-  description: 'create CUBE CSS compositions (flow, cluster, sidebar, grid, wrapper, breakout, reel, …)',
+  description: 'create several compositions at once, one file each (web:flow, web:cluster, …) – all by default',
   params: { only: { default: '', description: 'comma-separated compositions to pick, e.g. flow,cluster (default: all)' } },
   examples: ['', '--only=flow,cluster,sidebar'],
-  actions: ({ only }, _helpers, ctx) => [{ add: FILE, template: compositionsCss(pickCompositions(String(only))) }, ...importActions(ctx, [FILE])],
+  actions: ({ only }, _helpers, ctx) => bulkActions(ctx, pickCompositions(String(only)).map(compositionItem)),
 };
 
 export default compositionsGenerator;

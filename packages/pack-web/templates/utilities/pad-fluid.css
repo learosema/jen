@@ -1,0 +1,4 @@
+/* After Stephanie Eckles, https://smolcss.dev */
+.pad-fluid {
+  padding: clamp(var(--space-s, 1rem), 5%, var(--space-xl, 3rem));
+}

@@ -25,12 +25,13 @@ toc:
       - { title: "web:palette", id: web-palette }
       - { title: Role tokens, id: roles }
       - { title: Large text, id: large }
+      - { title: "web:color", id: web-color }
       - { title: "web:fluid", id: web-fluid }
   - title: CUBE CSS
     links:
       - { title: "web:base", id: web-base }
-      - { title: "web:compositions", id: web-compositions }
-      - { title: "web:utilities", id: web-utilities }
+      - { title: Compositions, id: web-compositions }
+      - { title: Utilities, id: web-utilities }
   - title: Blocks
     links:
       - { title: "web:button", id: web-button }
@@ -75,6 +76,8 @@ Ask for a `web:` generator without the pack installed and jen fetches `@codejen/
 
 Generators write into the folder you run them in, or `--dir`. Everything meets in one entry point: `styles.css`, made by `web:base` or `web:cube`. It declares the cascade layers in CUBE CSS order – `reset, tokens, base, compositions, utilities, blocks, exceptions` – so a later layer wins over an earlier one whatever the selectors' specificity, and it ends with a `/* jen:imports */` marker. Every other generator adds its `@import` above that marker, with the path relative to the entry point, so running one from a subfolder still wires it in right.
 
+The compositions, the utilities and `web:color` make one thing at a time, in a file of its own: `jen web:sidebar` writes `compositions/sidebar.css`, `jen web:color --name=pink` writes `colors/pink.css`. Add the next one whenever you need it. If your stylesheets already have it, like a `.sidebar` of your own, jen stops and says where, rather than adding a second one. `web:compositions`, `web:utilities` and `web:cube` make several at once, and leave out what you have.
+
 Link `styles.css` from your page, or `import './css/styles.css'` in a Vite project. The [home page]({{ '/#where' | relative_url }}) has the general rules.
 
 The boilerplate the generators write lives as plain `.css`, `.html` and `.js` files in the pack's [`templates/`](https://github.com/learosema/jen/tree/main/packages/pack-web/templates) folder, so it's easy to read and adapt; a few have `{% raw %}{{placeholders}}{% endraw %}` for the parts the generators fill in. Palettes, fluid scales and utilities are computed, so they're made in code.
@@ -83,7 +86,7 @@ The boilerplate the generators write lives as plain `.css`, `.html` and `.js` fi
 
 ### `web:cube` {#web-cube}
 
-The whole starter at once: [`web:base`](#web-base), [`web:fluid`](#web-fluid), [`web:compositions`](#web-compositions) and [`web:utilities`](#web-utilities), plus [`web:palette`](#web-palette) and [`web:button`](#web-button) when you pass `--primary`. It takes every flag of `web:palette` and `web:fluid`.
+The whole starter at once: [`web:base`](#web-base), [`web:fluid`](#web-fluid), every [composition](#web-compositions) and every [utility](#web-utilities) that fits, plus [`web:palette`](#web-palette) and [`web:button`](#web-button) when you pass `--primary`. It takes every flag of `web:palette` and `web:fluid`.
 
 {% include terminal.html id="web_cube" %}
 
@@ -137,6 +140,30 @@ Large text – at least 1.5rem, or 1.1667rem bold – needs less contrast for th
 }</pre>
 </div>
 
+### `web:color` {#web-color}
+
+Just one color, without the rest of a palette: six shades, lightest to darkest, placed by luminance like `web:palette`'s. So the same rule holds: shades 3 apart reach 4.5:1 (AA), 4 apart 7:1 (AAA). Nothing else goes in the file – which shade goes where, and in dark mode, is up to you.
+
+{% include terminal.html id="web_color" %}
+
+<div class="terminal">
+  <div class="chrome"><span></span><span></span><span></span><span class="title">src/css/colors/pink.css</span></div>
+  <pre>@layer tokens {
+  :root {
+    --color-pink-1: #fff8fa;
+    --color-pink-2: #ffa4c4;
+    --color-pink-3: #ff409a;
+    --color-pink-4: #c70071;
+    --color-pink-5: #840049;
+    --color-pink-6: #38001c;
+  }
+}</pre>
+</div>
+
+`--color` takes the same colors as `web:palette`. In a Tailwind project the shades go into `@theme`, so Tailwind makes `bg-pink-1` to `bg-pink-6` and friends. [`web:color-classes`](#web-utilities) makes `.bg-pink-1` and `.color-pink-6` without Tailwind. A color from `web:color` has no role tokens, so [`web:button`](#web-button) doesn't make a `.button--pink` for it.
+
+{% include params.html generator="web:color" %}
+
 ### `web:fluid` {#web-fluid}
 
 Fluid type and space in the style of [Utopia](https://utopia.fyi): every size grows from its value at `--minWidth` to its value at `--maxWidth` with `clamp()`. Type steps run from `--step--2` to `--step-5`; space from `--space-3xs` to `--space-3xl`, plus one-up pairs like `--space-s-m` that grow more. All lengths are rem, and the rem part of each formula keeps text zoomable.
@@ -161,9 +188,13 @@ The entry point, a modern reset and base styles for plain elements: a stable scr
 
 {% include web-preview.html src="base.html" title="Base styles" height="27rem" dual=true %}
 
-### `web:compositions` {#web-compositions}
+### Compositions {#web-compositions}
 
-Layout primitives after [Every Layout](https://every-layout.dev) and [SmolCSS](https://smolcss.dev), in the `compositions` layer. Each is tuned with custom properties that fall back to the fluid space tokens, then to fixed values. `--only=flow,cluster` picks some.
+Layout primitives after [Every Layout](https://every-layout.dev) and [SmolCSS](https://smolcss.dev), in the `compositions` layer, one generator each: `web:flow`, `web:cluster`, `web:repel`, `web:sidebar`, `web:switcher`, `web:grid`, `web:wrapper`, `web:center`, `web:overlay`, `web:breakout`, `web:reel` and `web:gallery`. Each writes `compositions/<name>.css` and imports it. Each is tuned with custom properties that fall back to the fluid space tokens, then to fixed values.
+
+{% include terminal.html id="web_sidebar" %}
+
+`web:compositions` writes several at once – all of them, or those `--only=flow,cluster` names:
 
 {% include terminal.html id="web_compositions" %}
 
@@ -205,9 +236,25 @@ A text column (`--breakout-max-width`) whose children can break out with `data-b
 
 {% include params.html generator="web:compositions" %}
 
-### `web:utilities` {#web-utilities}
+### Utilities {#web-utilities}
 
-Utility classes from your tokens, in the `utilities` layer: `.color-*` and `.bg-*` for every role token – not the raw shades, so you stay on checked pairs – `.step-*` font sizes, `.flow-space-*` and `.gutter-*` for every space size, `.pad-fluid`, `.unbreakable` and `.visually-hidden`. Run it after the tokens, and again with `--force` when they change.
+Utility classes in the `utilities` layer, one generator each, each into `utilities/<name>.css`.
+
+From your tokens – run them after the tokens, and again with `--force` when the tokens change:
+
+- **`web:color-classes --name=<color>`**: `.color-*` and `.bg-*` for one color. For a [`web:palette`](#web-palette) color, they're its role tokens (`.bg-primary-subtle`, `.color-on-primary`), not the raw shades, so you stay on checked pairs; `--name=neutral` gives the page colors (`.color-text-muted`, `.bg-surface-2`). For a [`web:color`](#web-color) color, they're its six shades: `.bg-pink-1` to `.bg-pink-6`.
+- **`web:step-classes`**: `.step-*` font sizes from [`web:fluid`](#web-fluid).
+- **`web:space-classes`**: `.flow-space-*` and `.gutter-*` for every space size from [`web:fluid`](#web-fluid).
+
+Fixed ones:
+
+- **`web:visually-hidden`**: `.visually-hidden` hides something on screen but keeps it for screen readers – until it gets focus.
+- **`web:pad-fluid`**: `.pad-fluid` padding that grows with the container.
+- **`web:unbreakable`**: `.unbreakable` lets long words and URLs break instead of overflowing.
+
+{% include terminal.html id="web_color_classes" %}
+
+`web:utilities` writes all of them that fit your tokens at once, leaving out what you have:
 
 {% include terminal.html id="web_utilities" %}
 

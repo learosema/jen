@@ -1,0 +1,5 @@
+/* After Stephanie Eckles, https://smolcss.dev */
+.unbreakable {
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
