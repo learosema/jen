@@ -101,6 +101,8 @@ Six shades per color, from your colors, as custom properties: `--color-primary-1
 
 So `--color-primary-5` text on `--color-danger-1` is AAA, without looking anything up. Besides your colors you get a neutral gray tinted toward the primary hue, and success, warning, danger and info.
 
+Colors take any CSS color – `deeppink`, `#f37`, `rgb(255 51 119)`, `hsl(340deg, 100%, 60%)`, `oklch(0.65 0.24 5)`, `lab()`, `lch()`, `hwb()`, `color(display-p3 …)` – or a bare hue in degrees like `264`. Alpha is ignored: palette colors are opaque.
+
 {% include terminal.html id="web_palette" %}
 
 {% include web-preview.html src="palette.html" title="The palette" height="32rem" dual=true caption="<code>--primary=#5b5bd6 --secondary=330</code>: labels sit at least 3 shades away from their swatch" %}
@@ -253,7 +255,7 @@ A new page after [Manuel Matuzović's HTML boilerplate](https://matuzo.at/blog/h
 
 ### `web:manifest` {#web-manifest}
 
-Makes the site installable with a `manifest.webmanifest`. It goes into `public/` in a Vite project or any project with that folder, else where you run jen. The colors come from the palette – `theme_color` from `primary`, `background_color` from `surface` – or from `--themeColor` and `--backgroundColor` (`#hex`, `oklch()` or a hue), and white without either. They're written as hex, which every browser reads. The manifest lists only the icons that exist, at the root or in `public/`. Next to a `favicon.svg`, it also writes `icon-maskable.svg`: the same icon on the background color, shrunk into the safe zone that round and rounded-square icon masks leave alone. `--into=<page.html>` links the manifest and adds `theme-color` to the page's head, one per color scheme when there's a palette. Pages you make later with `web:page` link the manifest by themselves.
+Makes the site installable with a `manifest.webmanifest`. It goes into `public/` in a Vite project or any project with that folder, else where you run jen. The colors come from the palette – `theme_color` from `primary`, `background_color` from `surface` – or from `--themeColor` and `--backgroundColor` (any CSS color, or a hue), and white without either. They're written as hex, which every browser reads. The manifest lists only the icons that exist, at the root or in `public/`. Next to a `favicon.svg`, it also writes `icon-maskable.svg`: the same icon on the background color, shrunk into the safe zone that round and rounded-square icon masks leave alone. `--into=<page.html>` links the manifest and adds `theme-color` to the page's head, one per color scheme when there's a palette. Pages you make later with `web:page` link the manifest by themselves.
 
 {% include terminal.html id="web_manifest" %}
 
@@ -338,6 +340,7 @@ Every file credits the work it builds on, in a comment at the top of the part it
 - **[Utopia](https://utopia.fyi)** by James Gilyead and Trys Mudford: the fluid type and space scales
 - **[Reasonable Colors](https://www.reasonable.work/colors/)** by Matthew Howell: the idea of shade distances that guarantee contrast
 - **[OKLab](https://bottosson.github.io/posts/oklab/)** by Björn Ottosson: the color math behind the shades
+- **[CSS Color Module Level 4](https://www.w3.org/TR/css-color-4/)** by the W3C CSS Working Group: the named colors and the conversion matrices for reading `lab()`, `lch()` and `color()`
 - **[HTML boilerplate](https://matuzo.at/blog/html-boilerplate/)** by Manuel Matuzović: `web:page`
 - **[How to Favicon in 2021](https://evilmartians.com/chronicles/how-to-favicon-in-2021-six-files-that-fit-most-needs)** by Andrey Sitnik (Evil Martians): the icon set `web:page` links and `web:manifest` lists
 - **[Web app manifest](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest)** reference by MDN: `web:manifest`
