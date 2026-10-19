@@ -1051,8 +1051,30 @@ cli_help:
 
 cli_unknown:
   - "$ jen cpp:class --name=Foo --copyable --moveonly"
-  - "cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources"
   - "cpp:class has no --copyable, --moveonly (did you mean --moveOnly?). Known: --name, --namespace, --moveOnly, --resource, --nullValue, --destroy, --withTest. (jen cpp:class --help)"
+
+cli_missing:
+  - '$ jen web:palette'
+  - 'web:palette – create a contrast-checked color palette (CSS custom properties)'
+  - '  --primary (required)  brand color: any CSS color (deeppink, #f37, rgb(), hsl(), oklch() …) or a hue in degrees'
+  - '  --secondary=""  a second brand color, same formats as --primary'
+  - '  --tertiary=""  a third brand color, same formats as --primary'
+  - '  --neutral=""  the gray''s tint (default: the primary''s hue)'
+  - '  --success=""  overrides the built-in success color'
+  - '  --warning=""  overrides the built-in warning color'
+  - '  --danger=""  overrides the built-in danger color'
+  - '  --info=""  overrides the built-in info color'
+  - '  --contrast=aaa|aa  WCAG level the role tokens meet: aaa, or aa (shades 3 apart)'
+  - '  --tailwind  write Tailwind''s @theme instead – on by itself in a Tailwind project'
+  - ''
+  - 'examples:'
+  - '  jen web:palette --primary=#5b5bd6'
+  - '  jen web:palette --primary=#5b5bd6 --secondary=330 --contrast=aa'
+  - '  npx --yes @codejen/jen web:palette --primary=#5b5bd6  (without installing jen)'
+  - ''
+  - 'docs: https://learosema.github.io/jen/web.html'
+  - ''
+  - 'Missing: --primary'
 
 cli_json:
   - '$ jen --list --json'
