@@ -184,10 +184,13 @@ const roleValue = (groups: Group[], r: Role, mode: 'light' | 'dark' | 'both'): s
 const declarations = (groups: Group[], roles: Role[], mode: 'light' | 'dark' | 'both', indent: string): string =>
   roles.map((r) => `${indent}--color-${r.name}: ${roleValue(groups, r, mode)};`).join('\n');
 
+/** A value as one shell word: `#5b5bd6` as is, `rgb(255 51 119)` quoted. */
+const shellWord = (value: string): string => (/^[\w#.%+-]+$/.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`);
+
 function command(answers: Answers, tailwind: boolean): string {
   const flags = ['primary', ...BRAND.slice(1), 'neutral', ...Object.keys(STATUS)]
     .filter((k) => answers[k])
-    .map((k) => `--${k}=${answers[k]}`);
+    .map((k) => `--${k}=${shellWord(String(answers[k]))}`);
   if (answers.contrast !== 'aaa') flags.push(`--contrast=${answers.contrast}`);
   if (tailwind) flags.push('--tailwind');
   return `jen web:palette ${flags.join(' ')}`;
@@ -283,7 +286,7 @@ ${indent(fallback(groups, roles), '  ')}
 }
 
 export const PALETTE_PARAMS: Params = {
-  primary: { description: 'brand color: #rrggbb, #rgb, oklch(L C H) or a hue in degrees' },
+  primary: { description: 'brand color: any CSS color (deeppink, #f37, rgb(), hsl(), oklch() …) or a hue in degrees' },
   secondary: { default: '', description: 'a second brand color, same formats as --primary' },
   tertiary: { default: '', description: 'a third brand color, same formats as --primary' },
   neutral: { default: '', description: 'the gray\'s tint (default: the primary\'s hue)' },

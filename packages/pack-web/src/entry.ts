@@ -63,7 +63,11 @@ export function findEntry(ctx: Context): string | null {
 export function importActions(ctx: Context, files: string[]): Action[] {
   const entry = findEntry(ctx);
   if (!entry) {
-    return files.map((f) => ({ insert: { find: CSS, containing: IMPORTS_MARKER }, before: IMPORTS_MARKER, line: importLine(f) }));
+    return files.map((f) => ({
+      insert: { find: CSS, containing: IMPORTS_MARKER, missing: `${f} isn't imported anywhere yet: @import it yourself, or run jen web:base for a styles.css that does` },
+      before: IMPORTS_MARKER,
+      line: importLine(f),
+    }));
   }
   const from = posix.dirname(entry);
   return files.map((f) => ({
