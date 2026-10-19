@@ -9,7 +9,7 @@ import { posix } from 'node:path';
 import { describe, it } from 'node:test';
 import type { Action, Answers, Context, Helpers } from '@codejen/jen';
 import pack from './src/index.ts';
-import { DISTANCE_RATIO, SHADES, contrast, hexToOklch, luminance, parseColor, targetLuminance } from './src/color.ts';
+import { DISTANCE_RATIO, SHADES, contrast, hexToOklch, luminance, oklchToHex, parseColor, targetLuminance } from './src/color.ts';
 import { groupsFor, paletteCss, rolesFor, verify } from './src/palette.ts';
 import { buttonCss } from './src/button.ts';
 import { BASE, RESET } from './src/base.ts';
@@ -83,12 +83,22 @@ describe('color math', () => {
     assert.equal(luminance('#fff'), 1);
   });
 
-  it('parses hex, oklch() and bare hues', () => {
+  it('parses any CSS color and bare hues', () => {
     assert.ok(Math.abs(hexToOklch('#ffffff').l - 1) < 1e-6);
     assert.deepEqual(parseColor('oklch(60% 0.15 264)', '--x'), { l: 0.6, c: 0.15, h: 264 });
     assert.deepEqual(parseColor('oklch(0.6 0.15 264deg)', '--x'), { l: 0.6, c: 0.15, h: 264 });
     assert.equal(parseColor('390', '--x').h, 30);
-    assert.throws(() => parseColor('rebeccapurple', '--primary'), /--primary: "rebeccapurple" is not a color/);
+    const hex = (spec: string) => oklchToHex(parseColor(spec, '--x'));
+    for (const spec of ['deeppink', 'DeepPink', '#ff1493', '#f19', '#ff149380', 'rgb(255, 20, 147)', 'rgba(255,20,147,.5)', 'rgb(255 20 147 / 50%)', 'rgb(100% 7.843% 57.647%)', 'color(srgb 1 0.07843 0.57647)']) {
+      assert.equal(hex(spec), spec === '#f19' ? '#ff1199' : '#ff1493', spec);
+    }
+    for (const spec of ['hsl(340, 100%, 60%)', 'hsla(340deg 100% 60% / .3)', 'hsl(0.94444turn 100 60)', 'hwb(340 20% 0%)']) assert.equal(hex(spec), '#ff3377', spec);
+    for (const spec of ['red', 'lab(54.29 80.8 69.89)', 'lch(54.29 106.84 40.85)', 'oklab(0.628 0.2249 0.1258)', 'oklch(62.8% 0.2577 29.23)', 'color(xyz-d65 0.4124 0.2126 0.0193)']) {
+      assert.equal(hex(spec), '#ff0000', spec);
+    }
+    assert.equal(parseColor('264deg', '--x').h, 264);
+    assert.throws(() => parseColor('bleu', '--primary'), /--primary: can't read "bleu" as a color\. Any CSS color works – deeppink, #f37/);
+    assert.throws(() => parseColor('rgb(1, 2)', '--primary'), /can't read "rgb\(1, 2\)"/);
   });
 
   it('spaces shades so the distances leave headroom', () => {
@@ -127,6 +137,10 @@ describe('web:palette', () => {
     assert.match(css, /--color-primary-subtle: light-dark\(#[0-9a-f]{6}, #[0-9a-f]{6}\);/, 'tints between shades are literal colors');
     assert.match(css, /@supports not \(color: light-dark\(#000, #fff\)\)/);
     assert.match(css, /`jen web:palette --primary=#5b5bd6 --secondary=330`/);
+    const named = template(run('palette', { primary: 'deeppink', secondary: 'rgb(255 51 119)' }, context({})), 'palette.css');
+    assert.match(named, /`jen web:palette --primary=deeppink --secondary='rgb\(255 51 119\)'`/, 'quoted so the command runs as written');
+    const plain = run('palette', { primary: 'blue' }, context({})).find((a) => 'insert' in a);
+    assert.match(JSON.stringify(plain), /palette\.css isn't imported anywhere yet: @import it yourself, or run jen web:base/);
     assert.doesNotMatch(css, PX);
   });
 
@@ -579,7 +593,8 @@ describe('web:manifest', () => {
     assert.match(hexColor('264', '--x'), /^#[0-9a-f]{6}$/);
     const m = json(run('manifest', { name: 'x', themeColor: '#123456', backgroundColor: 'oklch(0 0 0)' }, context({})));
     assert.deepEqual([m.theme_color, m.background_color], ['#123456', '#000000']);
-    assert.throws(() => run('manifest', { name: 'x', themeColor: 'teal' }, context({})), /--themeColor: "teal" is not a color/);
+    assert.equal(hexColor('teal', '--x'), '#008080');
+    assert.throws(() => run('manifest', { name: 'x', themeColor: 'tael' }, context({})), /--themeColor: can't read "tael" as a color/);
     assert.throws(() => run('manifest', { name: 'x', display: 'window' }, context({})), /--display: expected fullscreen, standalone, minimal-ui, browser/);
   });
 
