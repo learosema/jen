@@ -139,10 +139,12 @@ export function placeActions(actions: Action[], ctx: Context): Placed[] {
     const find = { containing: typeof marker === 'string' ? marker : undefined, ...t };
     const file = locate(ctx, find, ctx.destDir);
     if (file) return file;
-    const what = typeof find.find === 'string' ? find.find : String(find.find);
+    // a RegExp is no name to show anyone: say "no file" instead
+    const name = typeof find.find === 'string' ? find.find : null;
+    const containing = find.containing ? ` containing "${find.containing}"` : '';
     return {
-      skip: posix.join(ctx.destDir, what),
-      note: `no ${what}${find.containing ? ` containing "${find.containing}"` : ''} found, skipped`,
+      skip: name ? posix.join(ctx.destDir, name) : '',
+      note: find.missing ?? `no ${name ?? 'file'}${containing} found, skipped`,
     };
   };
   return actions.map((a): Placed => {

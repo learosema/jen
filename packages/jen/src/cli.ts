@@ -1,11 +1,12 @@
 /**
  * jen – the code jen(erator)
  *
- *   jen                          list available generators
+ *   jen                          the help
  *   jen class                    first generator named "class" in the search path
  *   jen cpp:class --name=Foo     explicitly from pack "jen-cpp", answer via CLI
  *   jen --list                   all generators and where they come from
  *   jen --list --json            the same for programs, with every param
+ *   jen web --list               one pack's generators (fetched if it isn't installed)
  *   jen cpp:class --help         one generator and its params
  *
  * Search path (first match wins):
@@ -297,13 +298,15 @@ function install(spec: string, extra: Extra): string {
 
   // progress goes to stderr, so stdout stays clean for --list --json
   console.error(dim(`Fetching ${name}@${version} …`));
+  // npm's own output only matters when it fails – and not even then for the @codejen fallback, which catches this
   const result = spawnSync(
     'npm',
-    ['install', `${name}@${version}`, '--prefix', dir, '--no-save', '--no-audit', '--no-fund', '--ignore-scripts'],
-    { stdio: ['inherit', process.stderr, 'inherit'], shell: process.platform === 'win32' },
+    ['install', `${name}@${version}`, '--prefix', dir, '--no-save', '--no-audit', '--no-fund', '--ignore-scripts', '--loglevel=error'],
+    { stdio: ['inherit', 'ignore', 'pipe'], encoding: 'utf8', shell: process.platform === 'win32' },
   );
   if (result.error || result.status !== 0) {
-    fail(`npm install ${name}@${version} failed${result.error ? `: ${result.error.message}` : ''}.`);
+    const why = result.error?.message ?? result.stderr.trim();
+    fail(`npm install ${name}@${version} failed${why ? `:\n${why}` : '.'}`);
   }
   return join(dir, 'package.json');
 }
@@ -335,25 +338,25 @@ async function collect(extra: Extra): Promise<Entry[]> {
 
 const qualified = (e: Entry): string => (e.prefix ? `${e.prefix}:${e.name}` : e.name);
 
+/** Whether an entry belongs to a pack prefix ("cpp") or a source ("user", "project"). */
+const under = (e: Entry, prefix: string): boolean => e.prefix === prefix || e.source === prefix || e.source.startsWith(`${prefix} `);
+
 /** "class" → first match; "cpp:class" → pack prefix; "user:class" → source. */
 function find(entries: Entry[], query: string): Entry | undefined {
   const colon = query.indexOf(':');
   const prefix = colon < 0 ? null : query.slice(0, colon);
   const name = colon < 0 ? query : query.slice(colon + 1);
-  return entries.find(
-    (e) =>
-      e.name === name &&
-      (prefix === null || e.prefix === prefix || e.source === prefix || e.source.startsWith(`${prefix} `)),
-  );
+  return entries.find((e) => e.name === name && (prefix === null || under(e, prefix)));
 }
+
+/** `prefix` if it's a plausible pack name that matches nothing we know, e.g. "lua". */
+const unknownPrefix = (entries: Entry[], prefix: string): string | null =>
+  !entries.some((e) => under(e, prefix)) && /^[a-z0-9][a-z0-9-]*$/.test(prefix) ? prefix : null;
 
 /** The prefix of "lua:function" if it's a plausible pack name that matches nothing we know, e.g. "lua". */
 function unknownPackPrefix(entries: Entry[], query: string): string | null {
   const colon = query.indexOf(':');
-  if (colon < 0) return null;
-  const prefix = query.slice(0, colon);
-  const known = entries.some((e) => e.prefix === prefix || e.source === prefix || e.source.startsWith(`${prefix} `));
-  return !known && /^[a-z0-9][a-z0-9-]*$/.test(prefix) ? prefix : null;
+  return colon < 0 ? null : unknownPrefix(entries, query.slice(0, colon));
 }
 
 /** The error for a generator that wasn't found, with the --from command for an uninstalled pack. */
@@ -377,12 +380,28 @@ function notFound(entries: Entry[], query: string): never {
  */
 async function fetchFallback(entries: Entry[], query: string, extra: Extra): Promise<Entry | undefined> {
   const prefix = unknownPackPrefix(entries, query);
-  if (!prefix || process.env.JEN_NO_FETCH) return undefined;
+  return prefix ? find(await fetchFirstParty(prefix, extra), query) : undefined;
+}
+
+/** The entries of @codejen/pack-`prefix`, fetched for this run – none if fetching is off or there's no such pack. */
+async function fetchFirstParty(prefix: string, extra: Extra): Promise<Entry[]> {
+  if (process.env.JEN_NO_FETCH) return [];
   try {
-    return find(await fetchFrom(`${FIRST_PARTY_SCOPE}/pack-${prefix}`, extra), query);
+    return await fetchFrom(`${FIRST_PARTY_SCOPE}/pack-${prefix}`, extra);
   } catch {
-    return undefined; // no such package (or npm failed) – fall through to the regular not-found error
+    return []; // no such package (or npm failed) – the caller reports it
   }
+}
+
+/**
+ * `jen web --list`: the generators of one pack (or source) – fetched like the
+ * not-found fallback if it isn't installed. Null if `query` is no pack.
+ */
+async function packEntries(entries: Entry[], query: string, extra: Extra): Promise<Entry[] | null> {
+  const known = entries.filter((e) => under(e, query));
+  if (known.length > 0) return known;
+  const fetched = unknownPrefix(entries, query) ? await fetchFirstParty(query, extra) : [];
+  return fetched.length > 0 ? fetched : null;
 }
 
 /** Each entry with whether an earlier one of the same name shadows it. */
@@ -491,10 +510,9 @@ async function listJson(entries: Entry[]): Promise<void> {
 const TRUE = /^(1|true|y|yes|on)$/i;
 const FALSE = /^(0|false|n|no|off)$/i;
 
-/** Resolves a generator's params from CLI answers and defaults. No prompting. */
+/** Resolves a generator's params from CLI answers and defaults (main() checks the required ones first). No prompting. */
 function resolveParams(generator: string, params: Params, given: Record<string, unknown>): Answers {
   const answers: Answers = {};
-  const missing: string[] = [];
   for (const [name, spec] of Object.entries(params)) {
     if (name in given) {
       const v = given[name];
@@ -508,15 +526,7 @@ function resolveParams(generator: string, params: Params, given: Record<string, 
       else fail(`${generator} --${name}: expected true or false (or yes/no), got "${v}"`);
     } else if (spec.default !== undefined) {
       answers[name] = spec.default;
-    } else {
-      missing.push(name);
     }
-  }
-  if (missing.length > 0) {
-    const usage = Object.entries(params)
-      .map(([name, spec]) => (spec.default === undefined ? `--${name}=…` : `--${name}=${spec.default}`))
-      .join(' ');
-    fail(`Missing: ${missing.map((n) => `--${n}`).join(', ')}. Usage: ${usage}`);
   }
   return answers;
 }
@@ -562,7 +572,7 @@ const HELP = `jen – the code jen(erator)
   jen [generator] [--answer=value …] [options]
 
   generator       name ("class"), with pack ("cpp:class") or source ("user:class")
-  --list,    -l   list all generators and where they come from
+  --list,    -l   list all generators and where they come from – or one pack's: jen web --list
   --json          with --list: the same as JSON, with every generator's params and examples
   --dry-run, -n   only show the plan
   --force,   -f   overwrite existing files
@@ -570,10 +580,15 @@ const HELP = `jen – the code jen(erator)
   --from          fetch a pack via npm, run it once, then remove it – or a package
                   a pack runs, e.g. a Yeoman generator: --from generator-code yeoman:code
   --help,    -h   show this help, or a generator's params: jen cpp:class --help
+                  (a generator run without its required params shows them, too)
+  --version, -v   show jen's version
 
   CLI answers always use "=": --name=Foo (flags like --moveOnly work without).
-  Without a generator name, jen lists the available ones.
+  A pack that isn't installed is fetched for that run: jen web:palette uses @codejen/pack-web.
 `;
+
+/** jen's own package.json sits next to both src/ (development) and dist/ (published). */
+const jenVersion = (): string => readPackageJson(join(dirname(import.meta.filename), '..')).version ?? 'unknown';
 
 const FLAGS = {
   list: { type: 'boolean', short: 'l' },
@@ -586,7 +601,13 @@ const FLAGS = {
 export async function main(): Promise<void> {
   const { values, positionals } = parseArgs({ allowPositionals: true, strict: false, options: FLAGS });
   const query = positionals[0];
-  if (values.help && !query) return void console.log(HELP);
+  // only without a generator, which may have a "version" or "v" param of its own
+  if (!query && (values.version === true || values.v === true)) return void console.log(jenVersion());
+  if (!query && !values.list) {
+    console.log(HELP);
+    if (!values.help) process.exitCode = 1;
+    return;
+  }
 
   const extra = noExtra();
   try {
@@ -599,39 +620,37 @@ export async function main(): Promise<void> {
       entries = await collect(extra);
     }
     // --json only means something here, so it isn't reserved: a generator may still have a "json" param
-    if (values.list) return void (await (values.json ? listJson(entries) : list(entries)));
+    const listing = (shown: Entry[]) => (values.json ? listJson(shown) : list(shown));
+    // "jen web --list", or "jen web" when no generator is called "web": that pack's generators
+    if (query && !query.includes(':') && (values.list || !find(entries, query))) {
+      const shown = await packEntries(entries, query, extra);
+      if (shown) return void (await listing(shown));
+      if (values.list) fail(`"${query}" is no pack or source jen knows – jen --list shows all.`);
+    }
+    if (values.list || !query) return void (await listing(entries));
 
-    if (!query) {
-      await list(entries);
-      process.exitCode = 1;
-      return;
-    }
-    let entry = find(entries, query);
-    if (!entry) {
-      // a fetched pack is the whole search path; a fetched package for a pack still needs that pack.
-      // --help never fetches – the not-found hint shows how.
-      const skip = values.help || (values.from && extra.packages.length === 0);
-      const fallback = skip ? undefined : await fetchFallback(entries, query, extra);
-      if (!fallback) notFound(entries, query);
-      entry = fallback;
-    }
+    const entry = find(entries, query) ?? (await fetchFallback(entries, query, extra)) ?? notFound(entries, query);
     const gen = await entry.load();
     if (values.help) return void console.log(formatGenerator(entry, gen));
     // --where was removed: fail rather than quietly write into the cwd, unless it's the generator's own param
     if ('w' in values || ('where' in values && !('where' in (gen.params ?? {})))) {
       fail('--where/-w was removed – cd into the directory and run jen there.');
     }
-    console.log(dim(`${qualified(entry)} (${entry.source})${gen.description ? ` – ${gen.description}` : ''}`));
-
     const given = Object.fromEntries(Object.entries(values).filter(([k]) => !(k in FLAGS))) as Record<string, string | boolean>;
+    if (!gen.passthrough) rejectUnknown(qualified(entry), gen.params ?? {}, given);
+    const missing = Object.entries(gen.params ?? {}).filter(([n, spec]) => spec.default === undefined && !(n in given));
+    if (missing.length > 0) {
+      console.error(`${formatGenerator(entry, gen)}\n`);
+      fail(`Missing: ${missing.map(([n]) => `--${n}`).join(', ')}`);
+    }
     const notes: string[] = [];
     const cwd = process.cwd();
     if (PROJECT && PROJECT.root !== cwd) notes.push(`root: ${relative(cwd, PROJECT.root)} (${PROJECT.marker})`);
     // --dir is the same flag everywhere, unless the generator has a param of that name itself
     const ownDir = 'dir' in (gen.params ?? {});
     const params = { dir: { default: '' }, ...gen.params };
-    if (!gen.passthrough) rejectUnknown(qualified(entry), gen.params ?? {}, given);
     const answers = resolveParams(qualified(entry), params, given);
+    console.log(dim(`${qualified(entry)} (${entry.source})${gen.description ? ` – ${gen.description}` : ''}`));
     const ctx = buildContext(ownDir ? '' : String(answers.dir), ROOT, cwd);
     const flags = ownDir ? given : Object.fromEntries(Object.entries(given).filter(([k]) => k !== 'dir'));
     ctx.args = { flags, positionals: positionals.slice(1) };
