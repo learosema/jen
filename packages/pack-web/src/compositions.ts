@@ -1,7 +1,7 @@
 /** Layout compositions after Every Layout (Heydon Pickering, Andy Bell) and SmolCSS (Stephanie Eckles): `web:flow`, `web:cluster`, … and `web:compositions` for several. */
 import type { Generator } from '@codejen/jen';
 import { fail } from './common.ts';
-import { bulkActions, singleActions } from './single.ts';
+import { INTO_PARAMS, bulkActions, singleActions } from './single.ts';
 import type { Item } from './single.ts';
 import { fill, template } from './templates.ts';
 
@@ -23,11 +23,10 @@ const DESCRIPTIONS: Record<string, string> = {
 
 export const NAMES = Object.keys(DESCRIPTIONS);
 
-export const compositionItem = (name: string): Item => ({
-  path: `compositions/${name}.css`,
-  css: fill(template('compositions.css'), { compositions: template(`compositions/${name}.css`).trimEnd() }),
-  defines: `.${name}`,
-});
+export function compositionItem(name: string): Item {
+  const rules = template(`compositions/${name}.css`).trimEnd();
+  return { path: `compositions/${name}.css`, css: fill(template('compositions.css'), { compositions: rules }), rules, defines: `.${name}` };
+}
 
 /** The compositions `--only` names (all if empty). */
 export function pickCompositions(only: string): string[] {
@@ -43,17 +42,18 @@ export function pickCompositions(only: string): string[] {
 
 const compositionGenerator = (name: string): Generator => ({
   description: DESCRIPTIONS[name],
-  examples: ['', '--dir=src/css'],
-  actions: (_answers, _helpers, ctx) => singleActions(ctx, `web:${name}`, compositionItem(name)),
+  params: INTO_PARAMS,
+  examples: ['', '--dir=src/css', '--into=css/layout.css'],
+  actions: ({ into }, _helpers, ctx) => singleActions(ctx, `web:${name}`, compositionItem(name), into),
 });
 
 export const compositionGenerators: Record<string, Generator> = Object.fromEntries(NAMES.map((n) => [n, compositionGenerator(n)]));
 
 const compositionsGenerator: Generator = {
-  description: 'create several compositions at once, one file each (web:flow, web:cluster, …) – all by default',
-  params: { only: { default: '', description: 'comma-separated compositions to pick, e.g. flow,cluster (default: all)' } },
-  examples: ['', '--only=flow,cluster,sidebar'],
-  actions: ({ only }, _helpers, ctx) => bulkActions(ctx, pickCompositions(String(only)).map(compositionItem)),
+  description: 'create several compositions at once, one file each or all --into one (web:flow, web:cluster, …) – all by default',
+  params: { only: { default: '', description: 'comma-separated compositions to pick, e.g. flow,cluster (default: all)' }, ...INTO_PARAMS },
+  examples: ['', '--only=flow,cluster,sidebar', '--only=flow,cluster --into=css/layout.css'],
+  actions: ({ only, into }, _helpers, ctx) => bulkActions(ctx, pickCompositions(String(only)).map(compositionItem), into),
 };
 
 export default compositionsGenerator;
