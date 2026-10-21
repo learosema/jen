@@ -71,10 +71,10 @@ An unknown flag stops jen, so a typo like `--moveonly` never silently changes yo
 One line per file:
 
 - **`+`**: created
-- **`~`**: changed, with the line that goes in
+- **`~`**: changed, with the line that goes in – for an insert, `file:12` is where it went
 - **`!`**: overwritten (`--force`)
 - **`-`**: deleted
-- **`info:`**: nothing to do, or a hint
+- **`info:`**: nothing to do, or a hint – e.g. that `--line="</nav>"` is on several lines, and which one was used
 - **`warning:`**: skipped – a missing file or marker, or a path outside the project
 
 Both `info:` and `warning:` exit with `0`. Real errors stop jen before the plan.
