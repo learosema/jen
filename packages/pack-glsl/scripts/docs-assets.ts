@@ -36,7 +36,7 @@ function apply(actions: Action[], files: Map<string, string>): void {
       if (!files.has(a.add)) files.set(a.add, a.template);
     } else if ('insert' in a) {
       // the GLSL generators insert into a shader they name, with a plain line
-      if (typeof a.insert !== 'string' || !('line' in a)) throw new Error('docs-assets: only plain inserts are supported');
+      if (typeof a.insert !== 'string' || !('line' in a) || a.before === undefined) throw new Error('docs-assets: only plain inserts are supported');
       const lines = (files.get(a.insert) ?? '').split('\n');
       const block = a.line.split('\n');
       if (lines.some((_, k) => block.every((b, j) => lines[k + j]?.trim() === b.trim()))) continue;

@@ -66,7 +66,7 @@ function applyActions(files: Map<string, string>, actions: Action[]): Map<string
     if ('template' in a) {
       if (!files.has(a.add)) files.set(a.add, a.template);
     } else if ('insert' in a) {
-      if (typeof a.insert !== 'string' || !('line' in a)) assert.fail('only plain inserts here');
+      if (typeof a.insert !== 'string' || !('line' in a) || a.before === undefined) assert.fail('only plain inserts here');
       const lines = (files.get(a.insert) ?? assert.fail(`missing ${a.insert}`)).split('\n');
       const block = a.line.split('\n').map((l) => l.trim());
       const present = lines.some((_, k) => block.every((b, j) => lines[k + j]?.trim() === b));
