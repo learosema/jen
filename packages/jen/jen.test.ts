@@ -245,7 +245,7 @@ describe('add + insert', () => {
     assert.equal(r.code, 0, r.stderr);
     // The second insert is already present; line 7 is one past the (now 6-line) file, so the footer is appended.
     assert.equal(read(dir, 'page.html'), '<body>\n  <header>\n    <button>Menu</button>\n    <nav></nav>\n  </header>\n</body>\n<footer></footer>\n');
-    assert.match(r.stdout, /\+ <button>Menu<\/button> at line 3/);
+    assert.match(r.stdout, /~ page\.html:3 {2}\+ <button>Menu<\/button>\n/);
     assert.match(r.stdout, /warning: page\.html has no line 9 \(7 lines\), skipped/);
     assert.match(r.stdout, /warning: page\.html has no line 0/);
   });
@@ -267,6 +267,56 @@ describe('add + insert', () => {
       '<body>\n  <nav>\n    <a href="/">Home</a>\n    <button>Menu</button>\n  </nav>\n  <footer>\n    <p>Hi</p>\n  </footer>\n</body>\n',
     );
     assert.equal(read(dir, 'app.js'), 'function f() {\n\tg();\n\th();\n}\n');
+  });
+
+  it('says which line a text marker on several lines used, and where each insert went', () => {
+    const dir = fixture({
+      'page.html': '<body>\n  <nav>\n  </nav>\n  <main></main>\n  <nav>\n  </nav>\n</body>\n',
+      '.jen/twice.mjs': `export const actions = () => [{ insert: 'page.html', before: '</nav>', line: '<a href="/">Home</a>' }];`,
+    });
+    const r = jen(['twice'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(read(dir, 'page.html'), '<body>\n  <nav>\n    <a href="/">Home</a>\n  </nav>\n  <main></main>\n  <nav>\n  </nav>\n</body>\n');
+    assert.match(r.stdout, /~ page\.html:3 {2}\+ <a href="\/">Home<\/a>\n {2}info: page\.html "<\/nav>" is on lines 3 and 6 – used line 3\n/);
+  });
+});
+
+describe('insert after', () => {
+  const INDEX = "import { users } from './users.js';\nimport { health } from './health.js';\n\nexport const routes = [\n  users,\n  health,\n];\n";
+
+  it('registers in an index file without a marker: after the last import, before the closing ];', () => {
+    const dir = fixture({
+      'src/routes/index.js': INDEX,
+      '.jen/route.mjs': `export const params = { name: {} };
+export const actions = ({ name }) => [
+  { insert: { find: 'index.js', containing: 'export const routes' }, after: /^import /, line: \`import { \${name} } from './\${name}.js';\` },
+  { insert: { find: 'index.js', containing: 'export const routes' }, before: /^\\];/, line: \`\${name},\` },
+];`,
+    });
+    for (let i = 0; i < 2; i++) assert.equal(jen(['route', '--name=orders'], { cwd: dir }).code, 0);
+    assert.equal(
+      read(dir, 'src/routes/index.js'),
+      "import { users } from './users.js';\nimport { health } from './health.js';\nimport { orders } from './orders.js';\n\nexport const routes = [\n  users,\n  health,\n  orders,\n];\n",
+    );
+  });
+
+  it('takes the text as the Find default, goes one level deeper after an opening line, and warns without a match', () => {
+    const dir = fixture({
+      'list.js': 'const xs = [\n\t1,\n];\n',
+      'plain.txt': 'a\nb',
+      '.jen/after.mjs': `export const actions = () => [
+        { insert: { find: 'list.js' }, after: 'const xs = [', line: '0,' },
+        { insert: 'plain.txt', after: 'b', line: 'c' },
+        { insert: 'plain.txt', after: /^$/, line: 'never' },
+      ];`,
+    });
+    const r = jen(['after'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(read(dir, 'list.js'), 'const xs = [\n\t0,\n\t1,\n];\n');
+    assert.equal(read(dir, 'plain.txt'), 'a\nb\nc');
+    assert.match(r.stdout, /~ list\.js:2 {2}\+ 0,\n/);
+    // the empty string after a file's last newline is no blank line
+    assert.match(r.stdout, /warning: plain\.txt has no marker \/\^\$\/, skipped/);
   });
 });
 
@@ -595,6 +645,8 @@ export default {
 `;
 
 describe('jen <generator> --help', () => {
+  const DIR_LINE = '  --dir=<folder>  where the files go (default: where you run jen)';
+
   it('shows the generator and its params, plain like the CLI', () => {
     const dir = fixture({ '.jen/class.mjs': DESCRIBED_GEN });
     const r = jen(['class', '--help'], { cwd: dir });
@@ -618,7 +670,7 @@ describe('jen <generator> --help', () => {
 
   it('shows a boolean that defaults to true with its value', () => {
     const dir = fixture({ '.jen/on.mjs': `export const params = { cmake: { default: true } }; export const actions = () => [];` });
-    assert.equal(jen(['on', '--help'], { cwd: dir }).stdout, 'on\n  --cmake=true\n');
+    assert.equal(jen(['on', '--help'], { cwd: dir }).stdout, `on\n  --cmake=true\n${DIR_LINE}\n`);
   });
 
   it('shows the pack prefix', () => {
@@ -627,7 +679,7 @@ describe('jen <generator> --help', () => {
       'node_modules/@codejen/pack-demo/package.json': JSON.stringify({ name: '@codejen/pack-demo', type: 'module', exports: './index.mjs' }),
       'node_modules/@codejen/pack-demo/index.mjs': `export default { hello: { description: 'say hi', actions: () => [] } };`,
     });
-    assert.equal(jen(['demo:hello', '--help'], { cwd: dir }).stdout, 'demo:hello – say hi\n');
+    assert.equal(jen(['demo:hello', '--help'], { cwd: dir }).stdout, `demo:hello – say hi\n${DIR_LINE}\n`);
   });
 
   it("lists one pack's generators by its prefix", () => {
@@ -655,6 +707,19 @@ describe('jen <generator> --help', () => {
     assert.doesNotMatch(r.stdout + r.stderr, /Fetching/);
   });
 
+  it("suggests close names for an unknown generator in a known pack, else that pack's list", () => {
+    const dir = fixture({
+      'package.json': JSON.stringify({ dependencies: { '@codejen/pack-demo': '*' } }),
+      'node_modules/@codejen/pack-demo/package.json': JSON.stringify({ name: '@codejen/pack-demo', type: 'module', exports: './index.mjs' }),
+      'node_modules/@codejen/pack-demo/index.mjs': `export default { stat: { actions: () => [] }, card: { actions: () => [] } };`,
+    });
+    const typo = jen(['demo:stats'], { cwd: dir });
+    assert.equal(typo.code, 1);
+    assert.match(typo.stderr, /Generator "demo:stats" not found – did you mean demo:stat\? jen demo --list shows them all\./);
+    assert.match(jen(['demo:nothing-like-it'], { cwd: dir }).stderr, /"demo:nothing-like-it" not found – jen demo --list shows them all\./);
+    assert.match(jen(['crad'], { cwd: dir }).stderr, /"crad" not found – did you mean card\? jen --list shows all\./);
+  });
+
   it('reports an unknown generator when fetching is off', () => {
     const r = jen(['lua:function', '--help'], { cwd: fixture() });
     assert.equal(r.code, 1);
@@ -676,6 +741,7 @@ describe('jen <generator> --help', () => {
         '  --name (required)',
         '  --std=23|20',
         '  --kind=a|"b c" (required)',
+        DIR_LINE,
         '',
         'examples:',
         '  jen enum --name=State --kind=a',
@@ -700,6 +766,7 @@ describe('jen <generator> --help', () => {
         'box',
         '  --into=""  a stylesheet to add it to (a path from where you run jen)',
         '  --out=""  (a path from where you run jen)',
+        DIR_LINE,
         '',
         'usage:',
         '  <div class="box">…</div>',
@@ -721,6 +788,7 @@ describe('jen <generator> --help', () => {
       jen(['demo:hello', '--help'], { cwd: dir }).stdout,
       [
         'demo:hello',
+        DIR_LINE,
         '',
         'examples:',
         '  jen demo:hello --loud',

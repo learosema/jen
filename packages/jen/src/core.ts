@@ -57,8 +57,12 @@ export type Action =
    * nesting. No duplicates. With `path` instead of `line`, the line is the
    * path of that file, relative to the folder of the file inserted into –
    * how a build file lists its sources.
+   *
+   * With `after` instead of `before`, the line goes after the last line
+   * containing (or matching) it, e.g. `after: /^import /` – at its indentation,
+   * one level deeper after an opening line (`[`, `{`, `(` at the end).
    */
-  | ({ insert: string | Find; before: string | RegExp | number } & ({ line: string } | { path: string }))
+  | ({ insert: string | Find } & InsertAt & ({ line: string } | { path: string }))
   /**
    * Search and replace via RegExp. Also handy for removing lines. A
    * multi-line `replace` is reindented to match the first match's line.
@@ -79,11 +83,14 @@ export type Action =
    */
   | { note: string; file?: string };
 
+/** Where an insert goes: `before` or `after` a marker – the other one stays undefined, so `a.before` can still be read. */
+export type InsertAt = { before: string | RegExp | number; after?: undefined } | { after: string | RegExp; before?: undefined };
+
 /** An action with its file resolved – a path from the project root – or skipped with a note. */
 export type Placed =
   | { add: string; template: string; force?: boolean }
   | { add: string; bytes: Uint8Array; force?: boolean }
-  | { insert: string; before: string | RegExp | number; line: string }
+  | ({ insert: string; line: string } & InsertAt)
   | { modify: string; pattern: RegExp; replace: string }
   | { append: string; text: string }
   | { delete: string }
@@ -141,8 +148,8 @@ export interface Generator<Result extends Action[] | Promise<Action[]> = Action[
   examples?: string[];
   /**
    * How to use what it makes, for people and AIs reading `--help` or `--list --json`: markup,
-   * custom properties, attributes – one line each, free text, e.g.
-   * `['<div class="sidebar"><aside>…</aside><main>…</main></div>', '--sidebar-target: 20rem  the sidebar\'s width']`.
+   * custom properties (as CSS, so they don't read like flags), attributes – one line each, free text, e.g.
+   * `['<div class="sidebar"><aside>…</aside><main>…</main></div>', '.sidebar { --sidebar-target: 20rem; }  the sidebar\'s width']`.
    */
   usage?: string[];
   /** Accept flags that aren't params and hand them on through `ctx.args`, e.g. to a Yeoman generator's prompts. */
@@ -201,7 +208,23 @@ export const dim = (s: string): string => styleText('dim', s);
 export interface Step {
   mark: '+' | '~' | '!' | '-' | 'info' | 'warning';
   file: string;
+  /** Where an insert went (1-based), shown as `file:line`. */
+  line?: number;
   note?: string;
+}
+
+/** Whether line `l` holds a text marker (contains it) or matches a RegExp one. */
+function hasMarker(l: string, marker: string | RegExp): boolean {
+  if (typeof marker === 'string') return l.includes(marker);
+  marker.lastIndex = 0; // a /g or /y RegExp would otherwise carry state between lines
+  return marker.test(l);
+}
+
+/** "12 and 37", "3, 12 and 37" – a few line numbers (1-based) for a note. */
+function lineList(ns: number[]): string {
+  const shown = ns.slice(0, 5).map(String);
+  if (ns.length > 5) return `${shown.join(', ')} … (${ns.length} in all)`;
+  return shown.length > 1 ? `${shown.slice(0, -1).join(', ')} and ${shown.at(-1)}` : shown.join('');
 }
 
 const isFile = (f: string): boolean => existsSync(f) && statSync(f).isFile();
@@ -291,20 +314,17 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
         steps.push({ mark: 'info', file, note: `already has ${block[0].trim()}${block.length > 1 ? ' …' : ''}` });
         continue;
       }
-      const marker = a.before;
+      const after = a.after !== undefined;
+      const marker = a.after !== undefined ? a.after : a.before;
       // A file ending in a newline splits into one more (empty) element: the last line counts, the empty one doesn't.
       const lineCount = text.endsWith('\n') ? lines.length - 1 : lines.length;
-      const i =
+      const hits =
         typeof marker === 'number'
           ? Number.isInteger(marker) && marker >= 1 && marker <= lineCount + 1
-            ? marker - 1
-            : -1
-          : lines.findIndex((l) => {
-              if (typeof marker === 'string') return l.includes(marker);
-              marker.lastIndex = 0; // a /g or /y RegExp would otherwise carry state between lines
-              return marker.test(l);
-            });
-      if (i < 0) {
+            ? [marker - 1]
+            : []
+          : lines.slice(0, lineCount).flatMap((l, n) => (hasMarker(l, marker) ? [n] : []));
+      if (hits.length === 0) {
         const note =
           typeof marker === 'number'
             ? `has no line ${marker} (${lineCount} lines), skipped`
@@ -312,18 +332,22 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
         steps.push({ mark: 'warning', file, note });
         continue;
       }
+      // before: the first line with the marker; after: the last one
+      const anchor = after ? hits[hits.length - 1] : hits[0];
+      const i = after ? anchor + 1 : anchor;
       const target = indentTargetFor(file, text);
-      // Before a closing line (`</nav>`, `}`, `)`, `]`), the insert goes inside: one level deeper.
-      const closing = /^\s*(?:<\/|[)}\]])/.test(lines[i]);
-      const baseIndent = (lines[i].match(/^\s*/)?.[0] ?? '') + (closing ? (target.style === 'tab' ? '\t' : ' '.repeat(target.size)) : '');
+      const anchorLine = lines[anchor] ?? '';
+      // Before a closing line (`</nav>`, `}`, `)`, `]`), or after an opening one (`[`, `{`, `(`), the insert goes inside: one level deeper.
+      const inside = after ? /[[{(]\s*$/.test(anchorLine) : /^\s*(?:<\/|[)}\]])/.test(anchorLine);
+      const baseIndent = (anchorLine.match(/^\s*/)?.[0] ?? '') + (inside ? (target.style === 'tab' ? '\t' : ' '.repeat(target.size)) : '');
       const rendered = reindentBlock(block, baseIndent, target);
       lines.splice(i, 0, ...rendered);
       changes.set(file, lines.join('\n'));
-      steps.push({
-        mark: '~',
-        file,
-        note: `+ ${block[0].trim()}${block.length > 1 ? ` (+${block.length - 1} more)` : ''}${typeof marker === 'number' ? ` at line ${marker}` : ''}`,
-      });
+      steps.push({ mark: '~', file, line: i + 1, note: `+ ${block[0].trim()}${block.length > 1 ? ` (+${block.length - 1} more)` : ''}` });
+      // text a person typed (`--line="</nav>"`) may well be on more than one line: say which one was used
+      if (typeof marker === 'string' && !after && hits.length > 1) {
+        steps.push({ mark: 'info', file, note: `"${marker}" is on lines ${lineList(hits.map((n) => n + 1))} – used line ${anchor + 1}` });
+      }
     } else {
       const replace = a.replace.includes('\n')
         ? reindentReplace(text, a.pattern, a.replace, indentTargetFor(file, text))
@@ -400,6 +424,6 @@ export function printPlan(steps: Step[]): void {
       continue;
     }
     const note = s.note ? dim(`  ${s.note}`) : '';
-    console.log(`  ${styleText(MARK_STYLE[s.mark], s.mark)} ${file}${note}`);
+    console.log(`  ${styleText(MARK_STYLE[s.mark], s.mark)} ${file}${s.line ? `:${s.line}` : ''}${note}`);
   }
 }
