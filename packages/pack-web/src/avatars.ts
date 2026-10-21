@@ -14,10 +14,10 @@ const avatarsGenerator: Generator = {
   examples: ['--dir=src/css'],
   usage: [
     '<ul class="avatars"><li><a href="…"><img src="…" alt="…"></a></li><li>…</li></ul>',
-    ...props([['--avatar-size: 3.5rem', 'each avatar\'s width – set it on .avatars itself']]),
+    ...props('.avatars', [['--avatar-size: 3.5rem', 'each avatar\'s width – on .avatars itself']]),
   ],
   actions: (_answers, _helpers, ctx) => {
-    paletteColors(ctx);
+    paletteColors(ctx, 'web:avatars');
     return [{ add: FILE, template: AVATARS }, ...importActions(ctx, [FILE])];
   },
 };

@@ -221,6 +221,36 @@ describe('web:button', () => {
   });
 });
 
+describe('where new CSS lands', () => {
+  const palette = paletteCss({ primary: '#5b5bd6', contrast: 'aa' });
+  const project = { 'css/styles.css': '/* jen:imports */', 'css/palette.css': palette };
+
+  it('says when the entry point is in another folder and --dir would put the file next to it', () => {
+    const actions = run('card', {}, context(project));
+    assert.deepEqual(lines(actions), ['@import "../card.css";']);
+    assert.deepEqual(notes(actions), ['styles.css is in css/ – pass --dir=css to put card.css next to it']);
+    assert.ok(notes(run('cube', {}, context(project))).includes('styles.css is in css/ – pass --dir=css to put the new files next to it'));
+  });
+
+  it('says nothing with --dir, below the entry, or for a file --into placed', () => {
+    assert.deepEqual(notes(run('card', {}, { ...context(project, 'css'), cwd: '.' })), []);
+    assert.deepEqual(notes(run('card', {}, context(project, 'css/blocks'))), []);
+    assert.deepEqual(notes(run('flow', { into: '/layout.css' }, context(project))), []);
+  });
+
+  it('says when the entry already imports a file of that name from elsewhere', () => {
+    const before = { ...project, 'css/styles.css': '@import "../card.css";\n/* jen:imports */' };
+    const actions = run('card', {}, { ...context(before, 'css'), cwd: '.' });
+    assert.deepEqual(lines(actions), ['@import "./card.css";']);
+    assert.deepEqual(notes(actions), ['/css/styles.css also imports "../card.css" – drop that line if it\'s an old copy of card.css']);
+  });
+
+  it('names the generator that needs a palette', () => {
+    assert.throws(() => run('card', {}, context({})), /^Error: web:card needs a palette/);
+    assert.throws(() => run('avatars', {}, context({})), /^Error: web:avatars needs a palette/);
+  });
+});
+
 describe('web:fluid', () => {
   const css = (answers: Answers = {}) => template(run('fluid', answers, context({})), 'fluid.css');
 
@@ -285,16 +315,21 @@ describe('usage', () => {
       assert.ok(g.usage?.length, `${name} has usage`);
       const actions = run(name, { name: 'x' }, context(project, 'css'));
       const css = actions.flatMap((a) => ('add' in a && 'template' in a && a.add.endsWith('.css') ? [a.template] : [])).join('\n');
-      for (const line of g.usage ?? []) {
-        const prop = /^(--[a-z-]+)/.exec(line)?.[1];
-        if (prop) assert.match(css, new RegExp(`(var\\(|^\\s*)${prop}\\b`, 'm'), `${name}: ${prop}`);
-      }
+      const props = (g.usage ?? []).flatMap((line) => /^\S+ \{ (--[a-z-]+):/.exec(line)?.[1] ?? []);
+      assert.ok(name === 'center' || name === 'overlay' || props.length, `${name} shows its custom properties`);
+      for (const prop of props) assert.match(css, new RegExp(`(var\\(|^\\s*)${prop}\\b`, 'm'), `${name}: ${prop}`);
     }
   });
 
   it('says how the sidebar works', () => {
     assert.deepEqual(pack.sidebar.usage?.slice(0, 2), ['<div class="sidebar"><aside>…</aside><main>…</main></div>', 'the first child is the sidebar; data-direction="end" makes it the last']);
-    assert.ok(pack.sidebar.usage?.some((l) => /^--sidebar-content-min: 50% +the content's narrowest width before both stack$/.test(l)));
+    assert.ok(pack.sidebar.usage?.some((l) => /^\.sidebar \{ --sidebar-content-min: 50%; \} +the content's narrowest width before both stack$/.test(l)));
+  });
+
+  it('writes custom properties as CSS, never like a flag', () => {
+    for (const [name, g] of Object.entries(pack)) {
+      for (const line of g.usage ?? []) assert.doesNotMatch(line, /^--/, `${name}: ${line}`);
+    }
   });
 });
 

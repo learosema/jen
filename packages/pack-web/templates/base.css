@@ -90,6 +90,20 @@
     border-block-start: thin solid var(--color-border, GrayText);
   }
 
+  /* Text fields on the palette's checked pairs, so a form doesn't fall back to the browser's own colors. */
+  :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="submit"], [type="reset"], [type="button"], [type="image"]), select, textarea) {
+    border: thin solid var(--color-border, GrayText);
+    border-radius: 0.25em;
+    padding: 0.375em 0.5em;
+    background: var(--color-surface, Field);
+    color: var(--color-text, FieldText);
+  }
+
+  ::placeholder {
+    color: var(--color-text-muted, GrayText);
+    opacity: 1;
+  }
+
   code,
   kbd,
   pre,

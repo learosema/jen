@@ -21,27 +21,27 @@ const DESCRIPTIONS: Record<string, string> = {
   gallery: 'a gallery of images or videos in one aspect ratio',
 };
 
-const GUTTER: [string, string] = ['--gutter', 'the gap (default --space-s-m, else 1rem)'];
+const GUTTER: [string, string] = ['--gutter: var(--space-s-m, 1rem)', 'the gap'];
 
 /** How to use each one: its markup and the custom properties it reads, defaults from its template. */
 const USAGE: Record<string, string[]> = {
   flow: [
     '<div class="flow"><h2>…</h2><p>…</p><p>…</p></div>',
-    ...props([['--flow-space: 1em', 'the space between the children – on one child, the space above it']]),
+    ...props('.flow', [['--flow-space: 1em', 'the space between the children – on one child, the space above it']]),
   ],
   cluster: [
     '<ul class="cluster" role="list"><li>…</li><li>…</li></ul>',
-    ...props([['--cluster-justify: flex-start', 'where the rows line up: center, space-between …'], ['--cluster-align: center', 'how items line up across a row'], GUTTER]),
+    ...props('.cluster', [['--cluster-justify: flex-start', 'where the rows line up: center, space-between …'], ['--cluster-align: center', 'how items line up across a row'], GUTTER]),
   ],
   repel: [
     '<header class="repel"><a href="/">…</a><nav>…</nav></header>',
     'the two children go to either end, and stack when there\'s no room for both',
-    ...props([['--repel-align: center', 'how they line up across the row'], GUTTER]),
+    ...props('.repel', [['--repel-align: center', 'how they line up across the row'], GUTTER]),
   ],
   sidebar: [
     '<div class="sidebar"><aside>…</aside><main>…</main></div>',
     'the first child is the sidebar; data-direction="end" makes it the last',
-    ...props([
+    ...props('.sidebar', [
       ['--sidebar-target: 20rem', 'the sidebar\'s width'],
       ['--sidebar-content-min: 50%', 'the content\'s narrowest width before both stack'],
       GUTTER,
@@ -50,11 +50,11 @@ const USAGE: Record<string, string[]> = {
   switcher: [
     '<div class="switcher"><div>…</div><div>…</div><div>…</div></div>',
     'five or more children always stack',
-    ...props([['--switcher-threshold: 30rem', 'below this width, the children stack'], GUTTER]),
+    ...props('.switcher', [['--switcher-threshold: 30rem', 'below this width, the children stack'], GUTTER]),
   ],
   grid: [
     '<ul class="grid" role="list"><li>…</li><li>…</li><li>…</li></ul>',
-    ...props([
+    ...props('.grid', [
       ['--grid-min-item-size: 16rem', 'each column\'s narrowest width: as many columns as fit'],
       ['--grid-placement: auto-fit', 'auto-fill keeps empty columns, so a few items don\'t stretch'],
       GUTTER,
@@ -62,23 +62,23 @@ const USAGE: Record<string, string[]> = {
   ],
   wrapper: [
     '<main class="wrapper">…</main>',
-    ...props([['--wrapper-max-width: 75rem', 'the widest it gets'], ['--wrapper-gutter', 'the least room at the sides (default --space-s-l, else 1rem)']]),
+    ...props('.wrapper', [['--wrapper-max-width: 75rem', 'the widest it gets'], ['--wrapper-gutter: var(--space-s-l, 1rem)', 'the least room at the sides']]),
   ],
   center: ['<div class="center" style="min-block-size: 100dvb">…</div>', 'centers its content in its own size, so give it one'],
   overlay: ['<div class="overlay"><img src="…" alt=""><h2>…</h2></div>', 'every child fills the same grid cell; later ones are on top'],
   breakout: [
     '<article class="breakout"><p>…</p><figure data-breakout="wide">…</figure><img data-breakout="full" src="…" alt=""></article>',
     'children stay in the text column; data-breakout="wide" or "full" lets one out',
-    ...props([
+    ...props('.breakout', [
       ['--breakout-max-width: 65ch', 'the text column'],
       ['--breakout-wide: 10rem', 'how far wide children reach past it on each side'],
-      ['--breakout-gutter', 'the least room at the sides (default --space-s-l, else 1rem) – set it on .breakout itself'],
+      ['--breakout-gutter: var(--space-s-l, 1rem)', 'the least room at the sides – on .breakout itself'],
     ]),
   ],
-  reel: ['<ul class="reel" role="list"><li>…</li><li>…</li></ul>', ...props([['--reel-item-size: min(80%, 20rem)', 'each item\'s width'], GUTTER])],
+  reel: ['<ul class="reel" role="list"><li>…</li><li>…</li></ul>', ...props('.reel', [['--reel-item-size: min(80%, 20rem)', 'each item\'s width'], GUTTER])],
   gallery: [
     '<ul class="gallery" role="list"><li><img src="…" alt="…"></li><li><img src="…" alt="…"></li></ul>',
-    ...props([['--gallery-min-item-size: 12rem', 'each item\'s narrowest width'], ['--gallery-ratio: 4 / 3', 'the images\' and videos\' aspect ratio'], GUTTER]),
+    ...props('.gallery', [['--gallery-min-item-size: 12rem', 'each item\'s narrowest width'], ['--gallery-ratio: 4 / 3', 'the images\' and videos\' aspect ratio'], GUTTER]),
   ],
 };
 

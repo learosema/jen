@@ -49,7 +49,8 @@ function intoActions(ctx: Context, items: Item[], path: string, standalone = fal
   const empty = (text ?? '').trim() === '';
   const appends = items.map((item, i): Action => ({ append: path, text: `${empty && i === 0 ? '' : '\n'}${item.rules.trimEnd()}` }));
   const entry = findEntry(ctx);
-  const imports = entry === posix.join(ctx.destDir, path) ? [] : importActions(ctx, [path]);
+  // --into named the place itself: no hint to put it elsewhere
+  const imports = entry === posix.join(ctx.destDir, path) ? [] : importActions(ctx, [path], false);
   if (text !== null) return [...appends, ...imports];
   if (entry || standalone || path === ENTRY) return [{ add: path, template: '' }, ...appends, ...(entry ? imports : [])];
   return [{ add: path, template: '' }, ...appends, { add: ENTRY, template: entryCss([path]) }];

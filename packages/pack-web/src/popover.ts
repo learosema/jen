@@ -3,7 +3,7 @@ import type { Generator } from '@codejen/jen';
 import { importActions } from './entry.ts';
 import { props } from './common.ts';
 import { fill, template } from './templates.ts';
-import { LINE_PARAMS, lineParam, sentence, triggerAndElement } from './html.ts';
+import { lineParam, lineParams, sentence, triggerAndElement } from './html.ts';
 
 export const FILE = 'popover.css';
 
@@ -19,14 +19,14 @@ const popoverGenerator: Generator = {
   description: 'create an anchored .popover block (and with --into, a button that toggles it, and the popover)',
   params: {
     name: { description: 'id, and the label from it: user-menu makes "User menu"' },
-    ...LINE_PARAMS,
+    ...lineParams(FILE, 'popover'),
   },
   examples: ['--name=user-menu --into=index.html'],
   usage: [
     '<button type="button" popovertarget="menu" style="anchor-name: --menu">…</button>',
     '<div id="menu" class="popover" popover style="position-anchor: --menu">…</div>',
     'the anchor name ties the popover to its button; without anchor positioning, it opens centered',
-    ...props([['--popover-offset: 0.25rem', 'the gap to the button'], ['--popover-radius: 0.5rem', 'the corners']]),
+    ...props('.popover', [['--popover-offset: 0.25rem', 'the gap to the button'], ['--popover-radius: 0.5rem', 'the corners']]),
   ],
   actions: (answers, { kebab }, ctx) => {
     const at = lineParam('web:popover', answers, ctx);
