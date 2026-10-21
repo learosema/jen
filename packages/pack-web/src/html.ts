@@ -2,7 +2,7 @@
  * Markup for `--into=<page.html>`: blocks go in before `--line`, else before
  * `</body>`, so any page works without a marker; jen skips blocks the page already has.
  */
-import type { Action, Answers, Context } from '@codejen/jen';
+import type { Action, Answers, Context, Params } from '@codejen/jen';
 import { fail } from './common.ts';
 
 const BODY_END = /<\/body>/;
@@ -46,7 +46,16 @@ export function lineParam(generator: string, { into, line }: Answers, ctx: Conte
   return n;
 }
 
-export const LINE_PARAMS = {
-  into: { path: true, default: '', description: 'a page to add the markup to, before </body> – only adds, never rewrites' },
-  line: { default: '', description: 'with --into: put it before this line instead – a number, or text on that line like </nav>' },
-};
+/**
+ * `--into` and `--line` for a generator that writes `file` and adds markup to a page – a trigger button
+ * at `--line` and the `element` it opens before `</body>`, or without `element`, one piece of markup.
+ */
+export const lineParams = (file: string, element?: string): Params => ({
+  into: { path: true, default: '', description: `a page to add the markup to, before </body> – only adds, never rewrites; ${file} still goes where you run jen, or --dir` },
+  line: {
+    default: '',
+    description: element
+      ? `with --into: put the button before this line instead – a number, or text on that line like </nav>; the ${element} itself always goes before </body>`
+      : 'with --into: put it before this line instead – a number, or text on that line like </nav>',
+  },
+});

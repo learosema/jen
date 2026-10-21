@@ -15,7 +15,7 @@ import { allItems, tokensFrom } from './utilities.ts';
 const layered = (path: string, css: string, defines: string): Item => ({ path, css, rules: unlayer(css), defines });
 
 const cubeGenerator: Generator = {
-  description: 'create a CUBE CSS starter: base, fluid scales, compositions, utilities (+ palette and buttons with --primary)',
+  description: 'create a CUBE CSS starter: base, fluid scales, and every composition and utility at once (+ palette and buttons with --primary)',
   params: {
     ...PALETTE_PARAMS,
     primary: { default: '', description: 'brand color – adds the palette and buttons: any CSS color (deeppink, #f37, rgb(), hsl(), oklch() …) or a hue in degrees' },

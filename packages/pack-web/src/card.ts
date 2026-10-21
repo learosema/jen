@@ -15,7 +15,7 @@ const cardGenerator: Generator = {
   usage: [
     '<article class="card"><img src="…" alt=""><h3>…</h3><p>…</p><footer>…</footer></article>',
     'media first or last (img, picture, video, .card__media) goes edge to edge; the last child sits at the bottom',
-    ...props([
+    ...props('.card', [
       ['--card-padding: var(--space-s-m, 1.25rem)', 'the padding – on the card, or on a parent for all its cards'],
       ['--card-gap: var(--space-xs, 0.75rem)', 'the space between the children'],
       ['--card-radius: 0.75rem', 'the corners'],
@@ -23,7 +23,7 @@ const cardGenerator: Generator = {
     ]),
   ],
   actions: (_answers, _helpers, ctx) => {
-    paletteColors(ctx);
+    paletteColors(ctx, 'web:card');
     return [{ add: FILE, template: CARD }, ...importActions(ctx, [FILE])];
   },
 };

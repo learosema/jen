@@ -55,11 +55,42 @@ export function findEntry(ctx: Context): string | null {
   return ctx.grep(CSS, IMPORTS_MARKER)[0] ?? null;
 }
 
+const IMPORT = /@import\s+(?:url\(\s*)?["']([^"']+)["']/g;
+
+/** `./a.css` and `a.css` are the same import. */
+const bare = (path: string): string => path.replace(/^\.\//, '');
+
+/** Whether `dir` is `base` or a folder below it (both relative to the root). */
+const isBelow = (dir: string, base: string): boolean => base === '.' || dir === base || dir.startsWith(`${base}/`);
+
 /**
- * `@import` lines for `files` (relative to the destination) in the entry. With
- * no entry, a `Find` insert that jen shows as skipped, so the plan says why.
+ * `info:` notes for files that don't land next to the entry, when `--dir` wasn't given (`destDir` is where
+ * you stand) – `jen web:card` at the root with `css/styles.css` would write `./card.css` – and for an
+ * entry that already imports a file of the same name from somewhere else, e.g. from before such a rerun.
  */
-export function importActions(ctx: Context, files: string[]): Action[] {
+function importNotes(ctx: Context, entry: string, files: string[], imports: string[]): Action[] {
+  const notes: Action[] = [];
+  const dir = posix.dirname(entry);
+  const away = files.filter((f) => !isBelow(posix.dirname(posix.join(ctx.destDir, f)), dir));
+  if (away.length && ctx.destDir === ctx.cwd) {
+    const there = posix.relative(ctx.cwd, dir) || '.';
+    const what = away.length === 1 ? away[0] : 'the new files';
+    notes.push({ note: `${posix.basename(entry)} is in ${there}/ – pass --dir=${there} to put ${what} next to it` });
+  }
+  const existing = [...(ctx.read(entry) ?? '').matchAll(IMPORT)].map((m) => m[1]);
+  for (const path of imports) {
+    const other = existing.find((p) => bare(p) !== bare(path) && posix.basename(p) === posix.basename(path));
+    if (other) notes.push({ note: `also imports "${other}" – drop that line if it's an old copy of ${posix.basename(path)}`, file: `/${entry}` });
+  }
+  return notes;
+}
+
+/**
+ * `@import` lines for `files` (relative to the destination) in the entry, with notes on where they landed
+ * (unless `hint` is off – for a file whose place the user named, like `--into`). With no entry, a `Find`
+ * insert that jen shows as skipped, so the plan says why.
+ */
+export function importActions(ctx: Context, files: string[], hint = true): Action[] {
   const entry = findEntry(ctx);
   if (!entry) {
     return files.map((f) => ({
@@ -69,11 +100,9 @@ export function importActions(ctx: Context, files: string[]): Action[] {
     }));
   }
   const from = posix.dirname(entry);
-  return files.map((f) => ({
-    insert: `/${entry}`,
-    before: IMPORTS_MARKER,
-    line: importLine(posix.relative(from, posix.join(ctx.destDir, f))),
-  }));
+  const paths = files.map((f) => posix.relative(from, posix.join(ctx.destDir, f)));
+  const inserts = paths.map((p): Action => ({ insert: `/${entry}`, before: IMPORTS_MARKER, line: importLine(p) }));
+  return hint ? [...inserts, ...importNotes(ctx, entry, files, paths)] : inserts;
 }
 
 /** `./`-relative even in the same folder: Tailwind (and bundlers) read a bare name as a package. */

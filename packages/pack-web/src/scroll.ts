@@ -2,7 +2,7 @@
 import type { Generator } from '@codejen/jen';
 import { importActions } from './entry.ts';
 import { template } from './templates.ts';
-import { LINE_PARAMS, intoPage, lineParam } from './html.ts';
+import { intoPage, lineParam, lineParams } from './html.ts';
 
 export const FILE = 'scroll.css';
 
@@ -12,7 +12,7 @@ export const PROGRESS_MARKUP = '<div class="reading-progress" aria-hidden="true"
 
 const scrollGenerator: Generator = {
   description: 'create scroll-driven animations: reading progress, reveal, parallax',
-  params: LINE_PARAMS,
+  params: lineParams(FILE),
   examples: ['--into=index.html'],
   actions: (answers, _helpers, ctx) => {
     const at = lineParam('web:scroll', answers, ctx);

@@ -188,7 +188,7 @@ ${[5, 4, 3, 2, 1, 0, -1, -2].map((n) => `<p class="step-${n}">step ${n}</p>`).jo
 <p>Body text in <code>--step-0</code> with a <a href="#">link</a>. Paragraphs wrap with <code>text-wrap: pretty</code>.</p>
 <ul><li data-icon="✅">List items with</li><li data-icon="🎨">icons from data-icon</li></ul>
 <hr>
-<p><button class="button">Focus me with Tab</button></p>
+<p class="cluster"><input aria-label="A text field" placeholder="A text field"><button class="button">Focus me with Tab</button></p>
 </div>`,
   ),
   'compositions-flow.html': page('.flow', `<div class="flow">${boxes(3)}</div>`),

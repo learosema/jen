@@ -10,10 +10,10 @@ export const FILE = 'button.css';
 /** Color modifiers: brand colors other than primary, and danger – in this order, if the palette has them. */
 const COLOR_MODIFIERS = [...BRAND.slice(1), 'danger'];
 
-/** Names of the colors defined in the project's palette, or a failure explaining how to make one. */
-export function paletteColors(ctx: Context): string[] {
+/** Names of the colors defined in the project's palette, or a failure explaining how to make one, naming `generator`. */
+export function paletteColors(ctx: Context, generator: string): string[] {
   const file = ctx.grep(/\.css$/, '--color-primary-1:')[0];
-  if (!file) fail('web:button needs a palette – run `jen web:palette --primary=<color>` first');
+  if (!file) fail(`${generator} needs a palette – run \`jen web:palette --primary=<color>\` first`);
   const css = ctx.read(file) ?? '';
   return [...css.matchAll(/--color-([a-z]+)-1:/g)].map((m) => m[1]);
 }
@@ -36,16 +36,16 @@ const buttonGenerator: Generator = {
     '<button type="button" class="button">…</button> or <a class="button" href="…">…</a>',
     'colors: button--secondary, button--tertiary, button--danger – those the palette has',
     'styles: button--outline, button--ghost, button--pill, button--small, button--large',
-    'your own variant sets these in a modifier:',
-    ...props([
-      ['--button-bg', 'the fill (default --color-primary)'],
-      ['--button-bg-hover', 'the fill on hover (default --color-primary-strong)'],
-      ['--button-fg', 'the text (default --color-on-primary)'],
-      ['--button-fg-hover', 'the text on hover (default --button-fg)'],
-      ['--button-border', 'the border (default transparent – drawn in forced-colors mode)'],
+    'your own variant sets these in a modifier, shown here with their defaults:',
+    ...props('.button--mine', [
+      ['--button-bg: var(--color-primary)', 'the fill'],
+      ['--button-bg-hover: var(--color-primary-strong)', 'the fill on hover'],
+      ['--button-fg: var(--color-on-primary)', 'the text'],
+      ['--button-fg-hover: var(--button-fg)', 'the text on hover'],
+      ['--button-border: transparent', 'the border – drawn in forced-colors mode'],
     ]),
   ],
-  actions: (_answers, _helpers, ctx) => [{ add: FILE, template: buttonCss(paletteColors(ctx)) }, ...importActions(ctx, [FILE])],
+  actions: (_answers, _helpers, ctx) => [{ add: FILE, template: buttonCss(paletteColors(ctx, 'web:button')) }, ...importActions(ctx, [FILE])],
 };
 
 export default buttonGenerator;
