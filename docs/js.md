@@ -6,7 +6,7 @@ description: "Every jen command in @codejen/pack-js: new Vite and esbuild projec
 eyebrow: "@codejen/pack-js"
 mega: scripts
 lede: Every generator, with the command, the output it prints, and the code it makes – running live.
-sub: A new Vite or esbuild project, then web components, keyboard navigation and type patterns for it – or for the project you already have. TypeScript, JSDoc or plain JavaScript – whatever your project uses.
+sub: Vite and esbuild projects, web components, keyboard navigation and type patterns – in TypeScript, JSDoc or plain JavaScript.
 cta: { text: "Three ways to install ↓", url: "#install" }
 toc:
   - title: Install
@@ -49,7 +49,7 @@ toc:
 
 ## Install {#install}
 
-Same three ways as every jen pack. The pack writes source files into your project – nothing it writes depends on the pack or on any library.
+The generated code depends on nothing.
 
 ### Globally {#install-global}
 
@@ -61,33 +61,29 @@ Same three ways as every jen pack. The pack writes source files into your projec
 
 ### Not at all {#install-npx}
 
-Ask for a `js:` generator without the pack installed and jen fetches `@codejen/pack-js` into a throwaway directory, runs it once and removes it again (first-party `@codejen` scope only; `JEN_NO_FETCH=1` turns it off).
+Any `js:` generator without the pack fetches it for one run (`JEN_NO_FETCH=1` turns that off).
 
 {% include terminal.html id="js_install_npx" %}
 
 ## Output styles {#styles}
 
-Every generator writes in one of three styles, picked from the nearest config file above the folder the files go to:
+Picked by the nearest config file, or `--types=ts|jsdoc|none`:
 
-- **TypeScript**, with a `tsconfig.json`: `.ts` files using only erasable syntax – no `enum`, no namespaces, no parameter properties – so Node runs them directly, and any bundler strips them
-- **JSDoc**, with a `jsconfig.json`, or a `tsconfig.json` that sets `checkJs`: `.js` files with `// @ts-check` and types in JSDoc comments, checked by your editor without a build step
-- **Plain JavaScript**, with neither: the same `.js` files without the types
+- **TypeScript** (`tsconfig.json`): erasable syntax only, so Node runs it directly
+- **JSDoc** (`jsconfig.json`, or `checkJs`): `// @ts-check` `.js` files
+- **Plain JavaScript**: neither
 
-`--types=ts`, `--types=jsdoc` or `--types=none` overrides it. Relative imports end in `.ts` where the tsconfig allows that (`allowImportingTsExtensions` or `rewriteRelativeImportExtensions`), else in `.js`, which TypeScript maps to the `.ts` file.
+Imports end in `.ts` if the tsconfig allows it, else `.js`.
 
-Generators that take `--withTest` write a test next to the file: with Vitest if the nearest `package.json` lists it or there's a Vite or Vitest config, else with `node:test`. `--runner=node` or `--runner=vitest` overrides it.
-
-The keyboard modules are plain files in the pack's [`templates/`](https://github.com/learosema/jen/tree/main/packages/pack-js/templates) folder, as `.ts` and as `.js` with JSDoc; the plain JavaScript is the JSDoc file with its types taken out. Elements and type patterns are made in code, from your names and types.
+`--withTest` uses Vitest if the project has it, else `node:test` (or `--runner=node|vitest`).
 
 ## Projects {#projects}
 
-A new project in its own directory, at the latest versions on npm – so these two need the network. `--name` is the directory and the package name; jen stops if that directory already exists and isn't empty. Like every jen run, the files go through the plan: `--dry-run` lists them first, and nothing is written before you see it. Nothing is installed either: run `npm install` in the project afterwards.
-
-A new project starts as plain JavaScript, whatever `tsconfig.json` is around it; `--types=ts` makes it TypeScript. Every `js:` generator you run in the project later writes in its style.
+A new folder `--name` (must be empty), with the latest versions from npm. Run `npm install` afterwards. Plain JavaScript unless `--types=ts`; later generators follow that style.
 
 ### `js:vite` {#js-vite}
 
-Runs `npm create vite@latest` with the template for `--framework` and `--types` – `vanilla`, `vue`, `react`, `svelte` or any other template [create-vite](https://github.com/vitejs/vite/tree/main/packages/create-vite) offers – without its questions, in a scratch directory, and hands what it makes to jen's plan. An unknown framework fails with create-vite's own list.
+Runs `npm create vite@latest` without questions, for any [create-vite](https://github.com/vitejs/vite/tree/main/packages/create-vite) `--framework` (`vanilla`, `vue`, `react`, `svelte`, …), and turns the result into jen's plan.
 
 {% include terminal.html id="js_vite" %}
 
@@ -95,7 +91,7 @@ Runs `npm create vite@latest` with the template for `--framework` and `--types` 
 
 ### `js:esbuild` {#js-esbuild}
 
-A page with a counter button, bundled by [esbuild](https://esbuild.github.io/) into `dist/`: `build` bundles once, `dev` rebuilds on every change and serves the project on esbuild's own server. esbuild has no `npm create`, so the files come from the pack, and `package.json` gets the latest versions from npm. Besides `--types=ts` it takes `--types=jsdoc`, with a `jsconfig.json`. esbuild only strips types, so a TypeScript project gets a separate `check` script. `--withTest` adds a first test with `node:test` – `--runner=vitest` switches – and later `--withTest` runs use the same runner.
+A counter page bundled by [esbuild](https://esbuild.github.io/): `build` and a watching `dev` server. Also takes `--types=jsdoc`. TypeScript gets a `check` script. `--withTest` adds a `node:test` test (or `--runner=vitest`).
 
 {% include terminal.html id="js_esbuild" %}
 
@@ -105,17 +101,17 @@ A page with a counter button, bundled by [esbuild](https://esbuild.github.io/) i
 
 ### `js:element` {#js-element}
 
-A custom element as a class, registered with `customElements.define`. Every attribute in `--attrs` gets a property that reflects it, converted to its type: numbers through `Number()`, booleans as present or absent (`toggleAttribute`), kebab-case names as camelCase properties (`max-value` becomes `maxValue`). `observedAttributes` lists them, and `attributeChangedCallback` takes only their names. Events from `--events` get a typed event map: `emit('change', { value: 1 })` checks the detail, an event without a detail takes none, and listeners added with `addEventListener('change', …)` know `event.detail.value` is a number. Events bubble, and leave a shadow root the element sits in.
+A custom element. `--attrs` become typed, reflecting properties (`max-value` → `maxValue`). `--events` get a typed event map, so `emit('change', { value: 1 })` and listeners are checked.
 
-It renders into the light DOM: its children stay where they are, page styles reach them, and nothing needs a slot. Its own styles go in a constructable stylesheet, adopted once by the document – or the shadow root the element is in. With `--shadow=open` or `--shadow=closed`, it gets a shadow root with a `<slot>` instead, and the stylesheet is shared by every instance's shadow root. `--form` makes it form-associated: `ElementInternals` sends its `value` with the form, and it gets `form`, `validity`, `checkValidity()` and `reportValidity()`. In TypeScript, the tag joins `HTMLElementTagNameMap`, so `document.querySelector('star-rating')` is a `StarRating`.
+Light DOM by default, with a shared constructable stylesheet; `--shadow=open|closed` uses a shadow root and `<slot>`. `--form` makes it form-associated. In TypeScript, the tag joins `HTMLElementTagNameMap`.
 
-`--into` loads the element: in a page, its tag and a module script go in before `</body>`; in a module like `src/main.ts`, an import line goes in above the first line of code.
+`--into` adds the tag and script to a page, or an import to a module.
 
 {% include terminal.html id="js_element" %}
 
 {% include web-preview.html base="/js/" src="element.html" title="A custom element" height="13rem" dual=true caption="<code>--attrs=count:number,label,open:boolean --events='change:{value:number}'</code>: the properties are typed, and every change shows in the attributes" %}
 
-JSDoc can't add to a global type from a `.js` file, so in the JSDoc style the tag goes into an `elements.d.ts` instead – the nearest one with a `// jen:elements` marker, or a new one next to the element:
+In JSDoc style, the tag goes into the nearest `elements.d.ts` with `// jen:elements`, or a new one:
 
 {% include terminal.html id="js_element_jsdoc" %}
 
@@ -123,11 +119,11 @@ JSDoc can't add to a global type from a `.js` file, so in the JSDoc style the ta
 
 ## Keyboard patterns {#keyboard}
 
-The keyboard interaction of the [ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/), as plain modules any page or element can use. Each exports one function that takes the container and returns a function that removes its listeners again – or pass `signal` from an `AbortController`. Arrow keys follow the writing direction, so they swap in right-to-left text.
+[ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/) keyboard handling as plain modules. Each takes a container and returns a cleanup function (or takes a `signal`). Arrow keys respect right-to-left text.
 
 ### `js:roving` {#js-roving}
 
-Roving tabindex: a group of controls is one stop in the tab order, and arrow keys move within it. It knows the items and arrows from the container's role – toolbars go left and right, listboxes up and down, radio groups both ways – and `aria-orientation`, `items`, `orientation` and `wrap` change that. In tab lists, radio groups and listboxes, selection follows focus: `aria-selected` or `aria-checked` moves along, and a tab list shows the panel its tab `aria-controls`. `onChange` hears about every move.
+Roving tabindex: one tab stop per group, arrow keys within, direction from the container's role. In tabs, radio groups and listboxes, selection follows focus. `onChange` reports moves.
 
 {% include terminal.html id="js_roving" %}
 
@@ -137,7 +133,7 @@ Roving tabindex: a group of controls is one stop in the tab order, and arrow key
 
 ### `js:menu` {#js-menu}
 
-Menus and menubars: arrow keys move through the items, Home and End jump to the ends, and typing a letter or two moves to the item that starts with them. On a `popover` menu, its `popovertarget` button opens it with Arrow Down or Arrow Up (at the last item), the first item gets focus, and Escape, Tab or choosing an item closes it and returns focus to the button. A submenu's items stay out of their parent's way.
+Menus and menubars: arrows, Home/End, type-ahead. `popover` menus open with the arrow keys and close with Escape, Tab or a choice, returning focus to the button.
 
 {% include terminal.html id="js_menu" %}
 
@@ -147,7 +143,7 @@ Menus and menubars: arrow keys move through the items, Home and End jump to the 
 
 ### `js:grid` {#js-grid}
 
-Two-dimensional navigation for `role="grid"`: arrow keys move between cells, Home and End to the ends of the row, Ctrl+Home and Ctrl+End to the first and last cell, Page Up and Page Down by `pageSize` rows. A cell with a control in it focuses the control. `rows` and `cells` take other selectors, and `onMove` reports the row and column.
+`role="grid"` navigation: arrows, Home/End, Ctrl+Home/End, Page Up/Down. `onMove` reports row and column.
 
 {% include terminal.html id="js_grid" %}
 
@@ -157,7 +153,7 @@ Two-dimensional navigation for `role="grid"`: arrow keys move between cells, Hom
 
 ### `js:hotkeys` {#js-hotkeys}
 
-A registry for keyboard shortcuts: `const keys = createHotkeys()`, then `keys.bind('mod+k', openSearch, { description: 'Search' })`. `mod` is ⌘ on Apple devices and Ctrl elsewhere. Symbols like `?` match whatever Shift your keyboard layout needs for them. Bindings are ignored while someone types in a field, unless they set `inputs: true`. A binding with a `scope` only fires inside that element, and wins over a global one. `createHotkeys({ help: true })` binds `?` to a dialog that lists every binding with a description.
+Keyboard shortcuts: `createHotkeys().bind('mod+k', openSearch, { description: 'Search' })`. `mod` is ⌘ or Ctrl. Ignored in text fields unless `inputs: true`; `scope` limits a binding to an element. `{ help: true }` binds `?` to a list of all shortcuts.
 
 {% include terminal.html id="js_hotkeys" %}
 
@@ -167,11 +163,11 @@ A registry for keyboard shortcuts: `const keys = createHotkeys()`, then `keys.bi
 
 ## Type patterns {#types}
 
-The patterns of the C++ pack's types, for TypeScript – without the syntax Node can't strip. In the JSDoc style they come with the same types, and in plain JavaScript they still work at runtime.
+The C++ pack's type patterns, in strippable TypeScript or JSDoc.
 
 ### `js:class` {#js-class}
 
-A class with `#private` fields, a getter for each, and a static `create()` to put async setup or validation in later. `--fields=id:number,label:string` makes the fields and an options type for them. `--disposable` adds `[Symbol.dispose]()`, so `using timer = Timer.create(…)` cleans it up at the end of the block (in TypeScript, that needs `esnext.disposable` in `lib`).
+`#private` fields from `--fields=id:number,label:string`, getters, and a static `create()`. `--disposable` adds `[Symbol.dispose]()` for `using`.
 
 {% include terminal.html id="js_class" %}
 
@@ -179,7 +175,7 @@ A class with `#private` fields, a getter for each, and a static `create()` to pu
 
 ### `js:enum` {#js-enum}
 
-An object `as const` instead of TypeScript's `enum`: `Direction.Up` is `'up'`, the type `Direction` is the union of the values, and `isDirection(value)` checks a value from outside.
+An `as const` object instead of `enum`, with a union type and an `isDirection()` guard.
 
 {% include terminal.html id="js_enum" %}
 
@@ -187,7 +183,7 @@ An object `as const` instead of TypeScript's `enum`: `Direction.Up` is `'up'`, t
 
 ### `js:union` {#js-union}
 
-A tagged union: an interface for each case with a `kind`, the union of them, and `matchShape(shape, { circle: …, square: … })`. The handlers have to cover every case, and the `switch` inside ends in `assertNever` – add a case and forget it somewhere, and TypeScript says where.
+A tagged union with an exhaustive `matchShape(shape, { circle: …, square: … })` – forget a case and TypeScript says where.
 
 {% include terminal.html id="js_union" %}
 
@@ -195,7 +191,7 @@ A tagged union: an interface for each case with a `kind`, the union of them, and
 
 ### `js:brand` {#js-brand}
 
-A branded type: a `UserId` is a string, but not every string is a `UserId`. `userId(value)` checks a value and brands it, `isUserId(value)` is the check on its own – put your validation there. `--underlying` takes `string` (the default), `number` (finite only) or `bigint`.
+A branded type: not every string is a `UserId`. `userId()` validates and brands; `isUserId()` checks. `--underlying` is `string`, `number` or `bigint`.
 
 {% include terminal.html id="js_brand" %}
 
@@ -203,7 +199,7 @@ A branded type: a `UserId` is a string, but not every string is a `UserId`. `use
 
 ### `js:error` {#js-error}
 
-An `Error` subclass, named after itself so stack traces and logs say what went wrong, with extra fields from `--fields` and the standard `cause`: `throw new NotFoundError('No such file', { path, cause })`. The name gets an `Error` at the end if it doesn't have one.
+An `Error` subclass with its own name, `--fields` and `cause`: `throw new NotFoundError('No such file', { path, cause })`.
 
 {% include terminal.html id="js_error" %}
 
@@ -211,7 +207,7 @@ An `Error` subclass, named after itself so stack traces and logs say what went w
 
 ### `js:emitter` {#js-emitter}
 
-An event emitter on the platform's own `EventTarget`, with the same typed event map, `emit()` and listeners as [`js:element`](#js-element) – for stores and services outside the DOM.
+A typed `EventTarget`, like [`js:element`](#js-element)'s, for code outside the DOM.
 
 {% include terminal.html id="js_emitter" %}
 
@@ -221,7 +217,7 @@ An event emitter on the platform's own `EventTarget`, with the same typed event 
 
 ### `js:module` {#js-module}
 
-A module with one exported function of the same name, to fill in – and with `--withTest`, its test.
+A module with one function, optionally `--withTest`.
 
 {% include terminal.html id="js_module" %}
 
@@ -229,7 +225,7 @@ A module with one exported function of the same name, to fill in – and with `-
 
 ### `js:test` {#js-test}
 
-A test file for a module that's already there: it imports every function, class and constant the module exports and starts a test for each, with `node:test` or Vitest. For a module that doesn't exist yet, it imports the module as a whole, ready for test-first.
+A test per export of an existing module – or a test-first stub for a new one.
 
 {% include terminal.html id="js_test" %}
 
@@ -237,8 +233,7 @@ A test file for a module that's already there: it imports every function, class 
 
 ## Credits {#credits}
 
-The keyboard patterns follow the **[ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/)** by the W3C Web Accessibility Initiative – roving tabindex and keyboard shortcuts from its [keyboard interface practices](https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/), menus from the [menu and menubar pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/), grids from the [grid pattern](https://www.w3.org/WAI/ARIA/apg/patterns/grid/). Each module credits it in its first line.
+- **[ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/)** by the W3C WAI: the [keyboard interface practices](https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/), [menubar](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/) and [grid](https://www.w3.org/WAI/ARIA/apg/patterns/grid/) patterns
+- **[create-vite](https://github.com/vitejs/vite/tree/main/packages/create-vite)** by the Vite team: run by `js:vite`, and the layout of `js:esbuild`
 
-`js:vite` runs **[create-vite](https://github.com/vitejs/vite/tree/main/packages/create-vite)** by the Vite team, and `js:esbuild`'s project layout follows it; each esbuild project's `index.html` credits it.
-
-The code is written fresh for this pack, not copied. The pack is ISC licensed.
+Written fresh, not copied. ISC licensed.

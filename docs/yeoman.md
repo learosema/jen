@@ -6,7 +6,7 @@ description: "@codejen/pack-yeoman runs Yeoman generators – JHipster included 
 eyebrow: "@codejen/pack-yeoman"
 mega: yeoman
 lede: Yeoman generators, JHipster included, run through jen's plan – the same diff, the same <code>--dry-run</code>, the same <code>--force</code>.
-sub: Never interactive, never online, and nothing is written until jen applies the plan.
+sub: Never interactive, never online.
 cta: { text: "Three ways to install ↓", url: "#install" }
 toc:
   - title: Install
@@ -25,13 +25,12 @@ toc:
       - { title: JDL and commands, id: jdl }
   - title: Finally
     links:
-      - { title: Coming from jen 2, id: jen-2 }
       - { title: Credits, id: credits }
 ---
 
 ## Install {#install}
 
-The pack runs the generators you have installed: every dependency named `generator-<name>` or `@scope/generator-<name>` becomes `yeoman:<name>`. jen adds no dependency for it – yeoman-generator, mem-fs and EJS come with the generator.
+Every installed `generator-<name>` or `@scope/generator-<name>` becomes `yeoman:<name>`. yeoman-generator, mem-fs and EJS come with the generator.
 
 ### Globally {#install-global}
 
@@ -43,11 +42,11 @@ The pack runs the generators you have installed: every dependency named `generat
 
 ### Not at all {#install-npx}
 
-Ask for `yeoman:code` with nothing installed, and jen fetches `@codejen/pack-yeoman` and `generator-code` into a throwaway directory, runs the generator once and removes it again – like `yo code`, without the global install. jen only does this for a fixed list of generators: `generator-code` and `generator-jhipster`. A typo like `yeoman:jhispter` matches nothing on the list, so it can never install someone else's package. `JEN_NO_FETCH=1` turns it off.
+`yeoman:code` with nothing installed fetches the pack and `generator-code` for one run. Only `generator-code` and `generator-jhipster` are fetched this way, so a typo can't install someone else's package. `JEN_NO_FETCH=1` turns it off.
 
 {% include terminal.html id="yeoman" %}
 
-Any other generator can be fetched for one run with `--from`:
+Any other generator: `--from`.
 
 {% include terminal.html id="yeoman_install_from" %}
 
@@ -55,23 +54,21 @@ Any other generator can be fetched for one run with `--from`:
 
 ### How it runs {#how}
 
-The generator writes into memory, and what it wrote becomes jen's plan: new files, changed files, deleted files. jen applies it like any other – existing files are skipped unless you pass `--force`, `--dry-run` only shows it, and nothing outside the project is touched. Binary files, like images and keystores, are written as they are.
+The generator writes into memory; that becomes jen's plan, with `--force`, `--dry-run` and the project boundary as usual. Binary files are kept as they are.
 
-Some things are left out on purpose:
-
-- **No questions.** Every answer comes from a flag or the question's default – see below.
-- **No network.** While a generator runs, `fetch` and every outgoing connection fail, and so does the run – even if the generator catches the error itself. Generators that download their templates, like `generator-office`, can't run under jen.
-- **No install step.** Yeoman's `install` and `end` steps run `npm install`, `git init` or open an editor, on files that aren't written yet when the generator runs. They never run: install and initialize the project yourself afterwards.
+- **No questions**: answers come from flags or defaults.
+- **No network**: any connection fails the run. Generators that download templates, like `generator-office`, can't run.
+- **No install step**: `install` and `end` (`npm install`, `git init`, opening an editor) are skipped – run those yourself.
 
 ### Questions {#questions}
 
-A generator's questions are answered from a flag with the question's name – as it's written, or in kebab-case: `--extensionType` and `--extension-type` both answer `extensionType`. Without a flag, the answer is what pressing enter would give: the question's default, the first choice of a list, yes for a confirm. A question with none of these stops jen with `Missing: --<name>` before anything is written. Questions the generator would skip, it skips here too.
+A flag named after the question answers it: `--extensionType` or `--extension-type`. Otherwise it's what Enter would give – default, first choice, or yes. No answer at all: `Missing: --<name>`.
 
-Most generators also take options for the things they ask; check the generator's own docs. Positionals after the generator name go to the generator as its arguments.
+Generator options and positional arguments are passed on too.
 
 ### `yeoman:<name>` {#generators}
 
-Runs the package's default generator – the one `yo <name>` runs – with just enough of a Yeoman environment around it. Generators that compose other generators (`composeWith`) fail with a clear message; JHipster is the one that gets a real environment. A generator that writes to disk itself, past Yeoman's file system, isn't caught by the plan – the generators on jen's fetch list don't.
+Runs what `yo <name>` runs, in a minimal Yeoman environment. `composeWith` fails with a message (JHipster gets a full environment). Writes that bypass Yeoman's file system escape the plan.
 
 {% include terminal.html id="yeoman_code" %}
 
@@ -79,15 +76,15 @@ Runs the package's default generator – the one `yo <name>` runs – with just 
 
 ### `yeoman:jhipster` {#jhipster}
 
-With `generator-jhipster` installed, `yeoman:jhipster` runs JHipster in its own Yeoman environment, with its sub-generators, priorities and Prettier formatting – the files are the ones the `jhipster` command would write, minus `npm install` and `git init`. `--defaults` takes every default instead of asking; any other JHipster option works as a flag, e.g. `--base-name=blog`.
+The same files as `jhipster`, minus `npm install` and `git init`. `--defaults` takes every default; any JHipster option works as a flag, e.g. `--base-name=blog`.
 
 {% include terminal.html id="yeoman_jhipster" %}
 
-Blueprints are turned off, since JHipster would install a missing one from npm. Files JHipster keeps outside the project, like `~/.yo-rc-global.json`, are skipped.
+Blueprints are off (they'd install from npm). Files outside the project, like `~/.yo-rc-global.json`, are skipped.
 
 ### JDL and commands {#jdl}
 
-The first positional picks a JHipster command, the same as with `jhipster`: `jen yeoman:jhipster jdl blog.jdl` applies a JDL file. The file has to be inside the project – JHipster would otherwise look it up online. Describe entities in JDL: `jhipster entity` asks for every field one by one, so without JDL it stops at the first field. Regenerating changes files that exist, so it needs `--force`:
+The first positional is the JHipster command: `jen yeoman:jhipster jdl blog.jdl`. The JDL file must be in the project. Use JDL for entities – `entity` would ask field by field. Regenerating needs `--force`:
 
 {% include terminal.html id="yeoman_jdl" %}
 

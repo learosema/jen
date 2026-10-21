@@ -13,6 +13,10 @@
   {%- assign indent = line.size | minus: text.size -%}
   {{- line | slice: 0, indent -}}
   {%- assign mark = text | slice: 0 -%}
+  {%- assign word = text | split: " " | first -%}
+  {%- if word == "info:" -%}<span class="dim">{{ text | escape }}</span>
+  {%- elsif word == "warning:" -%}<span class="warn">{{ text | escape }}</span>
+  {%- else -%}
   {%- case mark -%}
     {%- when "$" -%}<span class="prompt">$ </span>{{ text | remove_first: "$ " | escape }}
     {%- when "+" -%}<span class="add">{{ text | escape }}</span>
@@ -22,6 +26,7 @@
     {%- when "✓" -%}<span class="ok">{{ text | escape }}</span>
     {%- else -%}{{ text | escape }}
   {%- endcase -%}
+  {%- endif -%}
   {%- unless forloop.last -%}{{ nl }}{%- endunless -%}
 {%- endfor -%}
 </pre>
