@@ -192,7 +192,7 @@ describe('add + insert', () => {
     const dir = cppProject({ 'src/CMakeLists.txt': 'add_executable(app main.cpp)\n' });
     const r = jen(['class', '--name=foo'], { cwd: dir });
     assert.equal(r.code, 0);
-    assert.match(r.stdout, /marker "# scaffold:sources" not found/);
+    assert.match(r.stdout, /\n {2}warning: src[/\\]CMakeLists\.txt has no marker "# scaffold:sources", skipped\n/);
     assert.ok(existsSync(join(dir, 'src/Foo.h')));
   });
 
@@ -226,7 +226,8 @@ describe('add + insert', () => {
       read(dir, 'shader.glsl'),
       'out vec4 c;\n\nfloat b() { return 0.0; }\n\nfloat a() { return 0.0; }\n\nfloat map(vec3 p) { return 1.0; }\n\nvoid main() {}\n',
     );
-    assert.match(r.stdout, /marker \/\^nope\/ not found/);
+    assert.match(r.stdout, /info: shader\.glsl already has float a\(\)/);
+    assert.match(r.stdout, /warning: shader\.glsl has no marker \/\^nope\/, skipped/);
   });
 
   it('accepts a line number: inserts before that line, at its indentation', () => {
@@ -245,8 +246,8 @@ describe('add + insert', () => {
     // The second insert is already present; line 7 is one past the (now 6-line) file, so the footer is appended.
     assert.equal(read(dir, 'page.html'), '<body>\n  <header>\n    <button>Menu</button>\n    <nav></nav>\n  </header>\n</body>\n<footer></footer>\n');
     assert.match(r.stdout, /\+ <button>Menu<\/button> at line 3/);
-    assert.match(r.stdout, /line 9 is not in the file \(7 lines\)/);
-    assert.match(r.stdout, /line 0 is not in the file/);
+    assert.match(r.stdout, /warning: page\.html has no line 9 \(7 lines\), skipped/);
+    assert.match(r.stdout, /warning: page\.html has no line 0/);
   });
 
   it('indents one level deeper before a closing line: the insert goes inside', () => {
@@ -297,8 +298,17 @@ describe('modify', () => {
         { modify: 'VERSION', pattern: /\\d+\\.\\d+\\.\\d+/, replace: '0.2.0' },
       ];`,
     });
-    jen(['bump'], { cwd: dir });
+    const r = jen(['bump'], { cwd: dir });
+    assert.match(r.stdout, /~ VERSION {2}replaced, now: 0\.2\.0\n/);
     assert.equal(read(dir, 'VERSION'), 'version=0.2.0\n');
+  });
+
+  it('says what a removal removes', () => {
+    const dir = fixture({
+      'a.glsl': '#version 300 es\nprecision highp float;\nvoid main() {}\n',
+      '.jen/strip.mjs': `export const actions = () => [{ modify: 'a.glsl', pattern: /^precision .*\\n/gm, replace: '' }];`,
+    });
+    assert.match(jen(['strip'], { cwd: dir }).stdout, /~ a\.glsl {2}removed: precision highp float;\n/);
   });
 
   it('reports when nothing matches', () => {
@@ -307,7 +317,8 @@ describe('modify', () => {
       '.jen/bump.mjs': `export const actions = () => [{ modify: 'VERSION', pattern: /\\d+/, replace: '1' }];`,
     });
     const r = jen(['bump'], { cwd: dir });
-    assert.match(r.stdout, /no match/);
+    assert.match(r.stdout, /\n {2}info: VERSION nothing matched\n/);
+    assert.doesNotMatch(r.stdout, /\\d/);
     assert.match(r.stdout, /Nothing to do/);
   });
 });
@@ -325,7 +336,7 @@ describe('append', () => {
     assert.match(r.stdout, /~ layout\.css {2}\+ \.flow > \* \+ \* \{ \(appended\)/);
     assert.equal(read(dir, 'layout.css'), `.a {\n  color: red;\n}\n\n/* after Every Layout */\n${RULE}\n`);
     const again = jen(['flow'], { cwd: dir });
-    assert.match(again.stdout, /= layout\.css {2}already present: \.flow > \* \+ \* \{/);
+    assert.match(again.stdout, /\n {2}info: layout\.css already has \.flow > \* \+ \* \{\n/);
     assert.match(again.stdout, /Nothing to do/);
   });
 
@@ -342,9 +353,40 @@ describe('append', () => {
     assert.equal(read(dir, 'layout.css'), '.flow > * + * {\n\tmargin-block-start: 1em;\n}\n');
   });
 
-  it('skips a missing file with a note', () => {
-    const dir = fixture({ '.jen/flow.mjs': GEN });
-    assert.match(jen(['flow'], { cwd: dir }).stdout, /\? layout\.css {2}file missing, skipped/);
+  it('shows the first rule in the plan, not a comment – a universal selector is no comment', () => {
+    const dir = fixture({
+      'a.css': '',
+      '.jen/reset.mjs': `export const actions = () => [{ append: 'a.css', text: '/*\\n * reset\\n */\\n*,\\n*::before {\\n  margin: 0;\\n}' }];`,
+    });
+    assert.match(jen(['reset'], { cwd: dir }).stdout, /~ a\.css {2}\+ \*, \(appended\)/);
+  });
+
+  it('skips a missing file with a note, once', () => {
+    const dir = fixture({ '.jen/flow.mjs': GEN.replace('];', "{ append: 'layout.css', text: 'x' },\n  ];") });
+    const r = jen(['flow'], { cwd: dir });
+    assert.match(r.stdout, /\n {2}warning: layout\.css is missing, skipped\n/);
+    assert.equal(r.stdout.match(/warning:/g)?.length, 1);
+  });
+});
+
+describe('note', () => {
+  it('tells something and changes nothing, with or without a file', () => {
+    const dir = fixture({
+      '.jen/tell.mjs': `export const actions = () => [
+        { note: '.reel is already here, nothing to add', file: 'css/layout.css' },
+        { note: 'all done before' },
+      ];`,
+    });
+    const r = jen(['tell'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /\n {2}info: css[/\\]layout\.css \.reel is already here, nothing to add\n {2}info: all done before\n/);
+    assert.match(r.stdout, /Nothing to do/);
+    assert.ok(!existsSync(join(dir, 'css')));
+  });
+
+  it('places its file from --dir, like any action path', () => {
+    const dir = fixture({ '.jen/tell.mjs': `export const actions = () => [{ note: 'is fine', file: 'a.css' }];` });
+    assert.match(jen(['tell', '--dir=css'], { cwd: dir }).stdout, /info: css[/\\]a\.css is fine/);
   });
 });
 
@@ -378,7 +420,7 @@ describe('delete', () => {
     const dir = cppProject({ '.jen/destroy.mjs': DESTROY });
     const r = jen(['destroy', '--name=foo'], { cwd: dir });
     assert.equal(r.code, 0);
-    assert.match(r.stdout, /does not exist/);
+    assert.match(r.stdout, /info: src[/\\]Foo\.h does not exist/);
     assert.match(r.stdout, /Nothing to do/);
   });
 
@@ -396,8 +438,8 @@ describe('delete', () => {
     const r = jen(['evil'], { cwd: dir });
     assert.equal(r.code, 0, r.stderr);
     // an absolute path is from the project root, so it can't leave it either
-    assert.equal((r.stdout.match(/outside the project/g) ?? []).length, 2);
-    assert.match(r.stdout, /is a directory/);
+    assert.equal((r.stdout.match(/warning: .* is outside the project, skipped/g) ?? []).length, 2);
+    assert.match(r.stdout, /warning: sub is a directory, skipped/);
     assert.equal(read(outside, 'keep.txt'), 'stays');
     assert.ok(existsSync(join(dir, 'sub/a.txt')));
   });
@@ -565,7 +607,7 @@ describe('jen <generator> --help', () => {
         '  --namespace=""',
         '  --dir=src',
         '  --members="int a, int b"',
-        '  --into=""',
+        '  --into=""  (a path from where you run jen)',
         '  --moveOnly  RAII wrapper: copy deleted, move defaulted (Rule of Five)',
         '  --withTest  add a doctest case',
         '',
@@ -644,6 +686,31 @@ describe('jen <generator> --help', () => {
     );
   });
 
+  it('says where path params are read from, and shows the usage lines', () => {
+    const dir = fixture({
+      '.jen/box.mjs': `export default {
+        params: { into: { path: true, default: '', description: 'a stylesheet to add it to' }, out: { path: true, default: '' } },
+        usage: ['<div class="box">…</div>', '--box-padding: 1rem  the padding'],
+        actions: () => [],
+      };`,
+    });
+    assert.equal(
+      jen(['box', '--help'], { cwd: dir }).stdout,
+      [
+        'box',
+        '  --into=""  a stylesheet to add it to (a path from where you run jen)',
+        '  --out=""  (a path from where you run jen)',
+        '',
+        'usage:',
+        '  <div class="box">…</div>',
+        '  --box-padding: 1rem  the padding',
+        '',
+      ].join('\n'),
+    );
+    const [box] = JSON.parse(jen(['--list', '--json'], { cwd: dir }).stdout) as Array<{ usage: string[] }>;
+    assert.deepEqual(box.usage, ['<div class="box">…</div>', '--box-padding: 1rem  the padding']);
+  });
+
   it("links a pack's homepage, and has npx fetch a third-party pack with --from", () => {
     const dir = fixture({
       'package.json': JSON.stringify({ dependencies: { 'jen-pack-demo': '*' } }),
@@ -697,6 +764,7 @@ describe('jen --list --json', () => {
         withTest: { type: 'boolean', required: false, default: false, description: 'add a doctest case' },
       },
       examples: [],
+      usage: [],
     });
     assert.ok(catalog.some((g: { name: string; source: string }) => g.name === 'generator' && g.source === 'built-in'));
   });
@@ -728,6 +796,7 @@ describe('jen --list --json', () => {
         description: '',
         params: { mood: { type: 'string', required: false, default: 'calm', choices: ['calm', 'loud'] } },
         examples: [{ jen: 'jen demo:hello --mood=loud', npx: 'npx --yes @codejen/jen demo:hello --mood=loud' }],
+        usage: [],
       },
     );
   });
@@ -853,7 +922,7 @@ describe('multi-line insert/modify', () => {
     const once = read(dir, 'src/out.js');
     const r = jen(['code'], { cwd: dir });
     assert.equal(r.code, 0, r.stderr);
-    assert.match(r.stdout, /already present/);
+    assert.match(r.stdout, /info: src[/\\]out\.js already has a\(\); …/);
     assert.equal(read(dir, 'src/out.js'), once);
   });
 
@@ -1238,7 +1307,8 @@ describe('destination', () => {
     });
     const r = jen(['out'], { cwd: dir });
     assert.equal(r.code, 0, r.stderr);
-    assert.equal((r.stdout.match(/outside the project/g) ?? []).length, 2);
+    // both name the same file, so the plan says it once
+    assert.equal((r.stdout.match(/warning: .*escaped\.txt is outside the project, skipped/g) ?? []).length, 1);
     assert.ok(!existsSync(join(dir, '../escaped.txt')));
     assert.equal(read(dir, 'ok.txt'), 'ok');
   });
@@ -1295,8 +1365,9 @@ describe('find targets', () => {
     });
     const plain = jen(['plain'], { cwd: dir });
     assert.equal(plain.code, 0, plain.stderr);
-    assert.match(plain.stdout, /\n {2}\? no file containing "jen:imports" found, skipped\n/);
-    assert.match(jen(['own'], { cwd: dir }).stdout, /\n {2}\? run jen web:base first\n/);
+    assert.match(plain.stdout, /\n {2}warning: no file containing "jen:imports" found, skipped\n/);
+    // its own note is a hint, not a problem
+    assert.match(jen(['own'], { cwd: dir }).stdout, /\n {2}info: run jen web:base first\n/);
   });
 });
 
