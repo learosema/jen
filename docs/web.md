@@ -75,7 +75,7 @@ Any `web:` generator without the pack fetches it for one run (`JEN_NO_FETCH=1` t
 
 ## Where files go {#where}
 
-Into the current folder, or `--dir`. Everything is imported into one entry point, `styles.css`, made by `web:base` or `web:cube`. It declares the layers `reset, tokens, base, compositions, blocks, utilities, exceptions`, so later layers win regardless of specificity – `class="card bg-primary-subtle"` gets the tint. Generators add their `@import` above `/* jen:imports */`.
+Into the current folder, or `--dir`. Everything is imported into one entry point, `styles.css`, made by `web:base` or `web:cube`. If that is in another folder, the plan says so – `info: styles.css is in css/ – pass --dir=css to put card.css next to it` – and if it already imports a file of the same name from elsewhere, it says that too. It declares the layers `reset, tokens, base, compositions, blocks, utilities, exceptions`, so later layers win regardless of specificity – `class="card bg-primary-subtle"` gets the tint. Generators add their `@import` above `/* jen:imports */`.
 
 One generator, one file: `jen web:sidebar` writes `compositions/sidebar.css`, `jen web:color --name=pink` writes `colors/pink.css`. If your CSS already has a `.sidebar`, jen says where and adds nothing. `web:compositions`, `web:utilities` and `web:cube` make several at once.
 
@@ -193,7 +193,7 @@ Growth over 2.5× is refused: it would break 200% zoom (WCAG 1.4.4).
 
 ### `web:base` {#web-base}
 
-The entry point, a reset and base styles: balanced headings, a visible focus ring, reduced-motion-aware transitions, `<li data-icon="✅">` markers, `#` heading anchors and more. Uses the palette and fluid steps when present, system colors otherwise.
+The entry point, a reset and base styles: balanced headings, a visible focus ring, reduced-motion-aware transitions, `<li data-icon="✅">` markers, `#` heading anchors, text fields and selects on the palette's checked colors, and more. Uses the palette and fluid steps when present, system colors otherwise.
 
 {% include terminal.html id="web_base" %}
 

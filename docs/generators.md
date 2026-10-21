@@ -131,13 +131,13 @@ export const examples = ["--name=Camera", "--name=Texture --moveOnly"];
 
 [`--help`]({{ '/cli.html#help' | relative_url }}) prints them as `jen class --name=Camera`, [`--list --json`]({{ '/cli.html#json' | relative_url }}) also via `npx`. Quote as a shell needs: `--members="int x, int y"`. Use `""` for a bare call.
 
-`usage`: how to use the output – markup, custom properties, attributes – one plain line each:
+`usage`: how to use the output – markup, custom properties, attributes – one plain line each. Write custom properties as CSS, so nobody takes them for flags:
 
 ```js
 export const usage = [
   '<div class="sidebar"><aside>…</aside><main>…</main></div>',
   'the first child is the sidebar; data-direction="end" makes it the last',
-  "--sidebar-target: 20rem  the sidebar's width",
+  ".sidebar { --sidebar-target: 20rem; }  the sidebar's width",
 ];
 ```
 
@@ -147,12 +147,13 @@ Shown under `usage:` in `--help` and as `usage` in `--list --json`.
 
 - **`add`**: `{ add, template, force? }` creates a file, skipped if it exists unless `force`/`--force`. `{ add, bytes }` writes a `Uint8Array`.
 - **`insert`**: `{ insert, before, line }` inserts `line` before the first line containing `before` (or matching a `RegExp`, or at a 1-based line number). It takes the marker's indentation – one level deeper before a closing line like `</nav>` or `}`. Existing lines are skipped. `path` instead of `line` inserts that file's path relative to the target.
-- **`modify`**: `{ modify, pattern, replace }` – `RegExp` search and replace; also removes lines.
+- **`insert` … `after`**: `{ insert, after, line }` inserts `line` after the **last** line containing `after` (or matching a `RegExp`) – one level deeper after a line ending in `[`, `{` or `(`. `after: /^import /` is "after the imports". A multi-line import ends on another line than it starts, so match that one too: `after: /^import |^} from /`.
+- **`modify`**: `{ modify, pattern, replace }` – `RegExp` search and replace; also removes lines. Unlike `insert` and `append`, it doesn't skip text that's already there: run twice, it replaces twice. Make the pattern match only the old state, or use `insert`.
 - **`append`**: `{ append, text }` adds `text` on its own line at the end (`\n` first for a blank line). Skipped if already there.
 - **`note`**: `{ note, file? }` changes nothing, prints an `info:` line: `{ note: ".reel is already here, nothing to add", file: "css/layout.css" }`.
 - **`delete`**: `{ delete }` deletes a file, never a directory.
 
-**A generator says what, jen says where.** Paths are relative to where the files go (current directory or `--dir`); `/` starts at the project root. Nothing outside the root is touched. Actions on one file build on each other.
+**A generator says what, jen says where.** Paths are relative to where the files go (current directory or `--dir`); `/` starts at the project root: `{ add: "/test/routes/users.test.js", … }` lands there wherever jen runs. Nothing outside the root is touched. Actions on one file build on each other.
 
 To find an existing file, `insert` and `modify` take `{ find, containing? }`: the nearest file with that name (or `RegExp`) containing `containing` (for `insert`, the marker), in the destination or above, else the shallowest in the project. None found: a `warning:`, or your own `info:` with `missing: "…"`.
 
@@ -164,6 +165,19 @@ target_sources(app PRIVATE
 	# jen:sources
 )
 ```
+
+Without a marker, `after` and a `RegExp` still find the spot – registering a route in an `index.js` that imports each route and lists them in `export const routes = [`, one per line, up to `];`:
+
+```js
+const index = { find: "index.js", containing: "export const routes" };
+
+export const actions = ({ name }, { camel, kebab }) => [
+  { insert: index, after: /^import /, line: `import { ${camel(name)} } from './${kebab(name)}.js';` },
+  { insert: index, before: /^\];/, line: `${camel(name)},` },
+];
+```
+
+The import goes after the last import, the entry before the list's closing `];`, one level deeper. A rerun adds neither twice.
 
 `line` and `replace` may be a `\n`-joined block: it keeps its nesting, in the target's indent style ([EditorConfig](#editorconfig)).
 
