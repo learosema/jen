@@ -112,19 +112,19 @@ export const utilityGenerators: Record<string, Generator> = {
     description: 'create .color-* and .bg-* classes for one color',
     params: { name: { description: 'the color: one from web:color (pink), from web:palette (primary), or neutral for the page colors' }, ...INTO_PARAMS },
     examples: ['--name=primary', '--name=pink --dir=src/css', '--name=pink --into=css/utilities.css'],
-    actions: ({ name, into }, _helpers, ctx) => singleActions(ctx, 'web:color-classes', colorClassesItem(projectTokens(ctx, 'web:color-classes'), String(name)), into),
+    actions: ({ name, into }, _helpers, ctx) => singleActions(ctx, colorClassesItem(projectTokens(ctx, 'web:color-classes'), String(name)), into),
   },
   'step-classes': {
     description: 'create .step-* font size classes from the fluid type steps',
     params: INTO_PARAMS,
     examples: ['', '--dir=src/css', '--into=css/utilities.css'],
-    actions: ({ into }, _helpers, ctx) => singleActions(ctx, 'web:step-classes', stepsItem(projectTokens(ctx, 'web:step-classes')), into),
+    actions: ({ into }, _helpers, ctx) => singleActions(ctx, stepsItem(projectTokens(ctx, 'web:step-classes')), into),
   },
   'space-classes': {
     description: 'create .flow-space-* and .gutter-* classes from the fluid space sizes',
     params: INTO_PARAMS,
     examples: ['', '--dir=src/css', '--into=css/utilities.css'],
-    actions: ({ into }, _helpers, ctx) => singleActions(ctx, 'web:space-classes', spaceItem(projectTokens(ctx, 'web:space-classes')), into),
+    actions: ({ into }, _helpers, ctx) => singleActions(ctx, spaceItem(projectTokens(ctx, 'web:space-classes')), into),
   },
   ...Object.fromEntries(
     Object.entries(FIXED).map(([name, description]): [string, Generator] => [
@@ -133,7 +133,7 @@ export const utilityGenerators: Record<string, Generator> = {
         description,
         params: INTO_PARAMS,
         examples: ['', '--dir=src/css', '--into=css/utilities.css'],
-        actions: ({ into }, _helpers, ctx) => singleActions(ctx, `web:${name}`, fixedItem(name), into),
+        actions: ({ into }, _helpers, ctx) => singleActions(ctx, fixedItem(name), into),
       },
     ]),
   ),

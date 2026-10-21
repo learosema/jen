@@ -1,12 +1,13 @@
 /* After Smol Composable Card Component by Stephanie Eckles, https://smolcss.dev */
 @layer blocks {
   .card {
-    --card-padding: var(--space-s-m, 1.25rem);
+    /* read, not set, so --card-padding on a parent applies to every card in it */
+    --_card-padding: var(--card-padding, var(--space-s-m, 1.25rem));
 
     display: flex;
     flex-direction: column;
     gap: var(--card-gap, var(--space-xs, 0.75rem));
-    padding-block: var(--card-padding);
+    padding: var(--_card-padding);
     border: thin solid var(--color-border);
     border-radius: var(--card-radius, 0.75rem);
     background: var(--color-surface-2);
@@ -16,26 +17,30 @@
 
   .card > * {
     margin: 0;
-    padding-inline: var(--card-padding);
   }
 
   .card > :last-child:not(:first-child) {
     margin-block-start: auto;
   }
 
+  /* media bleeds to the card's edges */
+  .card > :is(img, picture, video, .card__media) {
+    margin-inline: calc(-1 * var(--_card-padding));
+    inline-size: calc(100% + 2 * var(--_card-padding));
+    max-inline-size: none;
+  }
+
   .card > :is(img, picture, video) {
-    padding-inline: 0;
-    inline-size: 100%;
     aspect-ratio: var(--card-media-ratio, 16 / 9);
     object-fit: cover;
   }
 
-  .card > :is(img, picture, video):first-child {
-    margin-block-start: calc(-1 * var(--card-padding));
+  .card > :is(img, picture, video, .card__media):first-child {
+    margin-block-start: calc(-1 * var(--_card-padding));
   }
 
-  .card > :is(img, picture, video):last-child {
-    margin-block-end: calc(-1 * var(--card-padding));
+  .card > :is(img, picture, video, .card__media):last-child {
+    margin-block-end: calc(-1 * var(--_card-padding));
   }
 
   .card a {

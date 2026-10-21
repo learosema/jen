@@ -1,6 +1,6 @@
 /** `web:button`: a `.button` block on the palette's role tokens. */
 import type { Context, Generator } from '@codejen/jen';
-import { fail } from './common.ts';
+import { fail, props } from './common.ts';
 import { importActions } from './entry.ts';
 import { fill, template } from './templates.ts';
 import { BRAND } from './palette.ts';
@@ -32,6 +32,19 @@ export function buttonCss(colors: string[]): string {
 const buttonGenerator: Generator = {
   description: 'create a contrast-checked .button block on the palette tokens',
   examples: ['--dir=src/css'],
+  usage: [
+    '<button type="button" class="button">…</button> or <a class="button" href="…">…</a>',
+    'colors: button--secondary, button--tertiary, button--danger – those the palette has',
+    'styles: button--outline, button--ghost, button--pill, button--small, button--large',
+    'your own variant sets these in a modifier:',
+    ...props([
+      ['--button-bg', 'the fill (default --color-primary)'],
+      ['--button-bg-hover', 'the fill on hover (default --color-primary-strong)'],
+      ['--button-fg', 'the text (default --color-on-primary)'],
+      ['--button-fg-hover', 'the text on hover (default --button-fg)'],
+      ['--button-border', 'the border (default transparent – drawn in forced-colors mode)'],
+    ]),
+  ],
   actions: (_answers, _helpers, ctx) => [{ add: FILE, template: buttonCss(paletteColors(ctx)) }, ...importActions(ctx, [FILE])],
 };
 

@@ -9,16 +9,15 @@ import { fill, template } from './templates.ts';
 
 export const IMPORTS_MARKER = 'jen:imports';
 
-export const LAYERS = ['reset', 'tokens', 'base', 'compositions', 'utilities', 'blocks', 'exceptions'];
+/** CUBE CSS order, but utilities after blocks: a utility class on a block (`class="card bg-primary-subtle"`) wins. */
+export const LAYERS = ['reset', 'tokens', 'base', 'compositions', 'blocks', 'utilities', 'exceptions'];
 
-/** CUBE CSS order with Tailwind v4's layers fitted in: its theme first, its components before its (and our) utilities. */
-export const TAILWIND_LAYERS = ['theme', 'reset', 'tokens', 'base', 'compositions', 'components', 'utilities', 'blocks', 'exceptions'];
+/** The same with Tailwind v4's layers fitted in: its theme first, its components before the blocks, its utilities with ours. */
+export const TAILWIND_LAYERS = ['theme', 'reset', 'tokens', 'base', 'compositions', 'components', 'blocks', 'utilities', 'exceptions'];
 
 export const ENTRY = 'styles.css';
 
 export const TAILWIND_IMPORT = '@import "tailwindcss";';
-
-export const layerLine = (tailwind: boolean): string => `@layer ${(tailwind ? TAILWIND_LAYERS : LAYERS).join(', ')};`;
 
 export const entryCss = (files: string[], tailwind = false): string => {
   const imports = [...(tailwind ? [TAILWIND_IMPORT] : []), ...files.map(importLine)];

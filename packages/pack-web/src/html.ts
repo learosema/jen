@@ -2,10 +2,8 @@
  * Markup for `--into=<page.html>`: blocks go in before `--line`, else before
  * `</body>`, so any page works without a marker; jen skips blocks the page already has.
  */
-import { posix } from 'node:path';
 import type { Action, Answers, Context } from '@codejen/jen';
 import { fail } from './common.ts';
-import { template } from './templates.ts';
 
 const BODY_END = /<\/body>/;
 export const HEAD_END = /<\/head>/;
@@ -19,6 +17,12 @@ export const sentence = (id: string): string => {
 /** Inserts `blocks` into the page at `into` (a path param: root-relative, `/…`), before `at` (a line number, text on the line or a RegExp) or `</body>`. */
 export const intoPage = (into: string, blocks: string[], at: number | string | RegExp | null = null): Action[] =>
   blocks.map((line) => ({ insert: into, before: at ?? BODY_END, line }));
+
+/** A trigger button before `at` (or `</body>`), and the element it opens always before `</body>` – after the trigger, without `at`. */
+export const triggerAndElement = (into: string, [trigger, element]: [string, string], at: number | string | null): Action[] => [
+  ...intoPage(into, [trigger], at),
+  ...intoPage(into, [element]),
+];
 
 /**
  * `--line`: where the markup goes in the `--into` page – a line number, or text on
@@ -43,22 +47,6 @@ export function lineParam(generator: string, { into, line }: Answers, ctx: Conte
 }
 
 export const LINE_PARAMS = {
-  into: { path: true, default: '', description: 'a page to put the markup into, before </body>' },
+  into: { path: true, default: '', description: 'a page to add the markup to, before </body> – only adds, never rewrites' },
   line: { default: '', description: 'with --into: put it before this line instead – a number, or text on that line like </nav>' },
 };
-
-/** A file next to the page, as an action path (`/…`), and how the page refers to it. */
-export function besidePage(into: string, file: string): { path: string; src: string } {
-  return { path: posix.join(posix.dirname(into), file), src: `./${file}` };
-}
-
-export const COMMANDS_FILE = 'commands.js';
-
-/** A fallback for the `command`/`commandfor` button attributes, for browsers without them. */
-export const COMMANDS_JS = template('commands.js');
-
-/** commands.js next to the page, and its script tag in the page. */
-export function commandsFallback(into: string): Action[] {
-  const { path, src } = besidePage(into, COMMANDS_FILE);
-  return [{ add: path, template: COMMANDS_JS }, ...intoPage(into, [`<script type="module" src="${src}"></script>`])];
-}

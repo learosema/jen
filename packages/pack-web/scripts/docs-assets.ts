@@ -13,7 +13,6 @@ import { fileURLToPath } from 'node:url';
 import type { Action, Context, Helpers } from '@codejen/jen';
 import pack from '../src/index.ts';
 import { dialogMarkup } from '../src/dialog.ts';
-import { COMMANDS_JS } from '../src/html.ts';
 import { groupsFor } from '../src/palette.ts';
 import { popoverMarkup } from '../src/popover.ts';
 import { PROGRESS_MARKUP } from '../src/scroll.ts';
@@ -82,7 +81,6 @@ run('dialog', { name: 'confirm' });
 run('popover', { name: 'menu' });
 run('scroll');
 run('transitions', { style: 'slide' });
-files.set('commands.js', COMMANDS_JS);
 
 // ─── Preview pages ──────────────────────────────────────────────────────────
 
@@ -228,8 +226,8 @@ ${[5, 4, 3, 2, 1, 0, -1, -2].map((n) => `<p class="step-${n}">step ${n}</p>`).jo
 <article class="card"><img src="${picture('secondary', 3)}" alt=""><h3>Short</h3><footer><button class="button button--small button--outline">Open</button></footer></article>
 </div>`,
   ),
-  'dialog.html': page('Dialog', `${dialogMarkup('confirm', 'Confirm')}\n<script type="module" src="./commands.js"></script>`),
-  'popover.html': page('Popover', popoverMarkup('menu')),
+  'dialog.html': page('Dialog', dialogMarkup('confirm', 'Confirm').join('\n')),
+  'popover.html': page('Popover', popoverMarkup('menu').join('\n')),
   'scroll.html': page(
     'Scroll-driven animations',
     `${PROGRESS_MARKUP}

@@ -67,7 +67,7 @@ const swGenerator: Generator = {
     precache: { default: '', description: 'comma-separated files to cache on install, relative to sw.js (default: the pages and stylesheets)' },
     strategy: { default: 'cache-first', choices: Object.keys(STRATEGIES), description: 'for assets: cache-first, or swr (stale-while-revalidate); pages stay network-first' },
     offline: { default: false, description: 'also write offline.html, shown for pages that aren\'t cached' },
-    into: { path: true, default: '', description: 'a page (script tag) or module (import line) that loads register-sw' },
+    into: { path: true, default: '', description: 'a page (script tag) or module (import line) to load register-sw from – only adds to it' },
     ...TYPES_PARAM,
   },
   examples: ['--into=index.html', '--strategy=swr --offline --into=index.html'],
