@@ -150,6 +150,7 @@ export function placeActions(actions: Action[], ctx: Context): Placed[] {
   return actions.map((a): Placed => {
     if ('add' in a) return { ...a, add: place(a.add) };
     if ('delete' in a) return { ...a, delete: place(a.delete) };
+    if ('append' in a) return { ...a, append: place(a.append) };
     if ('modify' in a) {
       const file = target(a.modify);
       return typeof file === 'string' ? { ...a, modify: file } : file;
