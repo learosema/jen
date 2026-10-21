@@ -475,8 +475,10 @@ function formatGenerator(e: Entry, gen: AnyGenerator): string {
   const lines = [gen.description ? `${name} – ${gen.description}` : name];
   for (const [param, spec] of Object.entries(gen.params ?? {})) {
     const p = paramInfo(spec);
-    lines.push(`  ${paramUsage(param, p)}${p.description ? `  ${p.description}` : ''}`);
+    const description = [p.description, p.path && '(a path from where you run jen)'].filter(Boolean).join(' ');
+    lines.push(`  ${paramUsage(param, p)}${description ? `  ${description}` : ''}`);
   }
+  if (gen.usage?.length) lines.push('', 'usage:', ...gen.usage.map((u) => `  ${u}`));
   const examples = exampleCalls(e, gen);
   if (examples.length > 0) {
     lines.push('', 'examples:', ...examples.map((x) => `  ${x.jen}`), `  ${examples[0].npx}  (without installing jen)`);
@@ -497,6 +499,7 @@ async function listJson(entries: Entry[]): Promise<void> {
           description: g.description ?? '',
           params: Object.fromEntries(Object.entries(g.params ?? {}).map(([n, spec]) => [n, paramInfo(spec)])),
           examples: exampleCalls(e, g),
+          usage: g.usage ?? [],
         }),
         (err: Error) => ({ ...head, error: err.message }),
       ),

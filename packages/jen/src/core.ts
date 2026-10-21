@@ -71,7 +71,13 @@ export type Action =
    */
   | { append: string; text: string }
   /** Delete a file. Directories are refused. */
-  | { delete: string };
+  | { delete: string }
+  /**
+   * Tell the user something and change nothing, e.g. why a file was left out:
+   * `{ note: '.reel is already here, nothing to add', file: 'css/layout.css' }`.
+   * The plan shows it as `info:`, with `file` placed like any action path.
+   */
+  | { note: string; file?: string };
 
 /** An action with its file resolved – a path from the project root – or skipped with a note. */
 export type Placed =
@@ -81,8 +87,9 @@ export type Placed =
   | { modify: string; pattern: RegExp; replace: string }
   | { append: string; text: string }
   | { delete: string }
-  /** `skip` is the file it was about, or `''` if there is none to name. */
-  | { skip: string; note: string };
+  | { note: string; file?: string }
+  /** `skip` is the file it was about, or `''` if there is none to name; `hint` if the note is a `Find`'s own `missing`, so nothing went wrong. */
+  | { skip: string; note: string; hint?: true };
 
 export interface Helpers {
   pascal(s: string): string;
@@ -132,6 +139,12 @@ export interface Generator<Result extends Action[] | Promise<Action[]> = Action[
   params?: Params;
   /** Example calls, each what follows the generator's name: `--name=Player --moveOnly`. */
   examples?: string[];
+  /**
+   * How to use what it makes, for people and AIs reading `--help` or `--list --json`: markup,
+   * custom properties, attributes – one line each, free text, e.g.
+   * `['<div class="sidebar"><aside>…</aside><main>…</main></div>', '--sidebar-target: 20rem  the sidebar\'s width']`.
+   */
+  usage?: string[];
   /** Accept flags that aren't params and hand them on through `ctx.args`, e.g. to a Yeoman generator's prompts. */
   passthrough?: boolean;
   actions(answers: Answers, helpers: Helpers, ctx: Context): Result;
@@ -184,8 +197,9 @@ export const dim = (s: string): string => styleText('dim', s);
 
 // ─── Plan & execution ───────────────────────────────────────────────────────
 
+/** `+ ~ ! -` change a file; `info` means nothing is wrong, `warning` that something asked for was skipped. */
 export interface Step {
-  mark: '+' | '~' | '!' | '-' | '=' | '?';
+  mark: '+' | '~' | '!' | '-' | 'info' | 'warning';
   file: string;
   note?: string;
 }
@@ -214,20 +228,24 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
 
   for (const a of actions) {
     if ('skip' in a) {
-      steps.push({ mark: '?', file: a.skip && resolve(ROOT, a.skip), note: a.note });
+      steps.push({ mark: a.hint ? 'info' : 'warning', file: a.skip && resolve(ROOT, a.skip), note: a.note });
+      continue;
+    }
+    if (!('add' in a || 'delete' in a || 'insert' in a || 'append' in a || 'modify' in a)) {
+      steps.push({ mark: 'info', file: a.file ? resolve(ROOT, a.file) : '', note: a.note });
       continue;
     }
 
     const file = resolve(ROOT, 'add' in a ? a.add : 'delete' in a ? a.delete : 'insert' in a ? a.insert : 'append' in a ? a.append : a.modify);
     if (![ROOT, ...extraRoots].some((root) => isInside(root, file))) {
-      steps.push({ mark: '?', file, note: 'outside the project, skipped' });
+      steps.push({ mark: 'warning', file, note: 'is outside the project, skipped' });
       continue;
     }
 
     if ('add' in a) {
       const exists = (await read(file)) !== null;
       if (exists && !(a.force || force)) {
-        steps.push({ mark: '=', file, note: 'exists, skipped' });
+        steps.push({ mark: 'info', file, note: 'exists, skipped' });
         continue;
       }
       changes.set(file, 'bytes' in a ? a.bytes : a.template);
@@ -238,9 +256,9 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
 
     if ('delete' in a) {
       if (existsSync(file) && !changes.has(file) && !isFile(file)) {
-        steps.push({ mark: '?', file, note: 'is a directory, skipped' });
+        steps.push({ mark: 'warning', file, note: 'is a directory, skipped' });
       } else if ((await read(file)) === null) {
-        steps.push({ mark: '=', file, note: 'does not exist' });
+        steps.push({ mark: 'info', file, note: 'does not exist' });
       } else {
         changes.set(file, null);
         steps.push({ mark: '-', file });
@@ -250,16 +268,16 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
 
     const text = await read(file);
     if (text === null) {
-      steps.push({ mark: '?', file, note: 'file missing, skipped' });
+      steps.push({ mark: 'warning', file, note: 'is missing, skipped' });
       continue;
     }
 
     if ('append' in a) {
       const block = a.text.replace(/\s+$/, '').split('\n');
       // what the plan shows: the first line that isn't blank or a comment
-      const label = block.find((l) => l.trim() && !/^\s*(\/[*/]|\*)/.test(l))?.trim() ?? block.find((l) => l.trim())?.trim() ?? '';
+      const label = block.find((l) => l.trim() && !/^\s*(\/[*/]|\*(\s|\/|$))/.test(l))?.trim() ?? block.find((l) => l.trim())?.trim() ?? '';
       if (block.every((l) => !l.trim()) || containsBlock(text.split('\n').filter((l) => l.trim()), block.filter((l) => l.trim()))) {
-        steps.push({ mark: '=', file, note: `already present: ${label}` });
+        steps.push({ mark: 'info', file, note: `already has ${label}` });
         continue;
       }
       const target = indentTargetFor(file, text);
@@ -270,7 +288,7 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
       const lines = text.split('\n');
       const block = a.line.split('\n');
       if (containsBlock(lines, block)) {
-        steps.push({ mark: '=', file, note: `already present: ${block[0].trim()}${block.length > 1 ? ' …' : ''}` });
+        steps.push({ mark: 'info', file, note: `already has ${block[0].trim()}${block.length > 1 ? ' …' : ''}` });
         continue;
       }
       const marker = a.before;
@@ -289,9 +307,9 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
       if (i < 0) {
         const note =
           typeof marker === 'number'
-            ? `line ${marker} is not in the file (${lineCount} lines)`
-            : `marker ${typeof marker === 'string' ? `"${marker}"` : String(marker)} not found`;
-        steps.push({ mark: '?', file, note });
+            ? `has no line ${marker} (${lineCount} lines), skipped`
+            : `has no marker ${typeof marker === 'string' ? `"${marker}"` : String(marker)}, skipped`;
+        steps.push({ mark: 'warning', file, note });
         continue;
       }
       const target = indentTargetFor(file, text);
@@ -312,11 +330,11 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
         : a.replace;
       const next = text.replace(a.pattern, replace);
       if (next === text) {
-        steps.push({ mark: '=', file, note: `no match for ${a.pattern}` });
+        steps.push({ mark: 'info', file, note: 'nothing matched' });
         continue;
       }
       changes.set(file, next);
-      steps.push({ mark: '~', file, note: `${a.pattern} replaced` });
+      steps.push({ mark: '~', file, note: replacedNote(text, a.pattern, replace) });
     }
   }
 
@@ -328,6 +346,17 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
   }
 
   return { steps, changes };
+}
+
+/** What the plan says about a `modify`, from its first match – never the RegExp: `removed: <line>` or `replaced, now: <line>`. */
+function replacedNote(text: string, pattern: RegExp, replace: string): string {
+  const once = new RegExp(pattern.source, pattern.flags.replace(/[gy]/g, ''));
+  const match = once.exec(text)?.[0] ?? '';
+  const firstLine = (s: string) => s.split('\n').find((l) => l.trim())?.trim();
+  const now = firstLine(match.replace(once, replace));
+  if (now) return `replaced, now: ${now}`;
+  const gone = firstLine(match);
+  return gone ? `removed: ${gone}` : 'replaced';
 }
 
 /** Writes or deletes everything the plan computed. */
@@ -354,14 +383,23 @@ const MARK_STYLE = {
   '~': 'cyan',
   '!': 'yellow',
   '-': 'red',
-  '=': 'dim',
-  '?': 'magenta',
+  info: 'dim',
+  warning: 'yellow',
 } as const;
 
 export function printPlan(steps: Step[]): void {
+  const said = new Set<string>();
   for (const s of steps) {
-    const file = s.file && relative(process.cwd(), s.file);
-    const note = s.note ? dim(file ? `  ${s.note}` : s.note) : '';
+    const file = s.file && (relative(process.cwd(), s.file) || '.');
+    if (s.mark === 'info' || s.mark === 'warning') {
+      const text = [file, s.note].filter(Boolean).join(' ');
+      // e.g. two inserts into the same missing file: once is enough
+      if (said.has(`${s.mark}:${text}`)) continue;
+      said.add(`${s.mark}:${text}`);
+      console.log(`  ${styleText(MARK_STYLE[s.mark], `${s.mark}:`)} ${s.mark === 'info' ? dim(text) : text}`);
+      continue;
+    }
+    const note = s.note ? dim(`  ${s.note}`) : '';
     console.log(`  ${styleText(MARK_STYLE[s.mark], s.mark)} ${file}${note}`);
   }
 }

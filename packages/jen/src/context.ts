@@ -134,23 +134,22 @@ export function locate(ctx: Context, { find, containing }: Find, from: string): 
 export function placeActions(actions: Action[], ctx: Context): Placed[] {
   const place = (path: string): string =>
     path.startsWith('/') ? posix.normalize(path.slice(1)) || '.' : posix.normalize(posix.join(ctx.destDir, path));
-  const target = (t: string | Find, marker?: string | RegExp | number): string | { skip: string; note: string } => {
+  const target = (t: string | Find, marker?: string | RegExp | number): string | { skip: ''; note: string; hint?: true } => {
     if (typeof t === 'string') return place(t);
     const find = { containing: typeof marker === 'string' ? marker : undefined, ...t };
     const file = locate(ctx, find, ctx.destDir);
     if (file) return file;
-    // a RegExp is no name to show anyone: say "no file" instead
+    // the note names what's missing itself; a RegExp is no name to show anyone, so it says "no file" instead
+    if (find.missing) return { skip: '', note: find.missing, hint: true };
     const name = typeof find.find === 'string' ? find.find : null;
     const containing = find.containing ? ` containing "${find.containing}"` : '';
-    return {
-      skip: name ? posix.join(ctx.destDir, name) : '',
-      note: find.missing ?? `no ${name ?? 'file'}${containing} found, skipped`,
-    };
+    return { skip: '', note: `no ${name ?? 'file'}${containing} found, skipped` };
   };
   return actions.map((a): Placed => {
     if ('add' in a) return { ...a, add: place(a.add) };
     if ('delete' in a) return { ...a, delete: place(a.delete) };
     if ('append' in a) return { ...a, append: place(a.append) };
+    if ('note' in a) return a.file ? { note: a.note, file: place(a.file) } : { note: a.note };
     if ('modify' in a) {
       const file = target(a.modify);
       return typeof file === 'string' ? { ...a, modify: file } : file;
