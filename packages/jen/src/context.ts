@@ -154,9 +154,9 @@ export function placeActions(actions: Action[], ctx: Context): Placed[] {
       const file = target(a.modify);
       return typeof file === 'string' ? { ...a, modify: file } : file;
     }
-    const file = target(a.insert, a.before);
+    const file = target(a.insert, a.after ?? a.before);
     if (typeof file !== 'string') return file;
     const line = 'path' in a ? posix.relative(posix.dirname(file), place(a.path)) : a.line;
-    return { insert: file, before: a.before, line };
+    return a.after !== undefined ? { insert: file, after: a.after, line } : { insert: file, before: a.before, line };
   });
 }

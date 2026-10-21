@@ -359,10 +359,26 @@ function unknownPackPrefix(entries: Entry[], query: string): string | null {
   return colon < 0 ? null : unknownPrefix(entries, query.slice(0, colon));
 }
 
-/** The error for a generator that wasn't found, with the --from command for an uninstalled pack. */
+/** Up to three names close to `query` (a typo, a plural …), closest first. */
+function near(query: string, names: string[]): string[] {
+  return [...new Set(names)]
+    .map((n) => ({ n, d: distance(query.toLowerCase(), n.toLowerCase()) }))
+    .filter(({ d }) => d <= 2)
+    .sort((a, b) => a.d - b.d)
+    .slice(0, 3)
+    .map(({ n }) => n);
+}
+
+/** The error for a generator that wasn't found: close names, the pack's own list, or the --from command for an uninstalled pack. */
 function notFound(entries: Entry[], query: string): never {
   const prefix = unknownPackPrefix(entries, query);
-  const lines = [`Generator "${query}" not found – jen --list shows all.`];
+  const colon = query.indexOf(':');
+  // "web:stats": web is known, so the names to offer are web's own
+  const pack = colon < 0 || prefix ? null : query.slice(0, colon);
+  const candidates = pack ? entries.filter((e) => under(e, pack)) : entries;
+  const close = near(query.slice(colon + 1), candidates.map((e) => e.name)).map((n) => (pack ? `${pack}:${n}` : n));
+  const meant = close.length ? `did you mean ${close.join(', ')}? ` : '';
+  const lines = [`Generator "${query}" not found – ${meant}${pack ? `jen ${pack} --list shows them all.` : 'jen --list shows all.'}`];
   if (prefix) lines.push(`If "${prefix}" is a pack you haven't installed, try: jen --from ${FIRST_PARTY_SCOPE}/pack-${prefix} ${query}`);
   // jen 2 ran Yeoman generators by their short name itself
   if (!query.includes(':') && discoverAll(/^(?:@[^/]+\/)?generator-/).some((n) => n.endsWith(`generator-${query}`))) {
@@ -478,6 +494,8 @@ function formatGenerator(e: Entry, gen: AnyGenerator): string {
     const description = [p.description, p.path && '(a path from where you run jen)'].filter(Boolean).join(' ');
     lines.push(`  ${paramUsage(param, p)}${description ? `  ${description}` : ''}`);
   }
+  // everyone's flag (built-ins write where they must), unless the generator has a param of that name itself
+  if (e.source !== 'built-in' && !('dir' in (gen.params ?? {}))) lines.push('  --dir=<folder>  where the files go (default: where you run jen)');
   if (gen.usage?.length) lines.push('', 'usage:', ...gen.usage.map((u) => `  ${u}`));
   const examples = exampleCalls(e, gen);
   if (examples.length > 0) {
