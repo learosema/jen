@@ -6,7 +6,7 @@ description: "Every jen command in @codejen/pack-web: a contrast-checked palette
 eyebrow: "@codejen/pack-web"
 mega: styles
 lede: Every generator, with the command, the output it prints, and the CSS it makes – running live, in light and dark mode.
-sub: Plain HTML and CSS on the web platform. WCAG AAA contrast by default, checked before anything is written.
+sub: Plain HTML and CSS. WCAG AAA contrast, checked before writing.
 cta: { text: "Three ways to install ↓", url: "#install" }
 toc:
   - title: Install
@@ -57,7 +57,7 @@ toc:
 
 ## Install {#install}
 
-Same three ways as every jen pack. The pack only writes CSS files: no build step, no runtime, nothing to install in your project.
+It writes plain CSS and HTML: no build step, no runtime.
 
 ### Globally {#install-global}
 
@@ -69,35 +69,37 @@ Same three ways as every jen pack. The pack only writes CSS files: no build step
 
 ### Not at all {#install-npx}
 
-Ask for a `web:` generator without the pack installed and jen fetches `@codejen/pack-web` into a throwaway directory, runs it once and removes it again (first-party `@codejen` scope only; `JEN_NO_FETCH=1` turns it off).
+Any `web:` generator without the pack fetches it for one run (`JEN_NO_FETCH=1` turns that off).
 
 {% include terminal.html id="web_install_npx" %}
 
 ## Where files go {#where}
 
-Generators write into the folder you run them in, or `--dir`. Everything meets in one entry point: `styles.css`, made by `web:base` or `web:cube`. It declares the cascade layers in CUBE CSS order – `reset, tokens, base, compositions, utilities, blocks, exceptions` – so a later layer wins over an earlier one whatever the selectors' specificity, and it ends with a `/* jen:imports */` marker. Every other generator adds its `@import` above that marker, with the path relative to the entry point, so running one from a subfolder still wires it in right.
+Into the current folder, or `--dir`. Everything is imported into one entry point, `styles.css`, made by `web:base` or `web:cube`. It declares the layers `reset, tokens, base, compositions, blocks, utilities, exceptions`, so later layers win regardless of specificity – `class="card bg-primary-subtle"` gets the tint. Generators add their `@import` above `/* jen:imports */`.
 
-The compositions, the utilities and `web:color` make one thing at a time, in a file of its own: `jen web:sidebar` writes `compositions/sidebar.css`, `jen web:color --name=pink` writes `colors/pink.css`. Add the next one whenever you need it. If your stylesheets already have it, like a `.sidebar` of your own, jen stops and says where, rather than adding a second one. `web:compositions`, `web:utilities` and `web:cube` make several at once, and leave out what you have.
+One generator, one file: `jen web:sidebar` writes `compositions/sidebar.css`, `jen web:color --name=pink` writes `colors/pink.css`. If your CSS already has a `.sidebar`, jen says where and adds nothing. `web:compositions`, `web:utilities` and `web:cube` make several at once.
 
 ### One file for several {#into}
 
-Rather have them all in one stylesheet? `--into=<file.css>` adds them to that file instead, as plain rules at the end, one after another. If it doesn't exist yet, jen makes it and imports it into the entry point. Every generator above that makes one thing takes `--into`, and so do `web:compositions` and `web:utilities`, so you can start with a few and add the next one later:
+`--into=<file.css>` appends to one stylesheet instead – created and imported if missing. It's a [path from where you run jen]({{ '/cli.html#paths' | relative_url }}). Works for every single-item generator and for `web:compositions` and `web:utilities`:
 
 {% include terminal.html id="web_into" %}
 
-The rules go in without a cascade layer, so they win over everything in the layers. Something the file already has is refused, like anywhere else in your stylesheets.
+Unlayered, so these rules beat everything layered. Reruns add nothing twice.
 
-Link `styles.css` from your page, or `import './css/styles.css'` in a Vite project. The [home page]({{ '/#where' | relative_url }}) has the general rules.
-
-The boilerplate the generators write lives as plain `.css`, `.html` and `.js` files in the pack's [`templates/`](https://github.com/learosema/jen/tree/main/packages/pack-web/templates) folder, so it's easy to read and adapt; a few have `{% raw %}{{placeholders}}{% endraw %}` for the parts the generators fill in. Palettes, fluid scales and utilities are computed, so they're made in code.
+Link `styles.css` from your page, or `import './css/styles.css'` in Vite. Templates live in the pack's [`templates/`](https://github.com/learosema/jen/tree/main/packages/pack-web/templates) folder.
 
 ## Starter {#starter}
 
 ### `web:cube` {#web-cube}
 
-The whole starter at once: [`web:base`](#web-base), [`web:fluid`](#web-fluid), every [composition](#web-compositions) and every [utility](#web-utilities) that fits, plus [`web:palette`](#web-palette) and [`web:button`](#web-button) when you pass `--primary`. It takes every flag of `web:palette` and `web:fluid`.
+Everything at once: [`web:base`](#web-base), [`web:fluid`](#web-fluid), all [compositions](#web-compositions) and fitting [utilities](#web-utilities), plus [`web:palette`](#web-palette) and [`web:button`](#web-button) with `--primary`. Takes the flags of `web:palette` and `web:fluid`.
 
 {% include terminal.html id="web_cube" %}
+
+`--into` writes it all, unlayered and in cascade order, into one file – even the entry point. Not for Tailwind projects.
+
+{% include terminal.html id="web_cube_into" %}
 
 {% include params.html generator="web:cube" %}
 
@@ -105,15 +107,15 @@ The whole starter at once: [`web:base`](#web-base), [`web:fluid`](#web-fluid), e
 
 ### `web:palette` {#web-palette}
 
-Six shades per color, from your colors, as custom properties: `--color-primary-1` (lightest) to `--color-primary-6` (darkest). The shades aren't copied from your input but placed by luminance, so every color's shade 3 is equally light – and contrast depends only on how many shades apart two colors are, across colors too:
+Six shades per color, `--color-primary-1` (lightest) to `-6` (darkest), placed by luminance – so contrast depends only on the distance between shades, across colors too:
 
 - **2 apart**: at least 3:1 – borders, icons, large text
 - **3 apart**: at least 4.5:1 – WCAG AA for text
 - **4 apart**: at least 7:1 – WCAG AAA for text
 
-So `--color-primary-5` text on `--color-danger-1` is AAA, without looking anything up. Besides your colors you get a neutral gray tinted toward the primary hue, and success, warning, danger and info.
+`--color-primary-5` on `--color-danger-1` is AAA. You also get a tinted neutral, success, warning, danger and info.
 
-Colors take any CSS color – `deeppink`, `#f37`, `rgb(255 51 119)`, `hsl(340deg, 100%, 60%)`, `oklch(0.65 0.24 5)`, `lab()`, `lch()`, `hwb()`, `color(display-p3 …)` – or a bare hue in degrees like `264`. Alpha is ignored: palette colors are opaque.
+Colors: any CSS color (`deeppink`, `#f37`, `oklch(0.65 0.24 5)`, `color(display-p3 …)`, …) or a hue like `264`. Alpha is ignored.
 
 {% include terminal.html id="web_palette" %}
 
@@ -123,18 +125,18 @@ Colors take any CSS color – `deeppink`, `#f37`, `rgb(255 51 119)`, `hsl(340deg
 
 ### Role tokens and dark mode {#roles}
 
-On top of the shades come role tokens that switch between light and dark mode with `light-dark()`, following `color-scheme`. Browsers without `light-dark()` get the same through `prefers-color-scheme`, and `data-theme="light"` or `"dark"` on `<html>` forces a mode.
+Role tokens switch with `light-dark()` (falling back to `prefers-color-scheme`). `data-theme="light"` or `"dark"` on `<html>` forces a mode.
 
 - **Neutral**: `--color-surface`, `--color-surface-2` (cards, sidebars), `--color-text`, `--color-text-muted`, `--color-border`, `--color-focus`
 - **Per color** (shown for primary): `--color-primary`, `--color-primary-strong` (hover, and colored text on tints), `--color-primary-subtle` (tinted background), `--color-on-primary` (text on the color), `--color-primary-large` (large text only)
 
-`--color-surface-2` and the `-subtle` tints sit between shades, so they stand out from the page while text on them keeps the full level. By default every text pair is AAA. Before the file is written, each pair is measured on the final hex values in both modes; if one ever missed, the generator would fail rather than write it.
+Every text pair is AAA, measured in both modes before writing – the generator fails rather than write a miss.
 
 {% include web-preview.html src="roles.html" title="Role tokens" height="27rem" dual=true %}
 
 ### Large text {#large}
 
-Large text – at least 1.5rem, or 1.1667rem bold – needs less contrast for the same level: 4.5:1 is AAA. The `-large` roles use that and sit one shade closer to the background, so headings and heroes can be more colorful and still be AAA:
+Large text (1.5rem, or 1.1667rem bold) is AAA at 4.5:1. The `-large` roles use that for more colorful headings:
 
 <div class="terminal">
   <div class="chrome"><span></span><span></span><span></span><span class="title">src/css/hero.css</span></div>
@@ -151,7 +153,7 @@ Large text – at least 1.5rem, or 1.1667rem bold – needs less contrast for th
 
 ### `web:color` {#web-color}
 
-Just one color, without the rest of a palette: six shades, lightest to darkest, placed by luminance like `web:palette`'s. So the same rule holds: shades 3 apart reach 4.5:1 (AA), 4 apart 7:1 (AAA). Nothing else goes in the file – which shade goes where, and in dark mode, is up to you.
+One color's six shades, with the same contrast rule as `web:palette`. No role tokens – the rest is up to you.
 
 {% include terminal.html id="web_color" %}
 
@@ -169,19 +171,19 @@ Just one color, without the rest of a palette: six shades, lightest to darkest, 
 }</pre>
 </div>
 
-`--color` takes the same colors as `web:palette`. In a Tailwind project the shades go into `@theme`, so Tailwind makes `bg-pink-1` to `bg-pink-6` and friends. [`web:color-classes`](#web-utilities) makes `.bg-pink-1` and `.color-pink-6` without Tailwind. A color from `web:color` has no role tokens, so [`web:button`](#web-button) doesn't make a `.button--pink` for it.
+With Tailwind, the shades go into `@theme` (`bg-pink-1` …). Without, [`web:color-classes`](#web-utilities) makes `.bg-pink-1` and friends. [`web:button`](#web-button) ignores these colors.
 
 {% include params.html generator="web:color" %}
 
 ### `web:fluid` {#web-fluid}
 
-Fluid type and space in the style of [Utopia](https://utopia.fyi): every size grows from its value at `--minWidth` to its value at `--maxWidth` with `clamp()`. Type steps run from `--step--2` to `--step-5`; space from `--space-3xs` to `--space-3xl`, plus one-up pairs like `--space-s-m` that grow more. All lengths are rem, and the rem part of each formula keeps text zoomable.
+Fluid type and space after [Utopia](https://utopia.fyi), growing with `clamp()` between `--minWidth` and `--maxWidth`: `--step--2` to `--step-5`, `--space-3xs` to `--space-3xl`, and pairs like `--space-s-m`.
 
 {% include terminal.html id="web_fluid" %}
 
 {% include web-preview.html src="fluid.html" title="The type scale" height="27rem" caption="The type scale at this frame's width; resize the window to watch it change" %}
 
-A size that would grow more than 2.5× across the range is refused: browser zoom couldn't reach 200% text size anymore (WCAG 1.4.4).
+Growth over 2.5× is refused: it would break 200% zoom (WCAG 1.4.4).
 
 {% include terminal.html id="web_fluid_zoom" %}
 
@@ -191,79 +193,100 @@ A size that would grow more than 2.5× across the range is refused: browser zoom
 
 ### `web:base` {#web-base}
 
-The entry point, a modern reset and base styles for plain elements: a stable scrollbar gutter, balanced headings and pretty paragraphs, a visible focus ring, transition tokens that drop to zero under `prefers-reduced-motion`, visited links, `<li data-icon="✅">` list markers, and `#` heading anchors with a highlight when you jump to them. Colors fall back to system colors until there's a palette; font sizes use the fluid steps when they exist.
+The entry point, a reset and base styles: balanced headings, a visible focus ring, reduced-motion-aware transitions, `<li data-icon="✅">` markers, `#` heading anchors and more. Uses the palette and fluid steps when present, system colors otherwise.
 
 {% include terminal.html id="web_base" %}
+
+{% include usage.html generator="web:base" %}
 
 {% include web-preview.html src="base.html" title="Base styles" height="27rem" dual=true %}
 
 ### Compositions {#web-compositions}
 
-Layout primitives after [Every Layout](https://every-layout.dev) and [SmolCSS](https://smolcss.dev), in the `compositions` layer, one generator each: `web:flow`, `web:cluster`, `web:repel`, `web:sidebar`, `web:switcher`, `web:grid`, `web:wrapper`, `web:center`, `web:overlay`, `web:breakout`, `web:reel` and `web:gallery`. Each writes `compositions/<name>.css` and imports it. Each is tuned with custom properties that fall back to the fluid space tokens, then to fixed values.
+Layout primitives after [Every Layout](https://every-layout.dev) and [SmolCSS](https://smolcss.dev): `web:flow`, `cluster`, `repel`, `sidebar`, `switcher`, `grid`, `wrapper`, `center`, `overlay`, `breakout`, `reel` and `gallery`. Each writes `compositions/<name>.css`, tuned by custom properties.
 
 {% include terminal.html id="web_sidebar" %}
 
-`web:compositions` writes several at once – all of them, or those `--only=flow,cluster` names:
+`web:compositions` writes all, or `--only=flow,cluster`:
 
 {% include terminal.html id="web_compositions" %}
 
 #### `.grid` and `.wrapper`
 
-`.grid` fits as many columns as there's room for, each at least `--grid-min-item-size`; a few items stretch to fill the row. `.wrapper` is a centered column up to `--wrapper-max-width` that never touches the viewport edges.
+`.grid` fits as many columns of `--grid-min-item-size` as there's room for. `.wrapper` is a centered, padded column.
 
 {% include web-preview.html src="compositions-grid.html" title=".grid" height="12rem" %}
+{% include usage.html generator="web:grid" %}
 {% include web-preview.html src="compositions-wrapper.html" title=".wrapper" height="7rem" %}
+{% include usage.html generator="web:wrapper" %}
 
 #### `.flow`, `.cluster` and `.repel`
 
-`.flow` puts `--flow-space` between siblings. `.cluster` wraps items as a group, like tags or nav links. `.repel` pushes two groups to either end.
+`.flow` spaces siblings by `--flow-space`. `.cluster` wraps a group, like tags. `.repel` pushes two groups apart.
+
+`--flow-space` is inherited: set it on the `.flow` or on one child (and a nested `.flow`'s children). [`.flow-space-*`](#web-utilities) does the same:
+
+```html
+<article class="flow"><h2>…</h2><p>…</p>
+  <section class="flow flow-space-xl"><h3>…</h3><p>…</p></section></article>
+```
+
+The section and its children are `--space-xl` apart.
 
 {% include web-preview.html src="compositions-flow.html" title=".flow" height="13rem" %}
+{% include usage.html generator="web:flow" %}
 {% include web-preview.html src="compositions-cluster.html" title=".cluster" height="10rem" %}
+{% include usage.html generator="web:cluster" %}
 {% include web-preview.html src="compositions-repel.html" title=".repel" height="5rem" %}
+{% include usage.html generator="web:repel" %}
 
 #### `.sidebar` and `.switcher`
 
-`.sidebar` puts its first child beside the content, and stacks once the content would get narrower than `--sidebar-content-min`; `data-direction="end"` puts the sidebar last. `.switcher` lays its children side by side above `--switcher-threshold` and stacks them below.
+`.sidebar` stacks when content gets narrower than `--sidebar-content-min`. `.switcher` stacks below `--switcher-threshold`.
 
 {% include web-preview.html src="compositions-sidebar.html" title=".sidebar" height="7rem" %}
+{% include usage.html generator="web:sidebar" %}
 {% include web-preview.html src="compositions-switcher.html" title=".switcher" height="5rem" %}
+{% include usage.html generator="web:switcher" %}
 
 #### `.breakout`
 
-A text column (`--breakout-max-width`) whose children can break out with `data-breakout="wide"` or `data-breakout="full"`.
+A text column; children break out with `data-breakout="wide"` or `"full"`.
 
 {% include web-preview.html src="compositions-breakout.html" title=".breakout" height="19.5rem" %}
+{% include usage.html generator="web:breakout" %}
 
 #### `.center`, `.overlay`, `.reel` and `.gallery`
 
-`.center` centers in both directions. `.overlay` layers its children in one grid cell, like text over a picture. `.reel` is a scrolling row that snaps to its items. `.gallery` crops media to `--gallery-ratio` in wrapping rows.
+`.center` centers. `.overlay` stacks children, like text on a picture. `.reel` is a snapping scroll row. `.gallery` crops media to `--gallery-ratio`.
 
+{% include usage.html generator="web:center" %}
 {% include web-preview.html src="compositions-overlay.html" title=".overlay" height="20rem" %}
+{% include usage.html generator="web:overlay" %}
 {% include web-preview.html src="compositions-reel.html" title=".reel" height="6rem" %}
+{% include usage.html generator="web:reel" %}
 {% include web-preview.html src="compositions-gallery.html" title=".gallery" height="11rem" %}
+{% include usage.html generator="web:gallery" %}
 
 {% include params.html generator="web:compositions" %}
 
 ### Utilities {#web-utilities}
 
-Utility classes in the `utilities` layer, one generator each, each into `utilities/<name>.css`.
+One generator per file in `utilities/`. From your tokens (rerun with `--force` when they change):
 
-From your tokens – run them after the tokens, and again with `--force` when the tokens change:
+- **`web:color-classes --name=<color>`**: `.color-*` and `.bg-*` – role tokens for a [palette](#web-palette) color (`.bg-primary-subtle`), page colors for `neutral`, shades for a [`web:color`](#web-color).
+- **`web:step-classes`**: `.step-*` font sizes.
+- **`web:space-classes`**: `.flow-space-*` and `.gutter-*`.
 
-- **`web:color-classes --name=<color>`**: `.color-*` and `.bg-*` for one color. For a [`web:palette`](#web-palette) color, they're its role tokens (`.bg-primary-subtle`, `.color-on-primary`), not the raw shades, so you stay on checked pairs; `--name=neutral` gives the page colors (`.color-text-muted`, `.bg-surface-2`). For a [`web:color`](#web-color) color, they're its six shades: `.bg-pink-1` to `.bg-pink-6`.
-- **`web:step-classes`**: `.step-*` font sizes from [`web:fluid`](#web-fluid).
-- **`web:space-classes`**: `.flow-space-*` and `.gutter-*` for every space size from [`web:fluid`](#web-fluid).
+Fixed:
 
-Fixed ones:
-
-- **`web:visually-hidden`**: `.visually-hidden` hides something on screen but keeps it for screen readers – until it gets focus.
-- **`web:pad-fluid`**: `.pad-fluid` padding that grows with the container.
-- **`web:unbreakable`**: `.unbreakable` lets long words and URLs break instead of overflowing.
+- **`web:visually-hidden`**: hidden on screen, not for screen readers.
+- **`web:pad-fluid`**: padding that grows with the container.
+- **`web:unbreakable`**: long words and URLs break instead of overflowing.
 
 {% include terminal.html id="web_color_classes" %}
 
-`web:utilities` writes all of them that fit your tokens at once, leaving out what you have:
+`web:utilities` writes all that fit:
 
 {% include terminal.html id="web_utilities" %}
 
@@ -271,39 +294,45 @@ Fixed ones:
 
 ### `web:button` {#web-button}
 
-A `.button` block with BEM modifiers: `--secondary`, `--tertiary` and `--danger` for the colors the palette has, `--outline`, `--ghost`, `--pill`, `--small` and `--large`. Text on its fill, on its hover fill and on the tinted hover of `--outline`, the fill against the page, and the focus ring all keep the palette's checked contrast. Your own variant sets the `--button-*` properties in a modifier.
+A `.button` with `--secondary`, `--tertiary`, `--danger`, `--outline`, `--ghost`, `--pill`, `--small` and `--large`, all at the palette's checked contrast. Custom variants set `--button-*`.
 
 {% include terminal.html id="web_button" %}
 
 {% include web-preview.html src="buttons.html" title="Buttons" height="14rem" dual=true %}
 
-It needs a palette, and says so:
+{% include usage.html generator="web:button" %}
+
+It needs a palette:
 
 {% include terminal.html id="web_button_missing" %}
 
 ### `web:card` {#web-card}
 
-A composable `.card` after [SmolCSS](https://smolcss.dev): any children get its padding, media first or last goes edge to edge, and the last child sits at the bottom, so footers line up across a row of cards.
+A `.card` after [SmolCSS](https://smolcss.dev): edge-to-edge media, footers aligned across a row. Set `--card-padding` on the card or a parent.
 
 {% include terminal.html id="web_card" %}
 
 {% include web-preview.html src="card.html" title="Cards" height="37rem" dual=true %}
 
+{% include usage.html generator="web:card" %}
+
 ### `web:avatars` {#web-avatars}
 
-Overlapping round avatars that move apart on hover or focus. Each step is at least 2.75rem wide, the WCAG AAA target size, for avatars that are links.
+Overlapping avatars that spread on hover or focus, at AAA target size.
 
 {% include terminal.html id="web_avatars" %}
 
 {% include web-preview.html src="avatars.html" title="Avatars" height="6rem" caption="Hover or tab through them" %}
 
+{% include usage.html generator="web:avatars" %}
+
 ## Pages and platform features {#platform}
 
-Modern HTML and CSS that used to need JavaScript, each as progressive enhancement: where a browser lacks a feature, the page still works – it just doesn't animate or anchor. Generators that come with markup take `--into=<page.html>` and put it in before `</body>` – or before the line `--line` names: a number like `--line=8`, or text on that line like `--line="</nav>"` to put a menu inside the nav. Either way the page needs no marker, the markup is indented to fit, and running a generator twice duplicates nothing. Script tags they need still go before `</body>`.
+Progressive enhancement: without support, the page still works. Markup goes in with `--into=<page.html>`, before `</body>` or before `--line` (`--line=8`, or `--line="</nav>"`). Nothing is rewritten or duplicated.
 
 ### `web:page` {#web-page}
 
-A new page after [Manuel Matuzović's HTML boilerplate](https://matuzo.at/blog/html-boilerplate/): `lang`, a `no-js`/`js` class switched by a module script, the viewport, a title of the form "Page – Site", description and Open Graph tags. On top, it fits the page to your project: the stylesheet link points at the entry point, relative to the page; `theme-color` follows the palette's page colors in light and dark mode; and icons and the manifest are linked only if those files exist, at the root or in `public/`. Canonical, `og:url` and `og:image` need your site's address, so they come with `--url`.
+A page after [Manuel Matuzović's HTML boilerplate](https://matuzo.at/blog/html-boilerplate/), linking your stylesheet, palette `theme-color`, and any existing icons and manifest. `--url` adds canonical and `og:` tags.
 
 {% include terminal.html id="web_page" %}
 
@@ -311,13 +340,13 @@ A new page after [Manuel Matuzović's HTML boilerplate](https://matuzo.at/blog/h
 
 ### `web:manifest` {#web-manifest}
 
-Makes the site installable with a `manifest.webmanifest`. It goes into `public/` in a Vite project or any project with that folder, else where you run jen. The colors come from the palette – `theme_color` from `primary`, `background_color` from `surface` – or from `--themeColor` and `--backgroundColor` (any CSS color, or a hue), and white without either. They're written as hex, which every browser reads. The manifest lists only the icons that exist, at the root or in `public/`. Next to a `favicon.svg`, it also writes `icon-maskable.svg`: the same icon on the background color, shrunk into the safe zone that round and rounded-square icon masks leave alone. `--into=<page.html>` links the manifest and adds `theme-color` to the page's head, one per color scheme when there's a palette. Pages you make later with `web:page` link the manifest by themselves.
+A `manifest.webmanifest` (in `public/` if there is one), with colors from the palette or `--themeColor`/`--backgroundColor`, and the icons that exist. A `favicon.svg` also gets an `icon-maskable.svg`. `--into=<page.html>` links it.
 
 {% include terminal.html id="web_manifest" %}
 
 {% include terminal.html id="web_manifest_file" %}
 
-Some browsers, and iOS for the home screen, still want PNGs. `--png` renders `icon-192.png`, `icon-512.png` and `apple-touch-icon.png` from `favicon.svg` and lists them. The apple-touch icon goes on the background color with some room around it, because iOS fills transparent corners with black. jen bundles no image library: `--png` uses `rsvg-convert` (librsvg) or ImageMagick, whichever is installed, and stops with a message if neither is.
+`--png` renders PNG icons from `favicon.svg`, for iOS and older browsers – using `rsvg-convert` or ImageMagick, whichever is installed.
 
 {% include terminal.html id="web_manifest_png" %}
 
@@ -325,13 +354,13 @@ Some browsers, and iOS for the home screen, still want PNGs. `--png` renders `ic
 
 ### `web:sw` {#web-sw}
 
-A service worker without dependencies, short enough to read and own, with the caching strategies of Jake Archibald's [Offline Cookbook](https://web.dev/articles/offline-cookbook). Pages go network first: fresh when online, from the cache when not, and the offline page for anything never visited. Everything else is cache first, or stale-while-revalidate with `--strategy=swr`: served from the cache right away, and refreshed in the background for next time. On install, it caches the pages next to it and the entry stylesheet with everything it imports, or what `--precache=app.css,logo.svg` lists. `--offline` adds an `offline.html`, made from `web:page`'s template. The cache name carries a version: bump `VERSION` in `sw.js` and activating the new worker removes the old caches.
+A small service worker after the [Offline Cookbook](https://web.dev/articles/offline-cookbook): pages network-first, everything else cache-first (or `--strategy=swr`). It precaches pages and stylesheets, or `--precache=…`. `--offline` adds an `offline.html`. Bump `VERSION` to drop old caches.
 
-`register-sw.js` registers the worker. Like pack-js, it comes in the project's style: TypeScript, JavaScript with JSDoc types, or plain JavaScript, by `--types` or else the nearest `tsconfig.json` or `jsconfig.json`. The service worker itself is always plain JavaScript, since browsers load it as it is. When a new version is waiting, `sw-update` fires on `window`, and `event.detail.apply()` switches to it and reloads the page – ask first, or apply it right away. In a Vite project, `sw.js` goes into `public/` and registers at Vite's base URL, and only in production builds, so the dev server's modules never end up in a cache. There, Vite builds the stylesheets, so they're cached as they load rather than on install.
+`register-sw.js` matches your project's [types style]({{ '/js.html#styles' | relative_url }}). A waiting update fires `sw-update`; `event.detail.apply()` switches and reloads. In Vite, it only registers in production builds.
 
 {% include terminal.html id="web_sw" %}
 
-A live preview is no use for a service worker, so here's the start of the file it writes:
+The start of `sw.js`:
 
 {% include terminal.html id="web_sw_file" %}
 
@@ -339,27 +368,31 @@ A live preview is no use for a service worker, so here's the start of the file i
 
 ### `web:dialog` {#web-dialog}
 
-A modal `.dialog` that fades and rises in and out (`@starting-style`) above a dimmed backdrop. The markup opens it with the command API – `<button commandfor="confirm" command="show-modal">` – so no JavaScript is needed; `commands.js` stands in for browsers that don't have the command API yet. `closedby="any"` lets a click outside close it.
+An animated modal `.dialog`, opened without JavaScript via `<button commandfor="confirm" command="show-modal">`. A click outside closes it. With `--into`, the button goes at `--line`, the dialog before `</body>`.
 
 {% include terminal.html id="web_dialog" %}
 
 {% include web-preview.html src="dialog.html" title="A dialog" height="18rem" dual=true caption="Press the button" %}
 
+{% include usage.html generator="web:dialog" %}
+
 {% include params.html generator="web:dialog" %}
 
 ### `web:popover` {#web-popover}
 
-A `.popover` anchored below its trigger with CSS anchor positioning, flipping above or to the other side when there's no room. Without anchor positioning it opens centered, like any popover. The markup uses `popovertarget` and ties trigger and popover together with an anchor name.
+A `.popover` anchored to its button, flipping when out of room – centered where anchor positioning isn't supported. `--into` works like the dialog's.
 
 {% include terminal.html id="web_popover" %}
 
 {% include web-preview.html src="popover.html" title="A popover" height="11rem" dual=true caption="Press the button" %}
 
+{% include usage.html generator="web:popover" %}
+
 {% include params.html generator="web:popover" %}
 
 ### `web:scroll` {#web-scroll}
 
-Scroll-driven animations, no JavaScript: a `.reading-progress` bar that follows the page's scroll position, `.reveal` for elements that fade in as they scroll into view, and `.parallax`, shifted by `--parallax-shift`. Without support or with reduced motion, nothing is hidden and nothing moves.
+Scroll-driven animations without JavaScript: `.reading-progress`, `.reveal` and `.parallax`. Static with reduced motion.
 
 {% include terminal.html id="web_scroll" %}
 
@@ -369,7 +402,7 @@ Scroll-driven animations, no JavaScript: a `.reading-progress` bar that follows 
 
 ### `web:transitions` {#web-transitions}
 
-Cross-document view transitions between the pages of a site, as the browser's crossfade or `--style=slide` – off with reduced motion, and simply absent where unsupported. `--spa` adds `view-transition.js` for same-document transitions: `transition(() => updateTheDom())`, a plain update where unsupported.
+View transitions between pages: crossfade, or `--style=slide`. Off with reduced motion. `--spa` adds `transition(() => updateTheDom())` for single-page apps.
 
 {% include terminal.html id="web_transitions" %}
 
@@ -381,13 +414,13 @@ Cross-document view transitions between the pages of a site, as the browser's cr
 
 ### `web:tailwind` {#web-tailwind}
 
-Sets up the entry point for Tailwind: `@import "tailwindcss"`, with Tailwind's layers fitted into the CUBE CSS order. From then on, `web:palette` writes its tokens into `@theme` under the same names – so Tailwind makes `bg-surface`, `text-on-primary`, `bg-primary-subtle`, `border-border` – and drops Tailwind's own colors, leaving only checked ones. `web:fluid` maps its scales to `text-step-1`, `p-s-m` and friends, and `web:cube` leaves the utilities to Tailwind. jen doesn't install anything: add `tailwindcss` and its build integration (e.g. `@tailwindcss/vite`) yourself.
+Imports Tailwind into the entry point, in CUBE CSS layer order. Then `web:palette` writes into `@theme` (`bg-surface`, `text-on-primary`, …) replacing Tailwind's colors, and `web:fluid` gives `text-step-1`, `p-s-m`. Install `tailwindcss` and e.g. `@tailwindcss/vite` yourself.
 
 {% include terminal.html id="web_tailwind" %}
 
 ## Credits {#credits}
 
-Every file credits the work it builds on, in a comment at the top of the part it's about:
+Each file credits its sources:
 
 - **[CUBE CSS](https://cube.fyi)** by Andy Bell: the layer order, and the Repel composition
 - **[Every Layout](https://every-layout.dev)** by Heydon Pickering and Andy Bell: the flow (Stack), cluster, sidebar, switcher and reel compositions
@@ -402,4 +435,4 @@ Every file credits the work it builds on, in a comment at the top of the part it
 - **[Web app manifest](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest)** reference by MDN: `web:manifest`
 - **[The Offline Cookbook](https://web.dev/articles/offline-cookbook)** by Jake Archibald: the caching strategies in `web:sw`
 
-The code is written fresh for this pack, not copied. The pack is ISC licensed.
+Written fresh, not copied. ISC licensed.

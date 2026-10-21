@@ -19,15 +19,15 @@ How it works
 
 1. ### Params
 
-   Answers come from `--flags` or a param's own default. Something required is missing, or a flag the generator doesn't know? jen says so and quits. It never prompts.
+   Answers come from `--flags` or defaults. Missing or unknown flag? jen says so and quits. No prompts.
 
 2. ### Plan
 
-   jen works out every change and prints it: `+` add, `~` modify, `=` skip. Add `--dry-run` to only look.
+   Every change is printed: `+` add, `~` modify, `=` skip. `--dry-run` only looks.
 
 3. ### Act
 
-   Then the files are written. Same params, same output, every time. Indentation follows your `.editorconfig`.
+   Files are written. Same params, same output. Indentation follows your `.editorconfig`.
 {: .steps .reveal}
 
 </section>
@@ -40,14 +40,14 @@ Why
 ## Small on purpose.
 {: .big}
 
-- **Zero extra dependencies.** No node\_modules tree, no Handlebars, no Inquirer. Just Node.
-- **No dialog.** Params come from the command line. Nothing asks you questions, Yeoman generators included.
-- **Templates with logic, for free.** Template literals already do conditionals and loops.
-- **Readable output.** Every run prints what it adds, changes and skips. `--dry-run` shows it without writing.
-- **Deterministic.** Same params, same output. Every time.
-- **Language-agnostic.** Scaffolds C++, CMake, Rust, shaders, or anything else that's text.
-- **Try before you install.** `--from` fetches a pack or generator via npm, runs it once, and cleans up after itself. Ask for `lua:function` without the pack and jen fetches `@codejen/pack-lua` for you.
-- {: .wide} **Runs real Yeoman generators, too** – JHipster included – with [`@codejen/pack-yeoman`](yeoman.html). No extra dependency for that either: it borrows yeoman-generator, mem-fs and EJS straight from the generator's own install.
+- **Zero dependencies.** No Handlebars, no Inquirer. Just Node.
+- **No dialog.** Params come from the command line, even for Yeoman generators.
+- **Logic for free.** Template literals already do conditionals and loops.
+- **Readable output.** Every run prints what it adds, changes and skips.
+- **Deterministic.** Same params, same output.
+- **Language-agnostic.** C++, CMake, shaders – anything that's text.
+- **Try before you install.** `--from` runs a pack once and cleans up. `lua:function` without the pack fetches `@codejen/pack-lua`.
+- {: .wide} **Runs real Yeoman generators**, JHipster included, with [`@codejen/pack-yeoman`](yeoman.html) – borrowing yeoman-generator, mem-fs and EJS from the generator's own install.
 {: .why .auto-grid .reveal}
 
 </section>
@@ -62,12 +62,9 @@ Where files go
 ## Right where you *stand*.
 {: .big}
 
-jen never prompts, and it doesn't guess either. Two rules cover it:
-
-- **Files go where you're standing.** Run a generator in a folder and its files land there. App starters make a new folder and put everything in it. `--dir=<path>` writes somewhere else.
-- **Generators say what, jen says where.** A generator never picks a folder. Files it wires into, like a `CMakeLists.txt` with a marker, jen finds: the nearest one above where the files go.
-
-The project root, found by walking up to the nearest `.jen/`, `package.json` or `.git`, is the boundary: nothing outside it is touched. That is how a class made in `src/net/` still gets wired into the right `CMakeLists.txt`.
+- **Files land where you stand.** App starters make a new folder. `--dir=<path>` writes elsewhere.
+- **Generators say what, jen says where.** Files to wire into, like a `CMakeLists.txt` with a marker, jen finds: the nearest one above.
+- **The project root is the boundary.** It's the nearest `.jen/`, `package.json` or `.git` above you. Nothing outside is touched.
 
 </div>
 {% include terminal.html id="where" title="~/projects/my-game" %}
@@ -84,7 +81,7 @@ Make it yours
 ## Write your own *jen*.
 {: .big}
 
-A generator is one file: the `params` it accepts and an `actions()` function that returns what should happen. No template language, no plugin API. Drop it in `.jen/` and it's a command.
+One file: `params` and an `actions()` function. No template language, no plugin API. Drop it in `.jen/` and it's a command.
 {: .sub}
 
 {% include generator-example.html %}
@@ -103,29 +100,26 @@ A generator is one file: the `params` it accepts and an `actions()` function tha
 
 ### Logic is just JavaScript
 
-Conditionals and loops are `? :` and `.map()`. Want a test file only on request? `...(withTest ? [{ add: … }] : [])`.
+`? :` and `.map()`. A test file on request: `...(withTest ? [{ add: … }] : [])`.
 
 </div>
 <div markdown="1">
 
 ### Respects your .editorconfig
 
-New files and inserted blocks come out in the project's own indent style, tabs or spaces.
+New files and inserts use the project's indent style.
 
 </div>
 <div markdown="1">
 
 ### Share it as a pack
 
-Publish to npm as `jen-pack-<name>` or `@scope/pack-<name>`. Anyone with it in `package.json` gets your generators. Like [@codejen/pack-cpp]({{ '/recipes.html' | relative_url }}).
+Publish as `jen-pack-<name>` or `@scope/pack-<name>`, like [@codejen/pack-cpp]({{ '/recipes.html' | relative_url }}).
 
 </div>
 </div>
 
-jen looks in `.jen/` (searched upwards like `.git`, but not past the repository or your home folder, and only if it's yours), then your user config, `$JEN_PATH`, installed packs (local or global), and built-ins. First match wins; `jen --list` shows what shadows what, `jen <generator> --help` a generator's params, and `jen --list --json` all of it for scripts – the [command line]({{ '/cli.html' | relative_url }}) has every option, and [writing generators]({{ '/generators.html' | relative_url }}) the whole reference.
-{: .sub}
-
-Paths in your actions are relative to where the files go; start one with `/` for the project root. To wire into an existing file, let jen find it: `{ insert: { find: 'CMakeLists.txt' }, before: '# jen:sources', path: 'Foo.cpp' }`.
+Lookup order: `.jen/`, user config, `$JEN_PATH`, packs, built-ins. First match wins. More in [command line]({{ '/cli.html' | relative_url }}) and [writing generators]({{ '/generators.html' | relative_url }}).
 {: .sub}
 
 </section>
@@ -140,7 +134,7 @@ Bring your own ecosystem
 ## Not just your own generators.
 {: .big}
 
-With [`@codejen/pack-yeoman`](yeoman.html), jen also runs real [Yeoman](https://yeoman.io/) generators – JHipster included. `generator-code` and `generator-jhipster` are fetched on the fly, without ever touching your project's own dependencies.
+[`@codejen/pack-yeoman`](yeoman.html) runs real [Yeoman](https://yeoman.io/) generators, JHipster included – fetched on the fly, never touching your dependencies.
 
 </div>
 {% include terminal.html id="yeoman" title="~/projects" %}

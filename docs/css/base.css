@@ -29,6 +29,7 @@
   --term-add: #8fd05a;
   --term-mod: #f0b43c;
   --term-del: #ff6b5e;
+  --term-warn: #ff9f43;  /* warning: lines – apart from ~'s yellow, so a skip doesn't read as a change */
   --term-line: rgba(255, 255, 255, 0.07);  /* hairlines and chips on the terminal background */
   --text-label: 0.75rem;   /* eyebrows, kickers, badges, chips */
   --text-small: 0.875rem;  /* secondary text, code, terminals, cards */

@@ -29,6 +29,7 @@
 }
 /* output and syntax colors; .glyph is the same marks outside a terminal */
 .terminal :is(.prompt, .dim, .c) { color: var(--term-dim); }
+.terminal .warn { color: var(--term-warn); }
 .terminal :is(.add, .ok, .s), .glyph.add { color: var(--term-add); }
 .terminal .mod, .glyph.mod { color: var(--term-mod); }
 .glyph.del { color: var(--term-del); }

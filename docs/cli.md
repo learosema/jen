@@ -6,7 +6,7 @@ description: "Every jen option, how params are typed, what --help and --list --j
 eyebrow: "@codejen/jen"
 mega: cli
 lede: One command, a handful of options, and a generator's own params as <code>--flags</code>.
-sub: jen never asks. Whatever it doesn't understand, it says so and quits before writing anything.
+sub: jen never asks. Anything it doesn't understand stops it before writing.
 cta: { text: "All options ↓", url: "#options" }
 toc:
   - title: Running
@@ -31,92 +31,101 @@ toc:
 
 ### Options {#options}
 
-`jen [generator] [--param=value …] [options]`. The generator is a name (`class`), with its pack (`cpp:class`) or with its source (`user:class`).
+`jen [generator] [--param=value …] [options]`. The generator is a name (`class`), or prefixed by its pack (`cpp:class`) or source (`user:class`).
 
-- **`--dry-run`, `-n`**: only show the plan, write nothing.
-- **`--force`, `-f`**: overwrite existing files instead of skipping them.
-- **`--dir=<path>`**: where the files go, instead of the current directory. See [where files go]({{ '/#where' | relative_url }}).
-- **`--from <package>`**: fetch a pack via npm, run it once, then remove it – or a package a pack runs, e.g. a Yeoman generator: `jen --from generator-code yeoman:code`.
-- **`--list`, `-l`**: list every generator and where it comes from – or one pack's: `jen web --list`.
-- **`--json`**: with `--list`, the same list as JSON.
-- **`--help`, `-h`**: jen's own help, or with a generator, its params.
+- **`--dry-run`, `-n`**: show the plan, write nothing.
+- **`--force`, `-f`**: overwrite existing files.
+- **`--dir=<path>`**: write there instead of the current directory. See [where files go]({{ '/#where' | relative_url }}).
+- **`--from <package>`**: fetch a pack, or a package a pack runs, for one run: `jen --from generator-code yeoman:code`.
+- **`--list`, `-l`**: list every generator and its source – or one pack's: `jen web --list`.
+- **`--json`**: with `--list`, as JSON.
+- **`--help`, `-h`**: jen's help, or a generator's params.
 - **`--version`, `-v`**: jen's version.
 
 ### Params {#params}
 
-Everything else on the command line is a param of the generator. A value always takes the `=` form: `--name=Foo`. A boolean param works as a bare flag (`--moveOnly`), or with `=true`/`=false` – `yes`/`no`, `on`/`off` and `1`/`0` work too. Anything else fails, rather than being read as false.
+Everything else is a generator param. Values use `=`: `--name=Foo`. Booleans work bare (`--moveOnly`) or with `=true`/`false`, `yes`/`no`, `on`/`off`, `1`/`0`. Anything else fails.
 
-A param without a default is required. Leave it out and jen shows the generator's params, then stops with `Missing: --name` before anything is written – it never prompts for it ([see `--help`](#help)).
+A param without a default is required. Leave it out and jen prints the params and `Missing: --name`, then stops ([see `--help`](#help)).
 
-Some params only take a few values, like `--std=20` or `--std=23` for `cpp:enum`. Anything else stops jen with the values it does take: `cpp:enum --std: expected one of "20", "23", got "17"`.
+#### Paths {#paths}
 
-`list`, `dry-run`, `force`, `from` and `help` are jen's own, so a generator can't use them as param names. `json` and `dir` can be: a generator with its own `dir` param gets `--dir` for itself.
+Path params like `--into` are relative to where you run jen, not to `--dir`, and must stay inside the project. `jen web:dialog --name=confirm --into=index.html --dir=css` writes `css/dialog.css` and edits `./index.html`.
+
+#### Choices
+
+Some params take only a few values. Anything else fails: `cpp:enum --std: expected one of "20", "23", got "17"`.
+
+`list`, `dry-run`, `force`, `from` and `help` are reserved. `json` and `dir` aren't: a generator with its own `dir` param gets `--dir`.
 
 ### Unknown flags {#unknown}
 
-A flag the generator has no param for stops jen too. A typo like `--moveonly` or `--namepsace=gfx` would otherwise be dropped without a word, and you'd get different code than you asked for. jen names every unknown flag at once, suggests the closest param for a near-miss, and lists the ones the generator knows:
+An unknown flag stops jen, so a typo like `--moveonly` never silently changes your output. jen names them all, suggests the closest match, and lists the known params:
 
 {% include terminal.html id="cli_unknown" %}
 
-`--dir` is always accepted, whether the generator has its own `dir` param or not.
+`--dir` is always accepted.
 
 ### Reading the plan {#plan}
 
-Every run prints its plan: one line per file, and what happens to it.
+One line per file:
 
-- **`+`**: the file is created.
-- **`~`**: the file is changed, with the line that goes in.
-- **`!`**: the file is overwritten, with `--force`.
-- **`-`**: the file is deleted.
-- **`=`**: nothing to do – the file exists, the line is already there, or nothing matched.
-- **`?`**: a problem, so the action is skipped – a missing file or marker, or a path outside the project.
+- **`+`**: created
+- **`~`**: changed, with the line that goes in
+- **`!`**: overwritten (`--force`)
+- **`-`**: deleted
+- **`info:`**: nothing to do, or a hint
+- **`warning:`**: skipped – a missing file or marker, or a path outside the project
 
-When the project root isn't where you stand, the plan says where jen found it and why, e.g. `root: .. (package.json)`. With `--dry-run`, the plan is all there is.
+Both `info:` and `warning:` exit with `0`. Real errors stop jen before the plan.
+
+{% include terminal.html id="cli_plan" %}
+
+If the project root isn't where you stand, the plan says so: `root: .. (package.json)`.
 
 ### Fetching packs {#fetching}
 
-`--from <package>` (or `<package>@<version>`) installs a pack into a throwaway directory, runs it once and removes it again – no `package.json` entry, no `node_modules` left in your project. Any other package is installed the same way for a pack to run, e.g. a Yeoman generator: `jen --from generator-code yeoman:code`. The generator name stays the same as for an installed pack: `--from` only changes where jen gets it.
+`--from <package>[@<version>]` installs into a throwaway directory, runs once and cleans up – nothing left in your project. The generator name stays the same.
 
-Ask for a prefixed generator whose pack isn't installed, like `lua:function`, or list one with `jen lua --list`, and jen fetches `@codejen/pack-lua` the same way – also next to a `--from`. That only ever pulls from jen's own `@codejen` scope, so a typo can't install someone else's package; for any other scope, or an unprefixed name, jen prints a hint to use `--from` instead.
+A prefixed generator without its pack, like `lua:function` or `jen lua --list`, fetches `@codejen/pack-lua` the same way. Only from `@codejen`, so a typo can't install someone else's package; anything else gets a hint to use `--from`.
 
-Packs fetch, too – only names fixed in their own code, never one from the command line: pack-yeoman its [fixed list of generators]({{ '/yeoman.html' | relative_url }}), pack-js `npm create vite@latest` and the latest versions for [`js:esbuild`]({{ '/js.html#js-esbuild' | relative_url }}). jen uses your own `npm`, with `--ignore-scripts` for its installs. `JEN_NO_FETCH=1` turns all of it off.
+Packs fetch only names fixed in their code: pack-yeoman its [generator list]({{ '/yeoman.html' | relative_url }}), pack-js `npm create vite@latest` and the versions for [`js:esbuild`]({{ '/js.html#js-esbuild' | relative_url }}). Installs use your `npm` with `--ignore-scripts`. `JEN_NO_FETCH=1` turns it all off.
 
 ## Looking around {#looking}
 
 ### `--help` {#help}
 
-`jen <generator> --help` shows one generator and its params the way you'd type them: required ones marked `(required)`, strings with their default (`--namespace=""`), booleans as a bare flag, each followed by its description. A param that only takes a few values lists them all, the default first: `--std=23|20`.
-
-Below the params come the generator's examples, ready to copy – the first one also the way to run it without installing jen, through `npx --yes @codejen/jen`. Last, a link to the pack's documentation, if it has one.
+`jen <generator> --help` shows the params as you'd type them – `(required)`, defaults, choices (`--std=23|20`), path params marked – then `usage:`, examples ready to copy (the first also via `npx`), and the pack's docs link.
 
 {% include terminal.html id="cli_help" %}
 
-You often don't need `--help` at all: run a generator without its required params, and jen shows the same text, followed by what's missing. A generator whose params all have defaults, like `web:base`, just runs instead. This text goes to stderr with exit code `1`, since nothing was generated; `--help` prints to stdout and exits with `0`.
+Run a generator without its required params for the same text plus what's missing, on stderr with exit code `1`. Generators with all-default params, like `web:base`, just run.
 
 {% include terminal.html id="cli_missing" %}
 
 ### `--list` {#list}
 
-`jen --list` shows every generator, where it comes from, and which ones are shadowed by another of the same name further up the search path.
+`jen --list` shows every generator, its source, and what's shadowed.
 
-A pack's prefix lists just that pack: `jen web --list`, `jen cpp --list --json`, or `jen web` alone when no generator is called `web`. A source works the same way: `jen project --list`. If the pack isn't installed, jen [fetches it](#fetching) from `@codejen` for the listing. Without a generator name at all, jen prints its own help.
+A prefix lists one pack or source: `jen web --list`, `jen cpp --list --json`, `jen project --list`, or just `jen web` if no generator is called `web`. Missing `@codejen` packs are [fetched](#fetching).
 
 ### `--list --json` {#json}
 
-`jen --list --json` prints the same catalog as JSON on stdout, and nothing else, for scripts, editors and other tools. Each generator has:
+The same catalog as JSON on stdout, for tools. Each generator has:
 
-- **`name`**: the name to run it by, with the pack prefix, e.g. `cpp:class`.
-- **`source`**: where it comes from, e.g. `pack @codejen/pack-cpp`, `project` or `built-in`.
-- **`pack`**: for a generator from a pack, the pack's `name`, and its `version`, `description` and `homepage` where its `package.json` has them.
-- **`shadowed`**: `true` if another generator of the same name is found first, so this one only runs with its source prefix.
-- **`description`**: what it makes, or `""`.
-- **`params`**: each param by name, in the order `--help` shows them, with
-  - **`type`**: `string` or `boolean`, following from its default,
-  - **`required`**: `true` if it has no default,
-  - **`default`**, **`choices`** (every value it takes), **`path`** and **`description`**, only where the generator gives them.
-- **`examples`**: example calls, each as `jen`, with jen installed, and as `npx`, without: `npx --yes @codejen/jen …`, with `--from` for a pack outside `@codejen`. `[]` if the generator has none.
+- **`name`**: e.g. `cpp:class`
+- **`source`**: e.g. `pack @codejen/pack-cpp`, `project`, `built-in`
+- **`pack`**: its `name`, plus `version`, `description` and `homepage` if set
+- **`shadowed`**: `true` if another of the same name wins
+- **`description`**: or `""`
+- **`params`**: in `--help` order, each with
+  - **`type`**: `string` or `boolean`
+  - **`required`**: `true` without a default
+  - **`default`**, **`choices`**, **`path`**, **`description`**: when given
+- **`examples`**: each as a `jen` and an `npx --yes @codejen/jen` call (with `--from` outside `@codejen`), or `[]`
+- **`usage`**: as under `usage:` in `--help`, or `[]`
 
-A generator that fails to load gets an `error` with the message instead of `description`, `params` and `examples`, and the listing goes on with the next one.
+A generator that fails to load gets an `error` instead, and the listing goes on.
 
 {% include terminal.html id="cli_json" %}
 
@@ -124,8 +133,8 @@ A generator that fails to load gets an `error` with the message instead of `desc
 
 ### Exit codes {#exit}
 
-jen exits with `0` when it ran: files written, nothing to do, or only a plan with `--dry-run`. Anything else exits with `1` and a message on stderr: a missing or unknown param, a boolean it can't read, a generator that isn't found – and `jen` without a generator name, after showing its help. Nothing is written in any of these cases.
+`0` when jen ran – including nothing to do, `--dry-run`, `info:` and `warning:`. `1` with a message on stderr otherwise: a missing, unknown or unreadable param, an unknown generator, or bare `jen`. Nothing is written then.
 
 ### Passing flags on {#passthrough}
 
-Some generators run something else and pass the command line on, like [pack-yeoman]({{ '/yeoman.html' | relative_url }}), which answers a Yeoman generator's questions from its flags. Such a generator sets `passthrough: true`: jen then accepts flags it has no param for and hands them over, with the positionals after the generator name, in `ctx.args`.
+Generators that wrap another tool, like [pack-yeoman]({{ '/yeoman.html' | relative_url }}), set `passthrough: true`: jen then accepts unknown flags and hands them, with the positionals, over in `ctx.args`.

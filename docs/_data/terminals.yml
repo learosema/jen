@@ -2,7 +2,7 @@
 #   {% include terminal.html id="class" title="optional title bar text" %}
 #
 # One string per line. What a line starts with decides how it's colored:
-#   "$ "  prompt + command      "+ " added      "~ " modified      "= " skipped
+#   "$ "  prompt + command      "+ " added      "~ " modified      "info:" dim      "warning:" warning
 #   "✓"   done                  "…"  elided     "# "  dim note   anything else: plain
 # Leading spaces are kept (plan rows are indented), "" is a blank line.
 
@@ -133,7 +133,7 @@ shader:
   - "$ jen cpp:shader --file=shaders/vignette.frag.glsl"
   - "cpp:shader (pack @codejen/pack-cpp) – embed an existing GLSL file as a C string via cmake/embed-glsl.cmake, wired in at # jen:embed (write the shader with glsl:frag or by hand)"
   - ""
-  - "  = cmake/embed-glsl.cmake  exists, skipped"
+  - "  info: cmake/embed-glsl.cmake exists, skipped"
   - "  ~ src/CMakeLists.txt  + include(${PROJECT_SOURCE_DIR}/cmake/embed-glsl.cmake)"
   - '  ~ src/CMakeLists.txt  + embed_glsl("../shaders/vignette.frag.glsl" vignetteFragmentShader)'
   - ""
@@ -442,8 +442,8 @@ glsl_port:
   - "$ jen glsl:port --file=shaders/clouds.frag.glsl --to=410"
   - "glsl:port (pack @codejen/pack-glsl) – switch a shader between GLSL dialects by rewriting its header"
   - ""
-  - '  ~ shaders/clouds.frag.glsl  /^[ \t]*precision\s+(?:lowp|mediump|highp)\s+(?:float|int)\s*;[ \t]*\r?\n/gm replaced'
-  - '  ~ shaders/clouds.frag.glsl  /^#version[^\n]*$/m replaced'
+  - "  ~ shaders/clouds.frag.glsl  removed: precision highp float;"
+  - "  ~ shaders/clouds.frag.glsl  replaced, now: #version 410 core"
   - ""
   - "✓ 1 written"
 
@@ -475,7 +475,7 @@ glsl_sdf:
   - "$ jen glsl:sdf --dim=3 --shapes=sphere,torus --ops=smooth-union --into=shaders/scene.frag.glsl"
   - "glsl:sdf (pack @codejen/pack-glsl) – add signed distance functions"
   - ""
-  - "  = shaders/scene.frag.glsl  already present: // jen:functions – jen glsl:* adds functions above this line"
+  - "  info: shaders/scene.frag.glsl already has // jen:functions – jen glsl:* adds functions above this line"
   - "  ~ shaders/scene.frag.glsl  + // sdSphere · pack-glsl · MIT-0 (+4 more)"
   - "  ~ shaders/scene.frag.glsl  + // sdTorus · pack-glsl · MIT-0 (+7 more)"
   - "  ~ shaders/scene.frag.glsl  + // opSmoothUnion · pack-glsl · MIT-0 (+8 more)"
@@ -503,7 +503,7 @@ glsl_lighting:
   - "$ jen glsl:lighting --models=toon --tonemap=srgb --into=shaders/clouds.frag.glsl"
   - "glsl:lighting (pack @codejen/pack-glsl) – add lighting and color output"
   - ""
-  - "  = shaders/clouds.frag.glsl  already present: // jen:functions – jen glsl:* adds functions above this line"
+  - "  info: shaders/clouds.frag.glsl already has // jen:functions – jen glsl:* adds functions above this line"
   - "  ~ shaders/clouds.frag.glsl  + // toon · pack-glsl · MIT-0 (+17 more)"
   - "  ~ shaders/clouds.frag.glsl  + // linearToSrgb · pack-glsl · MIT-0 (+15 more)"
   - ""
@@ -538,7 +538,7 @@ glsl_util:
   - "$ jen glsl:util --fns=rot2,remap --into=shaders/clouds.frag.glsl"
   - "glsl:util (pack @codejen/pack-glsl) – add GLSL helpers"
   - ""
-  - "  = shaders/clouds.frag.glsl  already present: // jen:functions – jen glsl:* adds functions above this line"
+  - "  info: shaders/clouds.frag.glsl already has // jen:functions – jen glsl:* adds functions above this line"
   - "  ~ shaders/clouds.frag.glsl  + // rot2 · pack-glsl · MIT-0 (+7 more)"
   - "  ~ shaders/clouds.frag.glsl  + // remap · pack-glsl · MIT-0 (+5 more)"
   - ""
@@ -569,12 +569,27 @@ web_cube:
   - "  + src/css/compositions/flow.css"
   - "  + src/css/compositions/cluster.css"
   - "  … 10 more compositions"
+  - "  + src/css/button.css"
   - "  + src/css/utilities/color-primary.css"
   - "  + src/css/utilities/color-secondary.css"
   - "  … 10 more utilities"
-  - "  + src/css/button.css"
   - ""
   - "✓ 30 written"
+
+web_cube_into:
+  - "$ jen web:cube --primary=#0d9488 --into=css/styles.css"
+  - "web:cube (pack @codejen/pack-web) – create a CUBE CSS starter: base, fluid scales, compositions, utilities (+ palette and buttons with --primary)"
+  - ""
+  - "  + css/styles.css"
+  - "  ~ css/styles.css  + *, (appended)"
+  - "  ~ css/styles.css  + :root { (appended)"
+  - "  …"
+  - "  ~ css/styles.css  + .button { (appended)"
+  - "  ~ css/styles.css  + .color-primary { (appended)"
+  - "  …"
+  - "  ~ css/styles.css  + .unbreakable { (appended)"
+  - ""
+  - "✓ 1 written"
 
 web_base:
   - "$ jen web:base --dir=src/css"
@@ -616,12 +631,19 @@ web_into:
   - "✓ 2 written"
   - ""
   - "$ jen web:reel --into=css/layout.css"
-  - "web:reel (pack @codejen/pack-web) – a row that scrolls sideways and snaps to each item (.reel)"
+  - "web:reel (pack @codejen/pack-web) – create a .reel composition: a row that scrolls sideways and snaps to each item"
   - ""
   - "  ~ css/layout.css  + .reel { (appended)"
-  - "  = css/styles.css  already present: @import \"./layout.css\";"
+  - "  info: css/styles.css already has @import \"./layout.css\";"
   - ""
   - "✓ 1 written"
+  - ""
+  - "$ jen web:reel --into=css/layout.css"
+  - "web:reel (pack @codejen/pack-web) – create a .reel composition: a row that scrolls sideways and snaps to each item"
+  - ""
+  - "  info: css/layout.css .reel is already here, nothing to add"
+  - ""
+  - "Nothing to do."
 
 web_color:
   - "$ jen web:color --name=pink --color=deeppink --dir=src/css"
@@ -634,7 +656,7 @@ web_color:
 
 web_sidebar:
   - "$ jen web:sidebar --dir=src/css"
-  - "web:sidebar (pack @codejen/pack-web) – a sidebar next to the content that wraps below it when space runs out (.sidebar)"
+  - "web:sidebar (pack @codejen/pack-web) – create a .sidebar composition: a sidebar next to the content that wraps below it when space runs out"
   - ""
   - "  + src/css/compositions/sidebar.css"
   - "  ~ src/css/styles.css  + @import \"./compositions/sidebar.css\";"
@@ -647,10 +669,10 @@ web_compositions:
   - ""
   - "  + src/css/compositions/flow.css"
   - "  + src/css/compositions/cluster.css"
-  - "  = src/css/compositions/sidebar.css  exists, skipped"
+  - "  info: src/css/compositions/sidebar.css exists, skipped"
   - "  ~ src/css/styles.css  + @import \"./compositions/flow.css\";"
   - "  ~ src/css/styles.css  + @import \"./compositions/cluster.css\";"
-  - "  = src/css/styles.css  already present: @import \"./compositions/sidebar.css\";"
+  - "  info: src/css/styles.css already has @import \"./compositions/sidebar.css\";"
   - ""
   - "✓ 3 written"
 
@@ -755,8 +777,8 @@ web_manifest:
   - "  + manifest.webmanifest"
   - "  + icon-maskable.svg"
   - "  ~ index.html  + <link rel=\"manifest\" href=\"./manifest.webmanifest\">"
-  - "  = index.html  already present: <meta name=\"theme-color\" content=\"#f8f9ff\" media=\"(prefers-color-scheme: light)\">"
-  - "  = index.html  already present: <meta name=\"theme-color\" content=\"#17181e\" media=\"(prefers-color-scheme: dark)\">"
+  - "  info: index.html already has <meta name=\"theme-color\" content=\"#f8f9ff\" media=\"(prefers-color-scheme: light)\">"
+  - "  info: index.html already has <meta name=\"theme-color\" content=\"#17181e\" media=\"(prefers-color-scheme: dark)\">"
   - ""
   - "✓ 3 written"
 
@@ -798,8 +820,8 @@ web_manifest_png:
   - "  + icon-512.png"
   - "  + apple-touch-icon.png"
   - "  ~ index.html  + <link rel=\"apple-touch-icon\" href=\"./apple-touch-icon.png\">"
-  - "  = index.html  already present: <link rel=\"manifest\" href=\"./manifest.webmanifest\">"
-  - "  … (+2 more already present)"
+  - "  info: index.html already has <link rel=\"manifest\" href=\"./manifest.webmanifest\">"
+  - "  … (+2 more it already has)"
   - ""
   - "✓ 6 written"
 
@@ -831,23 +853,23 @@ web_sw_file:
 
 web_dialog:
   - "$ jen web:dialog --name=confirm-delete --into=index.html --dir=css"
-  - "web:dialog (pack @codejen/pack-web) – create a modal .dialog block (and its markup, opened via the command API, with --into)"
+  - "web:dialog (pack @codejen/pack-web) – create a modal .dialog block (and with --into, a button that opens it via the command API, and the dialog)"
   - ""
   - "  + css/dialog.css"
   - "  ~ css/styles.css  + @import \"./dialog.css\";"
-  - "  ~ index.html  + <button class=\"button\" commandfor=\"confirm-delete\" command=\"show-modal\">Confirm delete</button> (+8 more)"
-  - "  + commands.js"
-  - "  ~ index.html  + <script type=\"module\" src=\"./commands.js\"></script>"
+  - "  ~ index.html  + <button type=\"button\" class=\"button\" commandfor=\"confirm-delete\" command=\"show-modal\">Confirm delete</button>"
+  - "  ~ index.html  + <dialog id=\"confirm-delete\" class=\"dialog\" aria-labelledby=\"confirm-delete-title\" closedby=\"any\"> (+7 more)"
   - ""
-  - "✓ 4 written"
+  - "✓ 3 written"
 
 web_popover:
   - "$ jen web:popover --name=menu --into=index.html --dir=css"
-  - "web:popover (pack @codejen/pack-web) – create an anchored .popover block (and its markup with --into)"
+  - "web:popover (pack @codejen/pack-web) – create an anchored .popover block (and with --into, a button that toggles it, and the popover)"
   - ""
   - "  + css/popover.css"
   - "  ~ css/styles.css  + @import \"./popover.css\";"
-  - "  ~ index.html  + <button class=\"button\" popovertarget=\"menu\" style=\"anchor-name: --menu\">Menu</button> (+3 more)"
+  - "  ~ index.html  + <button type=\"button\" class=\"button\" popovertarget=\"menu\" style=\"anchor-name: --menu\">Menu</button>"
+  - "  ~ index.html  + <div id=\"menu\" class=\"popover\" popover style=\"position-anchor: --menu\"> (+2 more)"
   - ""
   - "✓ 3 written"
 
@@ -1111,6 +1133,24 @@ cli_help:
   - '  npx --yes @codejen/jen cpp:enum --name=GameState --values="menu, playing, paused"  (without installing jen)'
   - ''
   - 'docs: https://learosema.github.io/jen/recipes.html'
+
+cli_plan:
+  - "$ jen web:palette --primary=#5b5bd6 --dir=css"
+  - "web:palette (pack @codejen/pack-web) – create a contrast-checked color palette (CSS custom properties)"
+  - ""
+  - "  + css/palette.css"
+  - "  info: palette.css isn't imported anywhere yet: @import it yourself, or run jen web:base for a styles.css that does"
+  - ""
+  - "✓ 1 written"
+  - ""
+  - "$ jen web:dialog --name=confirm --into=about.html --dir=css"
+  - "web:dialog (pack @codejen/pack-web) – create a modal .dialog block (and with --into, a button that opens it via the command API, and the dialog)"
+  - ""
+  - "  + css/dialog.css"
+  - "  ~ css/styles.css  + @import \"./dialog.css\";"
+  - "  warning: about.html is missing, skipped"
+  - ""
+  - "✓ 2 written"
 
 cli_unknown:
   - "$ jen cpp:class --name=Foo --copyable --moveonly"

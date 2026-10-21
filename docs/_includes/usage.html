@@ -1,0 +1,15 @@
+{%- comment -%}
+  A generator's usage lines, as `jen <generator> --help` prints them, from _data/usage.json (scripts/docs-params.ts).
+  Params: generator (e.g. "web:sidebar").
+{%- endcomment -%}
+{%- capture nl %}
+{% endcapture -%}
+{%- assign lines = site.data.usage[include.generator] -%}
+{%- if lines.size > 0 %}
+<div class="terminal">
+<div class="chrome"><span></span><span></span><span></span><span class="title">jen {{ include.generator }} --help · usage</span></div>
+<pre>
+{%- for line in lines -%}{{ line | escape }}{%- unless forloop.last -%}{{ nl }}{%- endunless -%}{%- endfor -%}
+</pre>
+</div>
+{%- endif %}

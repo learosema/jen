@@ -6,7 +6,7 @@ description: "Every jen command in @codejen/pack-glsl: shader starters, a WebGL 
 eyebrow: "@codejen/pack-glsl"
 mega: shaders
 lede: Every generator, with the command, the output it prints, and the shader it makes – running live.
-sub: GLSL starters and functions for WebGL2 and OpenGL. MIT-0, attributed where it's someone else's.
+sub: GLSL for WebGL2 and OpenGL. MIT-0.
 cta: { text: "Three ways to install ↓", url: "#install" }
 toc:
   - title: Install
@@ -40,7 +40,7 @@ toc:
 
 ## Install {#install}
 
-Same three ways as every jen pack. The pack only writes text files: no build step, no runtime, nothing to link.
+It writes plain text: nothing to build or link.
 
 ### Globally {#install-global}
 
@@ -52,21 +52,21 @@ Same three ways as every jen pack. The pack only writes text files: no build ste
 
 ### Not at all {#install-npx}
 
-Ask for a `glsl:` generator without the pack installed and jen fetches `@codejen/pack-glsl` into a throwaway directory, runs it once and removes it again (first-party `@codejen` scope only; `JEN_NO_FETCH=1` turns it off).
+Any `glsl:` generator without the pack fetches it for one run (`JEN_NO_FETCH=1` turns that off).
 
 {% include terminal.html id="glsl_install_npx" %}
 
 ## Where files go {#where}
 
-Generators write into the folder you run them in, or `--dir`: from the project root, `glsl:frag --name=Clouds --dir=shaders` writes `shaders/clouds.frag.glsl`. `--into` and `--file` are relative to the current directory. `glsl:webgl` makes a new project folder in the current directory instead, with the shader in `shaders/` inside it (`--shaderDir` renames that). The [home page]({{ '/#where' | relative_url }}) has the general rules. `jen glsl:noise --help` lists a generator's params in the terminal.
+Into the current folder, or `--dir`: `glsl:frag --name=Clouds --dir=shaders` writes `shaders/clouds.frag.glsl`. `--into` and `--file` are relative to where you are. `glsl:webgl` makes a new project folder.
 
 ## Starters {#starters}
 
-Shaders default to WebGL2's GLSL ES 3.00, so you can prototype in the browser first. Everything compiles as desktop GLSL 3.30 and 4.10 core too: pass `--version=410`, or switch an existing shader with [`glsl:port`](#glsl-port). The starters use the uniforms every jen host feeds – `uTime`, `uResolution`, `uMouse` – so the same file runs in `<shader-canvas>` and in `cpp:sdl3-opengl`.
+GLSL ES 3.00 (WebGL2) by default; `--version=410` or [`glsl:port`](#glsl-port) for desktop. The uniforms `uTime`, `uResolution` and `uMouse` work in both `<shader-canvas>` and `cpp:sdl3-opengl`.
 
 ### `glsl:webgl` {#glsl-webgl}
 
-A playground without a build step: an `index.html`, the [`<shader-canvas>`](https://github.com/learosema/jen/tree/main/packages/pack-glsl/web/shader-canvas) element and a fragment shader it draws full-screen, recompiling whenever you save. Every preview on this page is a `<shader-canvas>`.
+A no-build playground: `index.html` and a [`<shader-canvas>`](https://github.com/learosema/jen/tree/main/packages/pack-glsl/web/shader-canvas) that recompiles on save – like every preview here.
 
 {% include terminal.html id="glsl_webgl" %}
 
@@ -78,7 +78,7 @@ A playground without a build step: an `index.html`, the [`<shader-canvas>`](http
 
 ### `glsl:frag` {#glsl-frag}
 
-A full-screen fragment shader: centered, aspect-correct coordinates from `gl_FragCoord`, and the jen uniforms.
+A full-screen fragment shader with centered, aspect-correct coordinates.
 
 {% include terminal.html id="glsl_frag" %}
 
@@ -86,7 +86,7 @@ A full-screen fragment shader: centered, aspect-correct coordinates from `gl_Fra
 
 ### `glsl:vert` {#glsl-vert}
 
-A vertex shader: `--kind=quad` (default) takes a full-screen quad at attribute location 0 like `cpp:sdl3-opengl`, `triangle` covers the screen from `gl_VertexID` without any buffer, and `mesh` has position, normal and UV attributes with `uModel`/`uView`/`uProjection`.
+A vertex shader: `--kind=quad` (as in `cpp:sdl3-opengl`), `triangle` (no buffer), or `mesh` with model/view/projection.
 
 {% include terminal.html id="glsl_vert" %}
 
@@ -94,7 +94,7 @@ A vertex shader: `--kind=quad` (default) takes a full-screen quad at attribute l
 
 ### `glsl:port` {#glsl-port}
 
-Switches a shader between dialects by rewriting only its header: the `#version` line and the default precisions. For moving a WebGL prototype into `cpp:sdl3-opengl`, and back. To compile such a shader into a C++ build, `cpp:shader --file=shaders/clouds.frag.glsl` from the [cpp pack]({{ '/recipes.html#cpp-shader' | relative_url }}) embeds it as a C string.
+Rewrites a shader's `#version` and precisions, from WebGL to desktop and back. To embed it in C++, use [`cpp:shader`]({{ '/recipes.html#cpp-shader' | relative_url }}).
 
 {% include terminal.html id="glsl_port" %}
 
@@ -104,13 +104,13 @@ Switches a shader between dialects by rewriting only its header: the `#version` 
 
 ### How they get into your shader {#into}
 
-GLSL has no `#include`, so the pack ships its functions as plain, attributed `.glsl` files. With `--into=<shader>`, jen inserts the ones you pick, plus everything they need, above a `// jen:functions` marker. If the shader has none yet, the marker goes in before its first function, so your own code below can call them. Anything already in the file is skipped: run a generator twice, or two generators sharing a helper, and nothing is duplicated.
+GLSL has no `#include`. `--into=<shader>` inserts the functions you pick, plus dependencies, above `// jen:functions` (added before your first function). Nothing is duplicated.
 
-Without `--into`, every function becomes its own file under `lib/` where the files go (`shaders/lib/` with `--dir=shaders`), for setups with an include mechanism (vite-plugin-glsl, glslify, three.js). Most generators also take `--name` for a ready-to-run preview shader.
+Without `--into`, each function gets its own file in `lib/`, for vite-plugin-glsl, glslify or three.js. `--name` writes a preview shader.
 
 ### `glsl:noise` {#glsl-noise}
 
-Value, Perlin, simplex and Worley noise; fBm, turbulence, ridged and domain-warped fractals on any of them; curl noise for flow fields. In 2D and 3D, and every function has a `period` overload that **tiles seamlessly** – SVG feTurbulence's `stitchTiles`, for any noise. The previews below are tiled 2×2: a seam would show as a cross in the middle.
+Value, Perlin, simplex and Worley noise; fBm, turbulence, ridged and warped fractals; curl noise. 2D and 3D, each with a `period` overload that **tiles seamlessly** – the previews are tiled 2×2.
 
 {% include terminal.html id="glsl_noise" %}
 
@@ -128,13 +128,13 @@ Value, Perlin, simplex and Worley noise; fBm, turbulence, ridged and domain-warp
 
 {% include terminal.html id="glsl_noise_tile" %}
 
-Fractals are written once and renamed for the base you pick – `simplexFbm`, `perlinFbm` – so several can share a shader. They take an optional `gain` for roughness; warp takes a `strength` instead.
+Fractals are named by base (`simplexFbm`, `perlinFbm`) and take a `gain`; warp takes a `strength`.
 
 {% include params.html generator="glsl:noise" %}
 
 ### `glsl:sdf` {#glsl-sdf}
 
-Signed distance functions: shapes, operators to combine them, and – in 2D – antialiased masks for fill, stroke, glow and shadows. Pick with `--shapes`, `--ops` and `--effects`, each also takes `all`.
+Signed distance shapes, operators, and 2D effects. Pick with `--shapes`, `--ops` and `--effects`, or `all`.
 
 {% include terminal.html id="glsl_sdf" %}
 
@@ -155,7 +155,7 @@ Signed distance functions: shapes, operators to combine them, and – in 2D – 
 
 ### `glsl:raymarch` {#glsl-raymarch}
 
-A raymarching starter: a `scene()` distance function, an orbiting camera, soft shadows, ambient occlusion and fog, lit with any model from [`glsl:lighting`](#glsl-lighting). `--materials` gives every surface a material id; `--minimal` leaves out shadows, AO and fog. With `--into`, you get just the helpers – `raymarch`, `calcNormal`, `softShadow`, `calcAO`, `cameraMatrix` – for your own `float scene(vec3 p)`.
+A raymarcher: `scene()`, orbiting camera, soft shadows, AO and fog, lit by [`glsl:lighting`](#glsl-lighting). `--materials` adds material ids, `--minimal` drops the extras. `--into` gives just the helpers for your own `scene()`.
 
 {% include terminal.html id="glsl_raymarch" %}
 
@@ -169,7 +169,7 @@ A raymarching starter: a `scene()` distance function, an orbiting camera, soft s
 
 ### `glsl:lighting` {#glsl-lighting}
 
-Shading models with one signature – normal, view and light direction, then the material – so you can swap them: `lambert`, `blinnPhong`, `toon` with a rim light, and `pbr` (Cook-Torrance: GGX, Smith-Schlick, Schlick Fresnel, metallic/roughness) with an ambient light that needs no environment map. Plus color output: ACES and Reinhard tonemapping, and the exact sRGB curve.
+Interchangeable shading models: `lambert`, `blinnPhong`, `toon` and `pbr` (Cook-Torrance, metallic/roughness). Plus ACES and Reinhard tonemapping and sRGB.
 
 {% include terminal.html id="glsl_lighting" %}
 
@@ -177,7 +177,7 @@ Shading models with one signature – normal, view and light direction, then the
 
 ### `glsl:displace` {#glsl-displace}
 
-Moves surfaces in the vertex shader and keeps the normals right, so the lighting follows: `displace()` pushes vertices along their normal by your `displacement(p)`, `gerstnerWave()` sums up ocean waves with exact normals. `--name` writes a vertex/fragment pair for `<shader-canvas mesh="sphere">` – drag the previews to turn them.
+Vertex displacement with correct normals: `displace()` by your `displacement(p)`, or `gerstnerWave()` oceans. Drag the previews to turn them.
 
 {% include terminal.html id="glsl_displace" %}
 
@@ -190,7 +190,7 @@ Moves surfaces in the vertex shader and keeps the normals right, so the lighting
 
 ### `glsl:matrix` {#glsl-matrix}
 
-Matrices for GPU-side transforms, following OpenGL conventions: `rotateX/Y/Z` and `rotateAxis`, `perspective`, `lookAt`, `translate`, `scale`, and `transform` to lift a `mat3` into a `mat4`.
+OpenGL-style matrices: `rotateX/Y/Z`, `rotateAxis`, `perspective`, `lookAt`, `translate`, `scale`, `transform`.
 
 {% include terminal.html id="glsl_matrix" %}
 
@@ -198,7 +198,7 @@ Matrices for GPU-side transforms, following OpenGL conventions: `rotateX/Y/Z` an
 
 ### `glsl:util` {#glsl-util}
 
-Small helpers the other functions build on: `PI`/`TAU`, `rot2`, `remap`, `saturate`, and integer hashes for lattice cells.
+`PI`/`TAU`, `rot2`, `remap`, `saturate` and integer hashes.
 
 {% include terminal.html id="glsl_util" %}
 
@@ -206,7 +206,7 @@ Small helpers the other functions build on: `PI`/`TAU`, `rot2`, `remap`, `satura
 
 ## Licenses and credits {#credits}
 
-The pack's own code is [MIT-0](https://github.com/learosema/jen/blob/main/packages/pack-glsl/LICENSE): use it however you like, no attribution required. Code by others is only included under the MIT license, and when jen inserts it into your shader, the author's notice goes in with it – once per shader. Formulas the pack reimplements are credited in each function.
+The pack's own code is [MIT-0](https://github.com/learosema/jen/blob/main/packages/pack-glsl/LICENSE). Others' code is MIT and inserted with its notice.
 
 - **[webgl-noise](https://github.com/stegu/webgl-noise)** by Stefan Gustavson and Ashima Arts, MIT: classic Perlin noise.
 - **[psrdnoise](https://github.com/stegu/psrdnoise)** by Stefan Gustavson and Ian McEwan, MIT: tiling simplex noise and its gradients, behind `simplexNoise` and `curlNoise`.
