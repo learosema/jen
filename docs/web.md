@@ -17,6 +17,7 @@ toc:
   - title: Where files go
     links:
       - { title: The entry point, id: where }
+      - { title: One file for several, id: into }
   - title: Starter
     links:
       - { title: "web:cube", id: web-cube }
@@ -77,6 +78,14 @@ Ask for a `web:` generator without the pack installed and jen fetches `@codejen/
 Generators write into the folder you run them in, or `--dir`. Everything meets in one entry point: `styles.css`, made by `web:base` or `web:cube`. It declares the cascade layers in CUBE CSS order – `reset, tokens, base, compositions, utilities, blocks, exceptions` – so a later layer wins over an earlier one whatever the selectors' specificity, and it ends with a `/* jen:imports */` marker. Every other generator adds its `@import` above that marker, with the path relative to the entry point, so running one from a subfolder still wires it in right.
 
 The compositions, the utilities and `web:color` make one thing at a time, in a file of its own: `jen web:sidebar` writes `compositions/sidebar.css`, `jen web:color --name=pink` writes `colors/pink.css`. Add the next one whenever you need it. If your stylesheets already have it, like a `.sidebar` of your own, jen stops and says where, rather than adding a second one. `web:compositions`, `web:utilities` and `web:cube` make several at once, and leave out what you have.
+
+### One file for several {#into}
+
+Rather have them all in one stylesheet? `--into=<file.css>` adds them to that file instead, as plain rules at the end, one after another. If it doesn't exist yet, jen makes it and imports it into the entry point. Every generator above that makes one thing takes `--into`, and so do `web:compositions` and `web:utilities`, so you can start with a few and add the next one later:
+
+{% include terminal.html id="web_into" %}
+
+The rules go in without a cascade layer, so they win over everything in the layers. Something the file already has is refused, like anywhere else in your stylesheets.
 
 Link `styles.css` from your page, or `import './css/styles.css'` in a Vite project. The [home page]({{ '/#where' | relative_url }}) has the general rules.
 
