@@ -604,6 +604,25 @@ web_fluid:
   - ""
   - "✓ 2 written"
 
+web_into:
+  - "$ jen web:compositions --only=flow,cluster --into=css/layout.css"
+  - "web:compositions (pack @codejen/pack-web) – create several compositions at once, one file each or all --into one (web:flow, web:cluster, …) – all by default"
+  - ""
+  - "  + css/layout.css"
+  - "  ~ css/layout.css  + .flow > * + * { (appended)"
+  - "  ~ css/layout.css  + .cluster { (appended)"
+  - "  ~ css/styles.css  + @import \"./layout.css\";"
+  - ""
+  - "✓ 2 written"
+  - ""
+  - "$ jen web:reel --into=css/layout.css"
+  - "web:reel (pack @codejen/pack-web) – a row that scrolls sideways and snaps to each item (.reel)"
+  - ""
+  - "  ~ css/layout.css  + .reel { (appended)"
+  - "  = css/styles.css  already present: @import \"./layout.css\";"
+  - ""
+  - "✓ 1 written"
+
 web_color:
   - "$ jen web:color --name=pink --color=deeppink --dir=src/css"
   - "web:color (pack @codejen/pack-web) – create six shades of one color, lightest to darkest (--color-<name>-1 … -6)"
@@ -624,7 +643,7 @@ web_sidebar:
 
 web_compositions:
   - "$ jen web:compositions --only=flow,cluster,sidebar --dir=src/css"
-  - "web:compositions (pack @codejen/pack-web) – create several compositions at once, one file each (web:flow, web:cluster, …) – all by default"
+  - "web:compositions (pack @codejen/pack-web) – create several compositions at once, one file each or all --into one (web:flow, web:cluster, …) – all by default"
   - ""
   - "  + src/css/compositions/flow.css"
   - "  + src/css/compositions/cluster.css"
@@ -646,7 +665,7 @@ web_color_classes:
 
 web_utilities:
   - "$ jen web:utilities --dir=src/css"
-  - "web:utilities (pack @codejen/pack-web) – create every utility that fits the project's tokens at once, one file each (web:color-classes, web:step-classes, …)"
+  - "web:utilities (pack @codejen/pack-web) – create every utility that fits the project's tokens at once, one file each or all --into one (web:color-classes, web:step-classes, …)"
   - ""
   - "  + src/css/utilities/color-primary.css"
   - "  + src/css/utilities/color-neutral.css"

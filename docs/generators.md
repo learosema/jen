@@ -138,6 +138,7 @@ export const examples = ["--name=Camera", "--name=Texture --moveOnly"];
 - **`add`**: `{ add, template, force? }` creates a file. An existing file is skipped unless `force` or `--force` is set. `{ add, bytes }` writes a `Uint8Array` byte for byte, for binary files.
 - **`insert`**: `{ insert, before, line }` inserts `line` before the first line containing the marker `before` – or matching it, if it's a `RegExp`; a number is a line number, 1-based, e.g. from a `--line=65` param. It takes the marker's indentation, one level deeper before a closing line like `</nav>` or `}`, where the insert goes inside. A line that's already there is skipped. With `path` instead of `line`, the line is that file's path relative to the file inserted into – how a build file lists its sources.
 - **`modify`**: `{ modify, pattern, replace }` searches and replaces with a `RegExp` – also how to remove lines.
+- **`append`**: `{ append, text }` adds `text` at the end of the file, on a line of its own; start it with `\n` for a blank line before it. Text the file already has is skipped.
 - **`delete`**: `{ delete }` deletes a file, never a directory.
 
 **A generator says what, jen says where.** Paths are relative to where the files go: the current directory, or `--dir`. A path starting with `/` is relative to the project root. Nothing outside the project root is touched. Actions on the same file build on each other, so one run can `add` a file and `insert` into it.
@@ -177,7 +178,7 @@ export const actions = ({ name }, { pascal }) => [
 With an `.editorconfig` in the project, jen follows it:
 
 - **`add`**: the whole new file is normalized – `indent_style`, `indent_size`/`tab_width`, `end_of_line`, `trim_trailing_whitespace` and `insert_final_newline`.
-- **`insert` and `modify`**: only the text jen brings in is touched, never the rest of the file. A single line already matches its surroundings, since it reuses their real indentation. A block is reindented to the `indent_style`/`indent_size` that applies – or, without a rule for the file, to the style jen finds in it: tabs or spaces, and how wide.
+- **`insert`, `modify` and `append`**: only the text jen brings in is touched, never the rest of the file. A single line already matches its surroundings, since it reuses their real indentation. A block is reindented to the `indent_style`/`indent_size` that applies – or, without a rule for the file, to the style jen finds in it: tabs or spaces, and how wide.
 
 In a `modify` replacement, only the lines after the first are reindented: the first one continues where the match was. `charset` and `max_line_length` aren't applied – files are always UTF-8, and jen doesn't rewrap text.
 
