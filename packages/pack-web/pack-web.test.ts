@@ -16,7 +16,6 @@ import { BASE, RESET } from './src/base.ts';
 import { LAYERS } from './src/entry.ts';
 import { NAMES as COMPOSITIONS } from './src/compositions.ts';
 import { fluid } from './src/fluid.ts';
-import { COMMANDS_JS } from './src/html.ts';
 import { tokensFrom } from './src/utilities.ts';
 import { fill } from './src/templates.ts';
 import { Script } from 'node:vm';
@@ -68,6 +67,8 @@ function run(generator: string, answers: Answers, ctx: Context): Action[] {
 
 const added = (actions: Action[]) => actions.flatMap((a) => ('add' in a ? [a.add] : []));
 const inserts = (actions: Action[]) => actions.flatMap((a) => ('insert' in a ? [a] : []));
+/** The plan's `info:` lines: `file note`. */
+const notes = (actions: Action[]) => actions.flatMap((a) => ('note' in a ? [`${a.file ?? ''} ${a.note}`.trim()] : []));
 const lines = (actions: Action[]) => inserts(actions).map((a) => ('line' in a ? a.line : ''));
 const template = (actions: Action[], file: string) => {
   const a = actions.find((x) => 'add' in x && x.add === file);
@@ -256,9 +257,9 @@ describe('web:compositions', () => {
     }
   });
 
-  it('refuses one the project already has elsewhere, but lets jen skip or --force its own file', () => {
+  it('only notes one the project already has elsewhere, but lets jen skip or --force its own file', () => {
     const old = { 'css/compositions.css': '@layer compositions {\n  .flow > * + * {\n    margin: 0;\n  }\n}\n' };
-    assert.throws(() => run('flow', {}, context(old)), /web:flow: \.flow is already in css\/compositions\.css – nothing to add/);
+    assert.deepEqual(run('flow', {}, context(old)), [{ note: '.flow is already here, nothing to add', file: '/css/compositions.css' }]);
     assert.doesNotThrow(() => run('flow', {}, context({ 'old.css': '.flow-space-s { --flow-space: 1rem; }' })), '.flow-space-s is no .flow');
     assert.deepEqual(added(run('flow', {}, context({ 'compositions/flow.css': template(run('flow', {}, context({})), 'compositions/flow.css') }))), ['compositions/flow.css']);
   });
@@ -268,8 +269,32 @@ describe('web:compositions', () => {
     const some = run('compositions', { only: 'cluster, flow' }, context({ 'styles.css': '/* jen:imports */' }));
     assert.deepEqual(added(some), ['compositions/flow.css', 'compositions/cluster.css']);
     assert.deepEqual(lines(some), ['@import "./compositions/flow.css";', '@import "./compositions/cluster.css";']);
-    assert.deepEqual(added(run('compositions', { only: 'flow,grid' }, context({ 'styles.css': '/* jen:imports */', 'mine.css': '.grid {}' }))), ['compositions/flow.css']);
+    const mine = run('compositions', { only: 'flow,grid' }, context({ 'styles.css': '/* jen:imports */', 'mine.css': '.grid {}' }));
+    assert.deepEqual(added(mine), ['compositions/flow.css']);
+    assert.deepEqual(notes(mine), ['/mine.css .grid is already here, nothing to add']);
     assert.throws(() => run('compositions', { only: 'stack' }, context({})), /unknown "stack"/);
+  });
+});
+
+describe('usage', () => {
+  const project = { 'css/styles.css': '/* jen:imports */', 'css/palette.css': paletteCss({ primary: '#5b5bd6', contrast: 'aaa' }) };
+
+  it('names only custom properties the generated CSS reads or sets', () => {
+    for (const name of [...COMPOSITIONS, 'card', 'avatars', 'button', 'dialog', 'popover']) {
+      const g = pack[name];
+      assert.ok(g.usage?.length, `${name} has usage`);
+      const actions = run(name, { name: 'x' }, context(project, 'css'));
+      const css = actions.flatMap((a) => ('add' in a && 'template' in a && a.add.endsWith('.css') ? [a.template] : [])).join('\n');
+      for (const line of g.usage ?? []) {
+        const prop = /^(--[a-z-]+)/.exec(line)?.[1];
+        if (prop) assert.match(css, new RegExp(`(var\\(|^\\s*)${prop}\\b`, 'm'), `${name}: ${prop}`);
+      }
+    }
+  });
+
+  it('says how the sidebar works', () => {
+    assert.deepEqual(pack.sidebar.usage?.slice(0, 2), ['<div class="sidebar"><aside>…</aside><main>…</main></div>', 'the first child is the sidebar; data-direction="end" makes it the last']);
+    assert.ok(pack.sidebar.usage?.some((l) => /^--sidebar-content-min: 50% +the content's narrowest width before both stack$/.test(l)));
   });
 });
 
@@ -298,15 +323,19 @@ describe('--into', () => {
   it('writes several into one file, and leaves out what it has', () => {
     const actions = run('compositions', { only: 'flow,cluster,grid', into: '/layout.css' }, context({ 'styles.css': '/* jen:imports */', 'layout.css': '.grid {\n}\n' }));
     assert.deepEqual(appends(actions).map((a) => a.text.match(/^\n?\/\*.*\n(\.[a-z]+)/)?.[1]), ['.flow', '.cluster']);
-    assert.deepEqual(run('compositions', { only: 'grid', into: '/layout.css' }, context({ 'layout.css': '.grid {}' })), []);
+    assert.deepEqual(notes(actions), ['/layout.css .grid is already here, nothing to add']);
+    assert.deepEqual(run('compositions', { only: 'grid', into: '/layout.css' }, context({ 'layout.css': '.grid {}' })), [
+      { note: '.grid is already here, nothing to add', file: '/layout.css' },
+    ]);
     const fresh = run('compositions', { only: 'flow,cluster', into: '/layout.css' }, context({}));
     assert.deepEqual(added(fresh), ['layout.css', 'styles.css'], 'makes the entry point too, like web:compositions without --into');
     assert.match(template(fresh, 'styles.css'), /@import "\.\/layout\.css";/);
     assert.deepEqual(appends(fresh).map((a) => a.text.startsWith('\n')), [false, true]);
   });
 
-  it('refuses one that the --into file already has, and works for colors and utilities', () => {
-    assert.throws(() => run('flow', { into: '/layout.css' }, context({ 'layout.css': '.flow > * + * {}' })), /web:flow: \.flow is already in layout\.css/);
+  it('notes one that the --into file already has, and works for colors and utilities', () => {
+    const again = run('reel', { into: '/css/layout.css' }, context({ 'css/layout.css': '.reel {\n}\n' }));
+    assert.deepEqual(again, [{ note: '.reel is already here, nothing to add', file: '/css/layout.css' }]);
     const color = appends(run('color', { name: 'pink', color: 'deeppink', into: '/tokens.css' }, context({})))[0].text;
     assert.match(color, /^\/\*\n \* Generated by `jen web:color --name=pink --color=deeppink`[^]*\*\/\n:root \{\n {2}--color-pink-1: #[0-9a-f]{6};/);
     assert.doesNotMatch(color, /@layer/);
@@ -335,11 +364,11 @@ describe('web:color', () => {
     assert.doesNotMatch(css, /initial/, "keeps Tailwind's own colors");
   });
 
-  it('refuses bad names, unreadable colors, and a color the palette already has', () => {
+  it('refuses bad names and unreadable colors, and notes a color the palette already has', () => {
     assert.throws(() => run('color', { name: 'Pink', color: 'pink' }, context({})), /--name: "Pink"/);
     assert.throws(() => run('color', { name: 'pink', color: 'pinky' }, context({})), /--color: can't read "pinky"/);
     const palette = { 'palette.css': paletteCss({ primary: '#5b5bd6', contrast: 'aaa' }) };
-    assert.throws(() => run('color', { name: 'primary', color: 'red' }, context(palette)), /--color-primary-1 is already in palette\.css/);
+    assert.deepEqual(notes(run('color', { name: 'primary', color: 'red' }, context(palette))), ['/palette.css --color-primary-1 is already here, nothing to add']);
   });
 });
 
@@ -391,8 +420,9 @@ describe('web:utilities', () => {
       'utilities/pad-fluid.css',
       'utilities/unbreakable.css',
     ]);
-    const bare = added(run('utilities', {}, context({ 'styles.css': '/* jen:imports */', 'a11y.css': '.visually-hidden { }' })));
-    assert.deepEqual(bare, ['utilities/pad-fluid.css', 'utilities/unbreakable.css']);
+    const bare = run('utilities', {}, context({ 'styles.css': '/* jen:imports */', 'a11y.css': '.visually-hidden { }' }));
+    assert.deepEqual(added(bare), ['utilities/pad-fluid.css', 'utilities/unbreakable.css']);
+    assert.deepEqual(notes(bare), ['/a11y.css .visually-hidden is already here, nothing to add']);
   });
 
   it('steps aside for Tailwind', () => {
@@ -424,7 +454,8 @@ describe('web:cube', () => {
     const actions = run('cube', { primary: '#5b5bd6', secondary: '330' }, context({}));
     assert.deepEqual(added(actions).slice(0, 5), ['styles.css', 'reset.css', 'base.css', 'palette.css', 'fluid.css']);
     assert.ok(added(actions).includes('utilities/color-secondary.css'));
-    assert.equal(added(actions).at(-1), 'button.css');
+    // a block before the utilities, like their layers
+    assert.ok(added(actions).indexOf('button.css') < added(actions).indexOf('utilities/color-primary.css'));
     assert.match(template(actions, 'utilities/color-secondary.css'), /\.bg-secondary \{/);
     assert.match(template(actions, 'button.css'), /\.button--secondary \{/);
   });
@@ -434,6 +465,46 @@ describe('web:cube', () => {
     assert.ok(!added(actions).includes('styles.css'));
     assert.ok(!added(actions).includes('compositions/grid.css'));
     assert.equal(inserts(actions).length, added(actions).length);
+    assert.deepEqual(notes(actions), ['/layout.css .grid is already here, nothing to add']);
+  });
+
+  describe('--into', () => {
+    const appends = (actions: Action[]) => actions.flatMap((a) => ('append' in a ? [a.text] : []));
+
+    it('writes everything as plain rules into one new file, without an entry point', () => {
+      const actions = run('cube', { primary: '#0d9488', into: '/css/styles.css' }, context({}));
+      assert.deepEqual(added(actions), ['css/styles.css']);
+      assert.equal(template(actions, 'css/styles.css'), '');
+      assert.deepEqual(inserts(actions), []);
+      const texts = appends(actions);
+      assert.ok(texts.every((t) => !/@layer/.test(t)));
+      const at = (re: RegExp) => texts.findIndex((t) => re.test(t));
+      const order = [/^\*::before/m, /^li\[data-icon\]::marker/m, /^ {2}--color-surface:/m, /^ {2}--step-0:/m, /^\.flow\b/m, /^\.button \{/m, /^\.color-primary/m];
+      const found = order.map(at);
+      assert.ok(found.every((i) => i >= 0), String(found));
+      assert.deepEqual([...found].sort((a, b) => a - b), found, 'reset, base, palette, fluid, compositions, button, utilities');
+      // the palette keeps its fallback for browsers without light-dark()
+      assert.match(texts[at(/--color-surface:/)], /@supports not \(color: light-dark/);
+    });
+
+    it('appends to the entry point itself without importing it into itself', () => {
+      const entry = { 'css/styles.css': '@layer reset, tokens;\n/* jen:imports */\n' };
+      const actions = run('cube', { into: '/css/styles.css' }, context(entry));
+      assert.deepEqual(added(actions), []);
+      assert.deepEqual(inserts(actions), []);
+      assert.ok(appends(actions).length > 10);
+    });
+
+    it('imports into an existing entry point, and leaves out what the project has', () => {
+      const actions = run('cube', { into: '/all.css' }, context({ 'styles.css': '/* jen:imports */', 'mine.css': '.grid {}' }));
+      assert.deepEqual(added(actions), ['all.css']);
+      assert.deepEqual(lines(actions), ['@import "./all.css";']);
+      assert.deepEqual(notes(actions), ['/mine.css .grid is already here, nothing to add']);
+    });
+
+    it('refuses Tailwind projects', () => {
+      assert.throws(() => run('cube', { into: '/css/styles.css', tailwind: true }, context({})), /web:cube --into isn't for Tailwind projects/);
+    });
   });
 });
 
@@ -442,14 +513,21 @@ describe('Tailwind v4', () => {
 
   it('web:tailwind creates an entry point with Tailwind fitted into the CUBE CSS layers', () => {
     const entry = template(run('tailwind', {}, context({})), 'styles.css');
-    assert.match(entry, /^@layer theme, reset, tokens, base, compositions, components, utilities, blocks, exceptions;$/m);
+    assert.match(entry, /^@layer theme, reset, tokens, base, compositions, components, blocks, utilities, exceptions;$/m);
     assert.match(entry, /@import "tailwindcss";\n\/\* jen:imports \*\//);
   });
 
   it('web:tailwind converts an existing entry point', () => {
     const actions = run('tailwind', {}, context(twEntry, 'css'));
     const [modify, insert] = actions;
-    assert.ok('modify' in modify && modify.pattern.test(twEntry['css/styles.css']));
+    assert.ok('modify' in modify);
+    assert.equal(
+      twEntry['css/styles.css'].replace(modify.pattern, modify.replace).split('\n')[0],
+      '@layer theme, reset, tokens, base, compositions, components, blocks, utilities, exceptions;',
+    );
+    // an entry from before utilities came last keeps its order
+    const old = '@layer reset, tokens, base, compositions, utilities, blocks, exceptions;';
+    assert.equal(old.replace(modify.pattern, modify.replace), '@layer theme, reset, tokens, base, compositions, components, utilities, blocks, exceptions;');
     assert.deepEqual(insert, { insert: '/css/styles.css', before: 'jen:imports', line: '@import "tailwindcss";' });
   });
 
@@ -526,46 +604,21 @@ describe('SmolCSS techniques', () => {
 describe('platform features', () => {
   const page = { 'index.html': '<!doctype html>\n<html>\n  <body>\n    <main></main>\n  </body>\n</html>\n', 'css/styles.css': '/* jen:imports */' };
 
-  it('web:dialog writes the block, and with --into the markup plus the command fallback', () => {
+  it('web:dialog writes the block, and with --into the button and the dialog – no polyfill', () => {
     const actions = run('dialog', { name: 'confirmDelete', into: '/index.html' }, context(page, 'css'));
-    assert.deepEqual(added(actions), ['dialog.css', '/commands.js']);
-    const [markup, script] = inserts(actions).filter((a) => a.insert === '/index.html');
-    assert.ok('line' in markup && markup.line.includes('<button class="button" commandfor="confirm-delete" command="show-modal">Confirm delete</button>'));
-    assert.ok('line' in markup && markup.line.includes('<dialog id="confirm-delete" class="dialog" aria-labelledby="confirm-delete-title" closedby="any">'));
-    assert.deepEqual(markup.before, /<\/body>/);
-    assert.ok('line' in script && script.line === '<script type="module" src="./commands.js"></script>');
+    assert.deepEqual(added(actions), ['dialog.css']);
+    const [button, dialog, ...rest] = inserts(actions).filter((a) => a.insert === '/index.html');
+    assert.deepEqual(rest, []);
+    assert.ok('line' in button && button.line === '<button type="button" class="button" commandfor="confirm-delete" command="show-modal">Confirm delete</button>');
+    assert.ok('line' in dialog && dialog.line.startsWith('<dialog id="confirm-delete" class="dialog" aria-labelledby="confirm-delete-title" closedby="any">'));
+    assert.ok('line' in dialog && dialog.line.split('<button').slice(1).every((b) => b.startsWith(' type="button"')), 'no button submits a form it is in');
+    assert.deepEqual(button.before, /<\/body>/);
+    assert.deepEqual(dialog.before, /<\/body>/);
     const css = template(actions, 'dialog.css');
     assert.match(css, /@starting-style/);
     assert.match(css, /margin: auto;/);
     assert.doesNotMatch(css, PX);
     assert.deepEqual(added(run('dialog', { name: 'x' }, context(page, 'css'))), ['dialog.css'], 'no markup without --into');
-  });
-
-  it('commands.js runs the commands in browsers without the command API', () => {
-    const calls: string[] = [];
-    const target = { showModal: () => calls.push('showModal'), close: (v: string) => calls.push(`close:${v}`), togglePopover: () => calls.push('togglePopover') };
-    let onClick: (e: unknown) => void = () => assert.fail('no listener');
-    class Element {
-      attrs: Record<string, string>;
-      constructor(attrs: Record<string, string>) {
-        this.attrs = attrs;
-      }
-      value = 'ok';
-      getAttribute(name: string) {
-        return this.attrs[name];
-      }
-      closest() {
-        return this;
-      }
-    }
-    const sandbox = {
-      Element,
-      HTMLButtonElement: { prototype: {} },
-      document: { addEventListener: (_: string, fn: (e: unknown) => void) => (onClick = fn), getElementById: () => target },
-    };
-    new Script(COMMANDS_JS).runInNewContext(sandbox);
-    for (const command of ['show-modal', 'close', 'toggle-popover']) onClick({ target: new Element({ commandfor: 'x', command }) });
-    assert.deepEqual(calls, ['showModal', 'close:ok', 'togglePopover']);
   });
 
   it('web:popover anchors to its trigger where supported', () => {
@@ -574,9 +627,9 @@ describe('platform features', () => {
     assert.match(css, /@supports \(position-area: block-end\) \{\n {4}\.popover \{\n {6}inset: auto;/);
     assert.match(css, /position-try-fallbacks: flip-block, flip-inline;/);
     assert.doesNotMatch(css, PX);
-    const [markup] = inserts(actions).filter((a) => a.insert === '/index.html');
-    assert.ok('line' in markup && markup.line.includes('popovertarget="menu" style="anchor-name: --menu"'));
-    assert.ok('line' in markup && markup.line.includes('<div id="menu" class="popover" popover style="position-anchor: --menu">'));
+    const [button, popover] = inserts(actions).filter((a) => a.insert === '/index.html');
+    assert.ok('line' in button && button.line === '<button type="button" class="button" popovertarget="menu" style="anchor-name: --menu">Menu</button>');
+    assert.ok('line' in popover && popover.line.startsWith('<div id="menu" class="popover" popover style="position-anchor: --menu">'));
   });
 
   it('web:scroll hides and moves nothing without support or with reduced motion', () => {
@@ -651,12 +704,14 @@ describe('templates', () => {
 describe('--line', () => {
   const page = { 'index.html': '<body>\n  <header></header>\n</body>\n', 'css/styles.css': '/* jen:imports */' };
 
-  it('puts the markup before that line, and scripts still before </body>', () => {
+  it('puts the button before that line, and the dialog, popover or script still before </body>', () => {
     const actions = run('dialog', { name: 'confirm', into: '/index.html', line: '2' }, context(page, 'css'));
-    const [markup, script] = inserts(actions).filter((a) => a.insert === '/index.html');
-    assert.equal(markup.before, 2);
-    assert.deepEqual(script.before, /<\/body>/);
-    assert.equal(inserts(run('popover', { name: 'menu', into: '/index.html', line: '2' }, context(page, 'css')))[1].before, 2);
+    const [button, dialog] = inserts(actions).filter((a) => a.insert === '/index.html');
+    assert.equal(button.before, 2);
+    assert.deepEqual(dialog.before, /<\/body>/);
+    const [, trigger, popover] = inserts(run('popover', { name: 'menu', into: '/index.html', line: '2' }, context(page, 'css')));
+    assert.equal(trigger.before, 2);
+    assert.deepEqual(popover.before, /<\/body>/);
     assert.equal(inserts(run('scroll', { into: '/index.html', line: '3' }, context(page, 'css')))[1].before, 3);
   });
 
@@ -670,11 +725,11 @@ describe('--line', () => {
 
   it('also takes text on the line, matched literally', () => {
     const nav = { 'index.html': '<body>\n  <nav class="a.b">\n  </nav>\n</body>\n', 'css/styles.css': '/* jen:imports */' };
-    const [markup, script] = inserts(run('dialog', { name: 'confirm', into: '/index.html', line: '</nav>' }, context(nav, 'css'))).filter(
+    const [button, dialog] = inserts(run('dialog', { name: 'confirm', into: '/index.html', line: '</nav>' }, context(nav, 'css'))).filter(
       (a) => a.insert === '/index.html',
     );
-    assert.equal(markup.before, '</nav>');
-    assert.deepEqual(script.before, /<\/body>/);
+    assert.equal(button.before, '</nav>');
+    assert.deepEqual(dialog.before, /<\/body>/);
     assert.equal(inserts(run('popover', { name: 'menu', into: '/index.html', line: 'a.b' }, context(nav, 'css')))[1].before, 'a.b');
     assert.throws(() => run('popover', { name: 'menu', into: '/index.html', line: 'a*b' }, context(nav, 'css')), /no line in index\.html contains "a\*b"/);
   });

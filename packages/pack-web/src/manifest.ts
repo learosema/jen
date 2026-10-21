@@ -56,7 +56,7 @@ const manifestGenerator: Generator = {
     backgroundColor: { default: '', description: 'splash screen color: any CSS color or a hue (default: the palette\'s surface, else white)' },
     lang: { default: 'en', description: 'app language; also sets the text direction (rtl for Arabic, Hebrew, …)' },
     png: { default: false, description: 'also render PNG icons from favicon.svg, with rsvg-convert or ImageMagick' },
-    into: { path: true, default: '', description: 'a page to link the manifest from (and with --png, the apple-touch icon)' },
+    into: { path: true, default: '', description: 'a page to link the manifest from (with --png, also the apple-touch icon) – only adds to it' },
   },
   examples: ['--name="My Site" --into=index.html', '--name="My Site" --display=minimal-ui --png --into=index.html'],
   actions: (answers, _helpers, ctx) => {

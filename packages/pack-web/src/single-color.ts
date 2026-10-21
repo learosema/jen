@@ -33,7 +33,7 @@ const colorGenerator: Generator = {
   },
   examples: ['--name=pink --color=deeppink', '--name=brand --color=#5b5bd6 --dir=src/css', '--name=pink --color=deeppink --into=css/tokens.css'],
   actions: ({ name, color, into, tailwind }, _helpers, ctx) =>
-    singleActions(ctx, 'web:color', colorItem(String(name), String(color), Boolean(tailwind) || usesTailwind(ctx)), into),
+    singleActions(ctx, colorItem(String(name), String(color), Boolean(tailwind) || usesTailwind(ctx)), into),
 };
 
 export default colorGenerator;
