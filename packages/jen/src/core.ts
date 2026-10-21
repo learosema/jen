@@ -64,6 +64,12 @@ export type Action =
    * multi-line `replace` is reindented to match the first match's line.
    */
   | { modify: string | Find; pattern: RegExp; replace: string }
+  /**
+   * Add `text` at the end of the file, on a line of its own – start it with
+   * `\n` for a blank line before it. Re-rendered in the file's indent style
+   * like an inserted block. Skipped if the file already contains it.
+   */
+  | { append: string; text: string }
   /** Delete a file. Directories are refused. */
   | { delete: string };
 
@@ -73,6 +79,7 @@ export type Placed =
   | { add: string; bytes: Uint8Array; force?: boolean }
   | { insert: string; before: string | RegExp | number; line: string }
   | { modify: string; pattern: RegExp; replace: string }
+  | { append: string; text: string }
   | { delete: string }
   /** `skip` is the file it was about, or `''` if there is none to name. */
   | { skip: string; note: string };
@@ -211,7 +218,7 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
       continue;
     }
 
-    const file = resolve(ROOT, 'add' in a ? a.add : 'delete' in a ? a.delete : 'insert' in a ? a.insert : a.modify);
+    const file = resolve(ROOT, 'add' in a ? a.add : 'delete' in a ? a.delete : 'insert' in a ? a.insert : 'append' in a ? a.append : a.modify);
     if (![ROOT, ...extraRoots].some((root) => isInside(root, file))) {
       steps.push({ mark: '?', file, note: 'outside the project, skipped' });
       continue;
@@ -247,7 +254,19 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
       continue;
     }
 
-    if ('insert' in a) {
+    if ('append' in a) {
+      const block = a.text.replace(/\s+$/, '').split('\n');
+      // what the plan shows: the first line that isn't blank or a comment
+      const label = block.find((l) => l.trim() && !/^\s*(\/[*/]|\*)/.test(l))?.trim() ?? block.find((l) => l.trim())?.trim() ?? '';
+      if (block.every((l) => !l.trim()) || containsBlock(text.split('\n').filter((l) => l.trim()), block.filter((l) => l.trim()))) {
+        steps.push({ mark: '=', file, note: `already present: ${label}` });
+        continue;
+      }
+      const target = indentTargetFor(file, text);
+      const rendered = reindentBlock(block, '', target).join('\n');
+      changes.set(file, `${text}${text === '' || text.endsWith('\n') ? '' : '\n'}${rendered}\n`);
+      steps.push({ mark: '~', file, note: `+ ${label} (appended)` });
+    } else if ('insert' in a) {
       const lines = text.split('\n');
       const block = a.line.split('\n');
       if (containsBlock(lines, block)) {

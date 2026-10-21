@@ -312,6 +312,42 @@ describe('modify', () => {
   });
 });
 
+describe('append', () => {
+  const RULE = '.flow > * + * {\n  margin-block-start: 1em;\n}';
+  const GEN = `export const actions = () => [
+    { append: 'layout.css', text: '\\n/* after Every Layout */\\n${RULE.replaceAll('\n', '\\n')}' },
+  ];`;
+
+  it('adds text at the end, and nothing twice', () => {
+    const dir = fixture({ 'layout.css': '.a {\n  color: red;\n}', '.jen/flow.mjs': GEN });
+    const r = jen(['flow'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /~ layout\.css {2}\+ \.flow > \* \+ \* \{ \(appended\)/);
+    assert.equal(read(dir, 'layout.css'), `.a {\n  color: red;\n}\n\n/* after Every Layout */\n${RULE}\n`);
+    const again = jen(['flow'], { cwd: dir });
+    assert.match(again.stdout, /= layout\.css {2}already present: \.flow > \* \+ \* \{/);
+    assert.match(again.stdout, /Nothing to do/);
+  });
+
+  it('works on a file the same run creates, in the file\'s indent style', () => {
+    const dir = fixture({
+      '.editorconfig': 'root = true\n[*.css]\nindent_style = tab\n',
+      '.jen/new.mjs': `export const actions = () => [
+        { add: 'layout.css', template: '' },
+        { append: 'layout.css', text: '${RULE.replaceAll('\n', '\\n')}' },
+      ];`,
+    });
+    const r = jen(['new'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(read(dir, 'layout.css'), '.flow > * + * {\n\tmargin-block-start: 1em;\n}\n');
+  });
+
+  it('skips a missing file with a note', () => {
+    const dir = fixture({ '.jen/flow.mjs': GEN });
+    assert.match(jen(['flow'], { cwd: dir }).stdout, /\? layout\.css {2}file missing, skipped/);
+  });
+});
+
 describe('delete', () => {
   const DESTROY = `export const params = { name: {} };
     export const actions = ({ name }, { pascal }) => [
