@@ -94,6 +94,11 @@ export function buildContext(flag: string, root: string, cwd: string): Context {
   return { ...probe(root), root, cwd: here, destDir };
 }
 
+/** A path the user typed, relative to the cwd, as a path from the project root; null if it leaves the root. */
+export function fromCwd(ctx: Context, value: string): string | null {
+  return isAbsolute(value) ? null : within(ctx.cwd, toPosix(value));
+}
+
 /**
  * Turns the `path: true` params the user gave (relative to the cwd) into action
  * paths from the project root (`/src/app.cpp`); fails for one outside the project.
@@ -102,7 +107,7 @@ export function resolvePathParams(params: Params, answers: Record<string, unknow
   for (const [name, spec] of Object.entries(params)) {
     const value = answers[name];
     if (!spec.path || typeof value !== 'string' || value === '') continue;
-    const p = isAbsolute(value) ? null : within(ctx.cwd, toPosix(value));
+    const p = fromCwd(ctx, value);
     if (p === null) throw new Error(`--${name}=${value} is outside the project root (${ctx.root}).`);
     answers[name] = `/${p}`;
   }
