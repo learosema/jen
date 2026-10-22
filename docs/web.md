@@ -606,5 +606,3 @@ Each file credits its sources:
 - **[Under-Engineered Responsive Tables](https://adrianroselli.com/2020/11/under-engineered-responsive-tables.html)** by Adrian Roselli: the scroll region of `web:table`
 - **[GOV.UK Design System](https://design-system.service.gov.uk/components/text-input/)** by the Government Digital Service: the label, hint and error pattern of `web:field`
 - **[The Quest for the Perfect Dark Mode](https://www.joshwcomeau.com/react/dark-mode/)** by Josh W. Comeau: applying the stored theme before the first paint in `web:theme-toggle`
-
-Written fresh, not copied. ISC licensed.

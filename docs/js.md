@@ -235,5 +235,3 @@ A test per export of an existing module – or a test-first stub for a new one.
 
 - **[ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/)** by the W3C WAI: the [keyboard interface practices](https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/), [menubar](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/) and [grid](https://www.w3.org/WAI/ARIA/apg/patterns/grid/) patterns
 - **[create-vite](https://github.com/vitejs/vite/tree/main/packages/create-vite)** by the Vite team: run by `js:vite`, and the layout of `js:esbuild`
-
-Written fresh, not copied. ISC licensed.
