@@ -42,23 +42,33 @@ import { parseArgs, styleText } from 'node:util';
 import { buildContext, placeActions, resolvePathParams } from './context.ts';
 import { JenError, apply, dim, fail, helpers, plan, planItems, printPlan } from './core.ts';
 import { rank } from './find.ts';
-import type { Answers, AnyGenerator, Pack, PackEnv, PackFactory, Params, Placed, Recipe } from './core.ts';
+import type { Answers, AnyGenerator, Context, Generator, Helpers, Pack, PackEnv, PackFactory, Params, Placed, Recipe } from './core.ts';
+import { likeDraft } from './like.ts';
 import { PROJECT, PROJECT_JEN, ROOT, USER_DIR } from './location.ts';
 
 // ─── Built-in generators ────────────────────────────────────────────────────
 
-const BUILTINS: Pack = {
+/** Built-ins are jen's own: their actions come placed, with absolute paths, e.g. into the user directory. */
+type Builtin = Omit<Generator, 'actions'> & { actions(answers: Answers, h: Helpers, ctx: Context): Placed[] };
+
+const BUILTINS: Record<string, Builtin> = {
   generator: {
-    description: 'create a new generator (project or user-wide)',
+    description: 'create a new generator (project or user-wide), or one that reproduces existing files',
     params: {
       name: { description: 'the generator, any case: MyWidget and my-widget both make my-widget.mjs, run as jen my-widget' },
       location: { default: 'project', choices: ['project', 'user'], description: 'project (.jen/) or user (your user directory)' },
+      like: { default: '', description: 'existing files, comma-separated: the draft writes them again, with --word as its name param' },
+      word: { default: '', description: "the part of the --like files that varies, any case – default: the first file's name (users from users.test.js)" },
     },
-    examples: ['--name=hello', '--name=component --location=user'],
-    actions: ({ name, location }, { kebab }) => [
-      {
-        add: join(location === 'user' ? USER_DIR : join(ROOT, '.jen'), `${kebab(name)}.mjs`),
-        template: `// @ts-check
+    examples: ['--name=hello', '--name=component --location=user', '--name=route --like=src/routes/users.js,test/routes/users.test.js'],
+    actions: ({ name, location, like, word }, { kebab }, ctx) => {
+      const file = join(location === 'user' ? USER_DIR : join(ROOT, '.jen'), `${kebab(name)}.mjs`);
+      if (like) return likeDraft(file, String(name), String(like), String(word), ctx);
+      if (word) fail('generator --word only works with --like=<files>');
+      return [
+        {
+          add: file,
+          template: `// @ts-check
 /** @type {import('@codejen/jen').Generator} */
 export default {
   description: ${JSON.stringify(String(name))},
@@ -71,8 +81,9 @@ export default {
   ],
 };
 `,
-      },
-    ],
+        },
+      ];
+    },
   },
 };
 
@@ -338,7 +349,7 @@ async function collect(extra: Extra): Promise<Entry[]> {
   ];
   for (const p of discoverAll(PACK_RE)) entries.push(...(await packSource(p, defaultBases(), extra)));
   for (const [name, g] of Object.entries(BUILTINS)) {
-    entries.push({ name, source: 'built-in', load: async () => g });
+    entries.push({ name, source: 'built-in', load: async () => g as unknown as AnyGenerator });
   }
   return entries;
 }

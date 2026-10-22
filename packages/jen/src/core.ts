@@ -90,7 +90,8 @@ export type InsertAt = { before: string | RegExp | number; after?: undefined } |
 
 /** An action with its file resolved – a path from the project root – or skipped with a note. */
 export type Placed =
-  | { add: string; template: string; force?: boolean }
+  /** `verbatim`: no EditorConfig – for jen's own `generator --like`, whose template literals must stay exact. */
+  | { add: string; template: string; force?: boolean; verbatim?: true }
   | { add: string; bytes: Uint8Array; force?: boolean }
   | ({ insert: string; line: string } & InsertAt)
   | { modify: string; pattern: RegExp; replace: string }
@@ -249,7 +250,7 @@ function hasMarker(l: string, marker: string | RegExp): boolean {
 }
 
 /** "12 and 37", "3, 12 and 37" – a few line numbers (1-based) for a note. */
-function lineList(ns: number[]): string {
+export function lineList(ns: number[]): string {
   const shown = ns.slice(0, 5).map(String);
   if (ns.length > 5) return `${shown.join(', ')} … (${ns.length} in all)`;
   return shown.length > 1 ? `${shown.slice(0, -1).join(', ')} and ${shown.at(-1)}` : shown.join('');
@@ -306,7 +307,7 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
         continue;
       }
       changes.set(file, 'bytes' in a ? a.bytes : a.template);
-      added.add(file);
+      if (!('verbatim' in a && a.verbatim)) added.add(file);
       steps.push(exists ? { mark: '!', file, note: 'will be overwritten' } : { mark: '+', file });
       continue;
     }

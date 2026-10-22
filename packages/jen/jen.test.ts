@@ -1305,6 +1305,84 @@ describe('Built-in "generator"', () => {
   });
 });
 
+describe('Built-in "generator" --like', () => {
+  const ROUTE = "/** GET /users – all users. */\nexport const users = { path: '/users', usersCount: 0 };\n// superusers, Users, USERS\n";
+  const ROUTE_TEST = "import { users } from '../../src/routes/users.js';\ntest('users', () => users);\n";
+  const INDEX = "import { users } from './users.js';\nexport const routes = [users];\n";
+  const routes = () =>
+    fixture({ 'package.json': '{}', 'src/routes/users.js': ROUTE, 'test/routes/users.test.js': ROUTE_TEST, 'src/routes/index.js': INDEX });
+  const LIKE = '--like=src/routes/users.js,test/routes/users.test.js';
+
+  it('drafts a generator that reproduces the files byte for byte', () => {
+    const dir = routes();
+    const r = jen(['generator', '--name=route', LIKE], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /reproduces src\/routes\/users\.js, test\/routes\/users\.test\.js – replaced users 12×/);
+    assert.match(read(dir, '.jen/route.mjs'), /examples: \["--name=users"\]/);
+    rmSync(join(dir, 'src/routes/users.js'));
+    rmSync(join(dir, 'test/routes/users.test.js'));
+    assert.equal(jen(['route', '--name=users'], { cwd: dir }).code, 0);
+    assert.equal(read(dir, 'src/routes/users.js'), ROUTE);
+    assert.equal(read(dir, 'test/routes/users.test.js'), ROUTE_TEST);
+  });
+
+  it('templates every case, but only whole names', () => {
+    const dir = routes();
+    jen(['generator', '--name=route', LIKE], { cwd: dir });
+    const r = jen(['route', '--name=order-items'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(
+      read(dir, 'src/routes/order-items.js'),
+      "/** GET /order-items – all orderItems. */\nexport const orderItems = { path: '/order-items', usersCount: 0 };\n// superusers, OrderItems, ORDER_ITEMS\n",
+    );
+    assert.match(read(dir, 'test/routes/order-items.test.js'), /from '\.\.\/\.\.\/src\/routes\/order-items\.js'/);
+  });
+
+  it('takes a multi-word name from the file and keeps template literals exact', () => {
+    const card = 'export function UserCard() {\n\treturn `<div class="user-card">${userCard} \\n \\` ${"x"}</div>`;\n}\r\n';
+    const dir = fixture({ 'package.json': '{}', '.editorconfig': 'root = true\n[*]\nindent_style = space\nindent_size = 2\n', 'src/UserCard.jsx': card });
+    assert.equal(jen(['generator', '--name=card', '--like=src/UserCard.jsx'], { cwd: dir }).code, 0);
+    assert.match(read(dir, '.jen/card.mjs'), /\$\{pascal\(name\)\}.*\$\{kebab\(name\)\}.*\$\{camel\(name\)\}/s);
+    rmSync(join(dir, 'src/UserCard.jsx'));
+    const r = jen(['card', '--name=UserCard'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    // the generated file gets the project's EditorConfig, as any add; the draft's own template doesn't
+    assert.equal(read(dir, 'src/UserCard.jsx'), card.replace('\t', '  ').replace('\r\n', '\n'));
+  });
+
+  it('names other files that mention the word, without changing them', () => {
+    const dir = routes();
+    const r = jen(['generator', '--name=route', LIKE], { cwd: dir });
+    assert.match(r.stdout, /info: src\/routes\/index\.js mentions users too \(lines 1 and 2\)/);
+    assert.match(r.stdout, /left as they are: usersCount, superusers/);
+    assert.equal(read(dir, 'src/routes/index.js'), INDEX);
+  });
+
+  it('refuses directories, binaries, missing files, paths outside, and a word that never occurs', () => {
+    const dir = fixture({ 'package.json': '{}', 'a/b.txt': 'b\n', 'bin.dat': 'x\0y', 'sub/x.txt': 'x\n' });
+    const fails = (args: string[], re: RegExp, cwd = dir) => {
+      const r = jen(['generator', '--name=g', ...args], { cwd });
+      assert.equal(r.code, 1, args.join(' '));
+      assert.match(r.stderr, re);
+      assert.ok(!existsSync(join(dir, '.jen')));
+    };
+    fails(['--like=a'], /a is a directory/);
+    fails(['--like=bin.dat'], /bin\.dat is a binary file/);
+    fails(['--like=nope.js'], /nope\.js doesn't exist/);
+    fails(['--like=../../x.txt'], /outside the project root/, join(dir, 'sub'));
+    fails(['--like=a/b.txt', '--word=users'], /"users" doesn't occur in a\/b\.txt – pass --word=/);
+    fails(['--word=users'], /--word only works with --like/);
+  });
+
+  it('writes nothing with --dry-run', () => {
+    const dir = routes();
+    const r = jen(['generator', '--name=route', LIKE, '--dry-run'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /\+ \.jen\/route\.mjs/);
+    assert.ok(!existsSync(join(dir, '.jen/route.mjs')));
+  });
+});
+
 // ─── Project root & destination ─────────────────────────────────────────────
 
 const HERE_GEN = `
