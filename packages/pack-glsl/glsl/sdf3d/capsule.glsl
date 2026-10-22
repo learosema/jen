@@ -1,5 +1,5 @@
-// @license MIT-0
-// sdCapsule · pack-glsl · MIT-0
+// @license iquilezles
+// sdCapsule · Inigo Quilez · MIT
 // Capsule from a to b with radius r.
 // Formula: Inigo Quilez, https://iquilezles.org/articles/distfunctions/
 float sdCapsule(vec3 p, vec3 a, vec3 b, float r) {

@@ -1,5 +1,5 @@
-// @license MIT-0
-// sdSegment (2D) · pack-glsl · MIT-0
+// @license iquilezles
+// sdSegment (2D) · Inigo Quilez · MIT
 // Distance to the line segment from a to b (unsigned; subtract a radius for a capsule).
 // Formula: Inigo Quilez, https://iquilezles.org/articles/distfunctions2d/
 float sdSegment(vec2 p, vec2 a, vec2 b) {

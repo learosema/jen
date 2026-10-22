@@ -1,5 +1,5 @@
-// @license MIT-0
-// sdBox (3D) · pack-glsl · MIT-0
+// @license iquilezles
+// sdBox (3D) · Inigo Quilez · MIT
 // Signed distance to an axis-aligned box; b is the half size.
 // Formula: Inigo Quilez, https://iquilezles.org/articles/distfunctions/
 float sdBox(vec3 p, vec3 b) {

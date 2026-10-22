@@ -10,7 +10,7 @@
  */
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { posix } from 'node:path';
 import { Script } from 'node:vm';
 import { describe, it } from 'node:test';
@@ -110,6 +110,17 @@ describe('chunks', () => {
       const chunk = loadChunk(id);
       assert.ok(chunk.licenses.length > 0, id);
       for (const l of noticesFor(chunk)) assert.match(licenseText(l), /Copyright/, `${id}: ${l}`);
+    }
+  });
+
+  it('only takes MIT code from others: every license is MIT-0, inline or a notice with the MIT permission text', () => {
+    const notices = readdirSync(new URL('./glsl/licenses/', import.meta.url)).map((f) => f.replace(/\.glsl$/, ''));
+    for (const id of allIds) {
+      for (const l of loadChunk(id).licenses) assert.ok(l === OWN_LICENSE || l === INLINE_LICENSE || notices.includes(l), `${id}: @license ${l}`);
+    }
+    for (const n of notices) assert.match(licenseText(n), /Permission is hereby granted, free of charge/, n);
+    for (const id of allIds.filter((i) => loadChunk(i).licenses.includes(INLINE_LICENSE))) {
+      assert.match(loadChunk(id).code.split('\n').slice(0, 3).join('\n'), /MIT license/, id);
     }
   });
 

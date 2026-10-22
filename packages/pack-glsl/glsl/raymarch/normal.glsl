@@ -1,5 +1,5 @@
-// @license MIT-0
-// calcNormal · pack-glsl · MIT-0
+// @license iquilezles
+// calcNormal · Inigo Quilez · MIT
 // Surface normal at p from four scene() samples on a tetrahedron, which is
 // cheaper than central differences (six samples).
 // Technique: Inigo Quilez, https://iquilezles.org/articles/normalsSDF/
