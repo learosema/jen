@@ -6,7 +6,7 @@ description: "Every jen command in @codejen/pack-glsl: shader starters, a WebGL 
 eyebrow: "@codejen/pack-glsl"
 mega: shaders
 lede: Every generator, with the command, the output it prints, and the shader it makes – running live.
-sub: GLSL for WebGL2 and OpenGL. MIT-0.
+sub: GLSL for WebGL2 and OpenGL. MIT-0 and MIT.
 cta: { text: "Three ways to install ↓", url: "#install" }
 toc:
   - title: Install
@@ -212,7 +212,8 @@ The pack's own code is [MIT-0](https://github.com/learosema/jen/blob/main/packag
 - **[psrdnoise](https://github.com/stegu/psrdnoise)** by Stefan Gustavson and Ian McEwan, MIT: tiling simplex noise and its gradients, behind `simplexNoise` and `curlNoise`.
 - **[BakingLab](https://github.com/TheRealMJP/BakingLab)** by MJP and David Neubelt, MIT: Stephen Hill's ACES fit, `tonemapAces`.
 - **[hash-prospector](https://github.com/skeeto/hash-prospector)** by Chris Wellons, public domain: the `lowbias32` hash constants.
-- **Formulas** from Inigo Quilez's articles on [distance functions](https://iquilezles.org/articles/distfunctions/), [smooth minimum](https://iquilezles.org/articles/smin/), [normals](https://iquilezles.org/articles/normalsSDF/) and [soft shadows](https://iquilezles.org/articles/rmshadows/); Brian Karis's "Real Shading in Unreal Engine 4"; Duff et al.'s orthonormal basis (JCGT 2017); Mark Finch's Gerstner waves (GPU Gems).
+- **[Inigo Quilez's articles](https://iquilezles.org/articles/)**, MIT: the [distance functions](https://iquilezles.org/articles/distfunctions/), [smooth minimum](https://iquilezles.org/articles/smin/), [normals](https://iquilezles.org/articles/normalsSDF/) and [soft shadows](https://iquilezles.org/articles/rmshadows/).
+- **Formulas** from Brian Karis's "Real Shading in Unreal Engine 4"; Duff et al.'s orthonormal basis (JCGT 2017); Mark Finch's Gerstner waves (GPU Gems).
 
 The full notices: [THIRD_PARTY_NOTICES.md](https://github.com/learosema/jen/blob/main/packages/pack-glsl/THIRD_PARTY_NOTICES.md).
 

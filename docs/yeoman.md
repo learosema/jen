@@ -92,5 +92,3 @@ The first positional is the JHipster command: `jen yeoman:jhipster jdl blog.jdl`
 
 - **[Yeoman](https://yeoman.io)** by the Yeoman team: the generators, and the environment the pack stands in for
 - **[JHipster](https://www.jhipster.tech)** by the JHipster team: the environment builder and the deferred commit the pack runs JHipster with
-
-The pack is ISC licensed.
