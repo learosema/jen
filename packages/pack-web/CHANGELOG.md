@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/learosema/jen/compare/pack-web-v2.0.0...pack-web-v2.0.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* **pack-web:** update peer deps ([0e54f1c](https://github.com/learosema/jen/commit/0e54f1c68ced7e602f8d0515a43b2c9fb42467d0))
+
 ## [2.0.0](https://github.com/learosema/jen/compare/pack-web-v1.5.0...pack-web-v2.0.0) (2026-10-22)
 
 

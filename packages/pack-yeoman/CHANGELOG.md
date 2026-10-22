@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/learosema/jen/compare/pack-yeoman-v2.2.0...pack-yeoman-v2.2.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* **pack-yeoman:** update peer deps ([581e0ed](https://github.com/learosema/jen/commit/581e0ed6460c7524f75dbccf4fa88a29519cee33))
+
 ## [2.2.0](https://github.com/learosema/jen/compare/pack-yeoman-v2.1.0...pack-yeoman-v2.2.0) (2026-10-22)
 
 
