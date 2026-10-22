@@ -2,6 +2,25 @@
 
 > Renamed from `@lea.rosema/jen` to `@codejen/jen` and republished as 1.0.0. The history below (up to 1.1.0) is `@lea.rosema/jen`'s; `@lea.rosema/jen` is deprecated in favor of this package.
 
+## [3.2.0](https://github.com/learosema/jen/compare/jen-v3.1.0...jen-v3.2.0) (2026-10-22)
+
+
+### Features
+
+* **jen:** explicit info/warning output ([89ba5da](https://github.com/learosema/jen/commit/89ba5da3e21384521a284e72a1b6c2cd92f97ca0))
+* **jen:** implement --like ([a6f14be](https://github.com/learosema/jen/commit/a6f14beba9ffffbc2172d07eab65d6df9fb8c330))
+* **jen:** improve cli experience ([af407ac](https://github.com/learosema/jen/commit/af407ac0c938b324858614f43c7db7227dcbdb83))
+* **jen:** insert after, line numbers in plan, generator suggestions ([5755bf4](https://github.com/learosema/jen/commit/5755bf45c3475cdbb9c8296deacfd2aab8d80293))
+* **jen:** jen learns append ([4ca1687](https://github.com/learosema/jen/commit/4ca1687790a8a2e94a4a0b9c604811c214fc0598))
+* **jen:** skipped-files summary, written notes, clearer --list without fetching ([a6bfee1](https://github.com/learosema/jen/commit/a6bfee1c38a49226b579e0e9c1aae3b842abc104))
+* **jen:** warning notes and --strict ([35db6c9](https://github.com/learosema/jen/commit/35db6c93fbd5bfabc181c2b754070535187b56c8))
+
+
+### Bug Fixes
+
+* **jen:** fix regex security issue ([e402b69](https://github.com/learosema/jen/commit/e402b6923db6ef06a3ca99ae1a81aa700f5f6fca))
+* **pack-cpp:** update licenses ([dd53c5e](https://github.com/learosema/jen/commit/dd53c5eaa5c60e55944cfdcd32b7765bdacbc60e))
+
 ## [3.1.0](https://github.com/learosema/jen/compare/jen-v3.0.0...jen-v3.1.0) (2026-10-18)
 
 

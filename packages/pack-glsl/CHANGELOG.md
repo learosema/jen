@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.1](https://github.com/learosema/jen/compare/pack-glsl-v2.3.0...pack-glsl-v2.3.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* **pack-glsl:** update licenses ([d96b262](https://github.com/learosema/jen/commit/d96b26212d153cebf7a8776aed9ad219f14ae5cf))
+
 ## [2.3.0](https://github.com/learosema/jen/compare/pack-glsl-v2.2.3...pack-glsl-v2.3.0) (2026-10-18)
 
 
