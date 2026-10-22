@@ -1347,7 +1347,7 @@ describe('Built-in "generator" --like', () => {
     const r = jen(['card', '--name=UserCard'], { cwd: dir });
     assert.equal(r.code, 0, r.stderr);
     // the generated file gets the project's EditorConfig, as any add; the draft's own template doesn't
-    assert.equal(read(dir, 'src/UserCard.jsx'), card.replace('\t', '  ').replace('\r\n', '\n'));
+    assert.equal(read(dir, 'src/UserCard.jsx'), card.replaceAll('\t', '  ').replaceAll('\r\n', '\n'));
   });
 
   it('names other files that mention the word, without changing them', () => {
