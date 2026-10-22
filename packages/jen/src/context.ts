@@ -149,7 +149,7 @@ export function placeActions(actions: Action[], ctx: Context): Placed[] {
     if ('add' in a) return { ...a, add: place(a.add) };
     if ('delete' in a) return { ...a, delete: place(a.delete) };
     if ('append' in a) return { ...a, append: place(a.append) };
-    if ('note' in a) return a.file ? { note: a.note, file: place(a.file) } : { note: a.note };
+    if ('note' in a) return a.file ? { note: a.note, file: place(a.file), ...(a.written && { written: true as const }) } : { note: a.note };
     if ('modify' in a) {
       const file = target(a.modify);
       return typeof file === 'string' ? { ...a, modify: file } : file;

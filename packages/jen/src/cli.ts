@@ -40,8 +40,9 @@ import { delimiter, dirname, join, relative, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs, styleText } from 'node:util';
 import { buildContext, placeActions, resolvePathParams } from './context.ts';
-import { apply, dim, fail, helpers, plan, printPlan } from './core.ts';
-import type { AnyGenerator, Answers, Pack, PackEnv, PackFactory, Params, Placed } from './core.ts';
+import { JenError, apply, dim, fail, helpers, plan, planItems, printPlan } from './core.ts';
+import { rank } from './find.ts';
+import type { Answers, AnyGenerator, Pack, PackEnv, PackFactory, Params, Placed, Recipe } from './core.ts';
 import { PROJECT, PROJECT_JEN, ROOT, USER_DIR } from './location.ts';
 
 // ─── Built-in generators ────────────────────────────────────────────────────
@@ -91,6 +92,8 @@ interface PackMeta {
   version?: string;
   description?: string;
   homepage?: string;
+  /** The pack module's `recipes` export. */
+  recipes?: Recipe[];
 }
 
 const GEN_FILE = /\.(m?js|m?ts)$/;
@@ -118,6 +121,9 @@ function dirSource(source: string, dir: string | null): Entry[] {
 
 /** npm scope the not-found fallback may fetch from – jen's own. */
 const FIRST_PARTY_SCOPE = '@codejen';
+
+/** jen's own packs, for `--find`'s hint at the ones it didn't search because they aren't installed. */
+const FIRST_PARTY_PACKS = ['cpp', 'glsl', 'js', 'web', 'yeoman'];
 
 /** Matches pack package names, capturing the prefix: "@codejen/pack-cpp" or "jen-pack-cpp" → "cpp". */
 const PACK_RE = /^(?:jen-pack-|@[^/]+\/pack-)(.+)$/;
@@ -245,10 +251,11 @@ async function packSource(name: string, bases = defaultBases(), extra: Extra = n
     console.warn(styleText('yellow', `Pack ${name} not found (install it locally or globally).`));
     return [];
   }
-  const mod = (await import(pathToFileURL(file).href)) as { default?: Pack | PackFactory };
-  const exported = mod.default ?? (mod as Pack);
+  const mod = (await import(pathToFileURL(file).href)) as { default?: Pack | PackFactory; recipes?: Recipe[] };
+  const { recipes, ...named } = mod;
+  const exported = mod.default ?? (named as Pack);
   const pack = typeof exported === 'function' ? await exported(packEnv(extra)) : exported;
-  const meta = packMeta(name, file);
+  const meta = { ...packMeta(name, file), ...(Array.isArray(recipes) && recipes.length > 0 && { recipes }) };
   return Object.entries(pack).map(([gen, g]) => ({
     name: gen,
     source: `pack ${name}`,
@@ -384,7 +391,7 @@ function notFound(entries: Entry[], query: string): never {
   if (!query.includes(':') && discoverAll(/^(?:@[^/]+\/)?generator-/).some((n) => n.endsWith(`generator-${query}`))) {
     lines.push(`Yeoman generators run through ${FIRST_PARTY_SCOPE}/pack-yeoman now: jen yeoman:${query}`);
   }
-  return fail(lines.join('\n'));
+  throw new JenError(lines.join('\n'), 'not_found', { query, didYouMean: close });
 }
 
 /**
@@ -438,6 +445,12 @@ async function list(entries: Entry[]): Promise<void> {
     );
     const line = `  ${qualified(e).padEnd(22)} ${e.source.padEnd(26)} ${description}`;
     console.log(shadowed ? dim(`${line} (shadowed)`) : line);
+  }
+  const recipes = recipesOf(entries);
+  if (recipes.length > 0) console.log('\nrecipes:');
+  for (const { pack, recipe } of recipes) {
+    console.log(`  ${recipe.name.padEnd(22)} ${`pack ${pack.name}`.padEnd(26)} ${recipe.description}`);
+    for (const call of recipeCalls(pack, recipe)) console.log(dim(`    ${call.jen}`));
   }
 }
 
@@ -505,25 +518,95 @@ function formatGenerator(e: Entry, gen: AnyGenerator): string {
   return lines.join('\n');
 }
 
+/** A pack in `--list --json`: its recipes' steps as whole calls, their markup only in `--find` (it would repeat on every generator). */
+const packJson = ({ recipes, ...pack }: PackMeta) => ({
+  ...pack,
+  ...(recipes && { recipes: recipes.map((r) => ({ name: r.name, description: r.description, steps: recipeCalls(pack, r), ...(r.docs && { docs: r.docs }) })) }),
+});
+
+/** One generator in `--list --json` (and `--help --json`). */
+const catalogEntry = (e: Entry, g: AnyGenerator, shadowed = false) => ({
+  name: qualified(e),
+  source: e.source,
+  ...(e.pack && { pack: packJson(e.pack) }),
+  shadowed,
+  description: g.description ?? '',
+  params: Object.fromEntries(Object.entries(g.params ?? {}).map(([n, spec]) => [n, paramInfo(spec)])),
+  examples: exampleCalls(e, g),
+  usage: g.usage ?? [],
+});
+
 /** `jen --list --json`: the catalog for programs – JSON only on stdout. */
 async function listJson(entries: Entry[]): Promise<void> {
   const catalog = [];
   for (const { entry: e, shadowed } of withShadowing(entries)) {
-    const head = { name: qualified(e), source: e.source, ...(e.pack && { pack: e.pack }), shadowed };
     catalog.push(
       await e.load().then(
-        (g) => ({
-          ...head,
-          description: g.description ?? '',
-          params: Object.fromEntries(Object.entries(g.params ?? {}).map(([n, spec]) => [n, paramInfo(spec)])),
-          examples: exampleCalls(e, g),
-          usage: g.usage ?? [],
-        }),
-        (err: Error) => ({ ...head, error: err.message }),
+        (g) => catalogEntry(e, g, shadowed),
+        (err: Error) => ({ name: qualified(e), source: e.source, ...(e.pack && { pack: packJson(e.pack) }), shadowed, error: err.message }),
       ),
     );
   }
   console.log(JSON.stringify(catalog, null, 2));
+}
+
+/** A recipe's steps as whole calls, like a generator's examples: with jen installed, and through npx. */
+const recipeCalls = (pack: PackMeta, r: Recipe) => {
+  const from = pack.name.startsWith(`${FIRST_PARTY_SCOPE}/pack-`) ? '' : ` --from ${pack.name}`;
+  return r.steps.map((step) => ({ jen: `jen ${step}`, npx: `${NPX}${from} ${step}` }));
+};
+
+/** The recipes of the packs among `entries`, once each. */
+function recipesOf(entries: Entry[]): Array<{ pack: PackMeta; recipe: Recipe }> {
+  const packs = new Map(entries.flatMap((e) => (e.pack?.recipes ? [[e.pack.name, e.pack] as const] : [])));
+  return [...packs.values()].flatMap((pack) => pack.recipes!.map((recipe) => ({ pack, recipe })));
+}
+
+/**
+ * `jen --find "sidebar layout"`: generators and recipes ranked by the words they share with the query
+ * (find.ts), the best 10. `scoped` when it searched one pack (`jen web --find …`); otherwise it names
+ * jen's own packs it couldn't search because they aren't installed.
+ */
+async function search(entries: Entry[], query: string, asJson: boolean, scoped: boolean): Promise<void> {
+  const generators = [];
+  for (const { entry: e, shadowed } of withShadowing(entries)) {
+    if (shadowed) continue;
+    const g = await e.load().catch(() => null);
+    if (!g) continue;
+    const more = [...(g.usage ?? []), ...Object.entries(g.params ?? {}).flatMap(([n, p]) => [n, p.description ?? ''])];
+    generators.push({ kind: 'generator' as const, entry: e, gen: g, name: qualified(e), description: g.description ?? '', more });
+  }
+  const recipes = recipesOf(entries).map(({ pack, recipe }) => ({
+    kind: 'recipe' as const,
+    pack,
+    recipe,
+    name: recipe.name,
+    description: recipe.description,
+    more: [...recipe.steps, ...(recipe.usage ?? [])],
+  }));
+  const hits = rank(query, [...generators, ...recipes]).slice(0, 10);
+  const missing = scoped ? [] : FIRST_PARTY_PACKS.filter((p) => !entries.some((e) => e.pack?.name === `${FIRST_PARTY_SCOPE}/pack-${p}`));
+  if (asJson) {
+    const results = hits.map(({ item: h, score }) =>
+      h.kind === 'generator'
+        ? { kind: h.kind, score, ...catalogEntry(h.entry, h.gen) }
+        : { kind: h.kind, score, name: h.name, pack: h.pack.name, description: h.description, steps: recipeCalls(h.pack, h.recipe), usage: h.recipe.usage ?? [], ...(h.recipe.docs && { docs: h.recipe.docs }) },
+    );
+    return void console.log(JSON.stringify({ query, results, ...(missing.length > 0 && { notSearched: missing.map((p) => `${FIRST_PARTY_SCOPE}/pack-${p}`) }) }, null, 2));
+  }
+  if (hits.length === 0) console.log(`Nothing matches "${query}" – jen --list shows all.`);
+  for (const { item: h } of hits) {
+    if (h.kind === 'generator') {
+      console.log(`  ${h.name.padEnd(22)} ${h.description}`);
+      continue;
+    }
+    console.log(`  ${`recipe: ${h.name}`.padEnd(22)} ${h.description} (${h.pack.name})`);
+    for (const call of recipeCalls(h.pack, h.recipe)) console.log(dim(`    ${call.jen}`));
+    if (h.recipe.docs) console.log(dim(`    docs: ${h.recipe.docs}`));
+  }
+  if (missing.length > 0) {
+    console.log(dim(`\nNot installed, so not searched: ${missing.join(', ')} – jen <pack> --find "${query}" fetches and searches one.`));
+  }
 }
 
 // ─── Params ─────────────────────────────────────────────────────────────────
@@ -540,11 +623,15 @@ function resolveParams(generator: string, params: Params, given: Record<string, 
       if (typeof spec.default !== 'boolean') {
         answers[name] = String(v);
         if (spec.choices && answers[name] !== spec.default && !spec.choices.includes(answers[name])) {
-          fail(`${generator} --${name}: expected one of ${spec.choices.map((c) => `"${c}"`).join(', ')}, got "${answers[name]}"`);
+          throw new JenError(`${generator} --${name}: expected one of ${spec.choices.map((c) => `"${c}"`).join(', ')}, got "${answers[name]}"`, 'bad_value', {
+            param: name,
+            value: answers[name],
+            choices: spec.choices,
+          });
         }
       } else if (v === true || TRUE.test(String(v))) answers[name] = true;
       else if (FALSE.test(String(v))) answers[name] = false;
-      else fail(`${generator} --${name}: expected true or false (or yes/no), got "${v}"`);
+      else throw new JenError(`${generator} --${name}: expected true or false (or yes/no), got "${v}"`, 'bad_value', { param: name, value: v, expected: 'boolean' });
     } else if (spec.default !== undefined) {
       answers[name] = spec.default;
     }
@@ -578,12 +665,13 @@ function rejectUnknown(generator: string, own: Params, given: Record<string, unk
   const unknown = Object.keys(given).filter((k) => !(k in own) && k !== 'dir' && k !== 'json');
   if (unknown.length === 0) return;
   const names = Object.keys(own);
-  const flags = unknown.map((k) => {
-    const near = closest(k, names);
-    return near ? `--${k} (did you mean --${near}?)` : `--${k}`;
-  });
+  const found = unknown.map((k) => ({ flag: `--${k}`, didYouMean: closest(k, names) }));
+  const flags = found.map(({ flag, didYouMean }) => (didYouMean ? `${flag} (did you mean --${didYouMean}?)` : flag));
   const known = names.length > 0 ? ` Known: ${names.map((n) => `--${n}`).join(', ')}.` : '';
-  fail(`${generator} has no ${flags.join(', ')}.${known} (jen ${generator} --help)`);
+  throw new JenError(`${generator} has no ${flags.join(', ')}.${known} (jen ${generator} --help)`, 'unknown_flag', {
+    flags: found.map(({ flag, didYouMean }) => ({ flag, ...(didYouMean && { didYouMean: `--${didYouMean}` }) })),
+    known: names.map((n) => `--${n}`),
+  });
 }
 
 // ─── CLI ────────────────────────────────────────────────────────────────────
@@ -594,7 +682,10 @@ const HELP = `jen – the code jen(erator)
 
   generator       name ("class"), with pack ("cpp:class") or source ("user:class")
   --list,    -l   list all generators and where they come from – or one pack's: jen web --list
-  --json          with --list: the same as JSON, with every generator's params and examples
+  --find          search generators and recipes by words: jen --find "sidebar layout",
+                  or one pack's: jen web --find "dark mode"
+  --json          with --list or --find: JSON for programs; with a generator: the plan
+                  (or the error) as JSON, with --help: the generator's params
   --dry-run, -n   only show the plan
   --force,   -f   overwrite existing files
   --dir           where the files go instead of the current directory
@@ -616,6 +707,7 @@ const FLAGS = {
   'dry-run': { type: 'boolean', short: 'n' },
   force: { type: 'boolean', short: 'f' },
   from: { type: 'string' },
+  find: { type: 'string' },
   help: { type: 'boolean', short: 'h' },
 } as const;
 
@@ -624,12 +716,15 @@ export async function main(): Promise<void> {
   const query = positionals[0];
   // only without a generator, which may have a "version" or "v" param of its own
   if (!query && (values.version === true || values.v === true)) return void console.log(jenVersion());
-  if (!query && !values.list) {
+  const finding = typeof values.find === 'string';
+  if (!query && !values.list && !finding) {
     console.log(HELP);
     if (!values.help) process.exitCode = 1;
     return;
   }
 
+  // --json: results and errors as JSON – unless a generator has a json param of its own (checked once it's loaded)
+  let json = values.json === true;
   const extra = noExtra();
   try {
     let entries: Entry[];
@@ -642,17 +737,27 @@ export async function main(): Promise<void> {
     }
     // --json only means something here, so it isn't reserved: a generator may still have a "json" param
     const listing = (shown: Entry[]) => (values.json ? listJson(shown) : list(shown));
-    // "jen web --list", or "jen web" when no generator is called "web": that pack's generators
-    if (query && !query.includes(':') && (values.list || !find(entries, query))) {
+    if (finding && !String(values.find).trim()) fail('--find needs words to search for: jen --find "sidebar layout"');
+    // "jen web --list", "jen web --find …", or "jen web" when no generator is called "web": that pack's generators
+    if (query && !query.includes(':') && (values.list || finding || !find(entries, query))) {
       const shown = await packEntries(entries, query, extra);
-      if (shown) return void (await listing(shown));
-      if (values.list) fail(`"${query}" is no pack or source jen knows – jen --list shows all.`);
+      if (shown) return void (await (finding ? search(shown, String(values.find), json, true) : listing(shown)));
+      if ((values.list || finding) && process.env.JEN_NO_FETCH && unknownPrefix(entries, query)) {
+        throw new JenError(
+          `"${query}" isn't installed here, and fetching is off (JEN_NO_FETCH) – install ${FIRST_PARTY_SCOPE}/pack-${query}, or run jen inside your project`,
+          'unknown_pack',
+          { pack: query },
+        );
+      }
+      if (values.list || finding) throw new JenError(`"${query}" is no pack or source jen knows – jen --list shows all.`, 'unknown_pack', { pack: query });
     }
+    if (finding) return void (await search(entries, String(values.find), json, false));
     if (values.list || !query) return void (await listing(entries));
 
     const entry = find(entries, query) ?? (await fetchFallback(entries, query, extra)) ?? notFound(entries, query);
     const gen = await entry.load();
-    if (values.help) return void console.log(formatGenerator(entry, gen));
+    if ('json' in (gen.params ?? {})) json = false;
+    if (values.help) return void console.log(json ? JSON.stringify(catalogEntry(entry, gen), null, 2) : formatGenerator(entry, gen));
     // --where was removed: fail rather than quietly write into the cwd, unless it's the generator's own param
     if ('w' in values || ('where' in values && !('where' in (gen.params ?? {})))) {
       fail('--where/-w was removed – cd into the directory and run jen there.');
@@ -661,8 +766,13 @@ export async function main(): Promise<void> {
     if (!gen.passthrough) rejectUnknown(qualified(entry), gen.params ?? {}, given);
     const missing = Object.entries(gen.params ?? {}).filter(([n, spec]) => spec.default === undefined && !(n in given));
     if (missing.length > 0) {
-      console.error(`${formatGenerator(entry, gen)}\n`);
-      fail(`Missing: ${missing.map(([n]) => `--${n}`).join(', ')}`);
+      if (!json) console.error(`${formatGenerator(entry, gen)}\n`);
+      throw new JenError(`Missing: ${missing.map(([n]) => `--${n}`).join(', ')}`, 'missing_param', {
+        generator: qualified(entry),
+        missing: missing.map(([n]) => `--${n}`),
+        params: Object.fromEntries(Object.entries(gen.params ?? {}).map(([n, spec]) => [n, paramInfo(spec)])),
+        examples: exampleCalls(entry, gen),
+      });
     }
     const notes: string[] = [];
     const cwd = process.cwd();
@@ -671,7 +781,7 @@ export async function main(): Promise<void> {
     const ownDir = 'dir' in (gen.params ?? {});
     const params = { dir: { default: '' }, ...gen.params };
     const answers = resolveParams(qualified(entry), params, given);
-    console.log(dim(`${qualified(entry)} (${entry.source})${gen.description ? ` – ${gen.description}` : ''}`));
+    if (!json) console.log(dim(`${qualified(entry)} (${entry.source})${gen.description ? ` – ${gen.description}` : ''}`));
     const ctx = buildContext(ownDir ? '' : String(answers.dir), ROOT, cwd);
     const flags = ownDir ? given : Object.fromEntries(Object.entries(given).filter(([k]) => k !== 'dir'));
     ctx.args = { flags, positionals: positionals.slice(1) };
@@ -679,9 +789,22 @@ export async function main(): Promise<void> {
     const raw = await gen.actions(answers, helpers, ctx);
     // built-ins are jen's own: they write to absolute paths, e.g. the user directory
     const actions = entry.source === 'built-in' ? (raw as Placed[]) : placeActions(raw, ctx);
-    for (const n of notes) console.log(dim(`  ${n}`));
+    if (!json) for (const n of notes) console.log(dim(`  ${n}`));
 
     const { steps, changes } = await plan(actions, Boolean(values.force), entry.source === 'built-in' ? [USER_DIR] : []);
+    if (json) {
+      const dryRun = Boolean(values['dry-run']);
+      const done = dryRun || changes.size === 0 ? { written: 0, deleted: 0 } : await apply(changes);
+      const result = {
+        generator: qualified(entry),
+        source: entry.source,
+        ...(PROJECT && PROJECT.root !== cwd && { root: relative(cwd, PROJECT.root) }),
+        dryRun,
+        steps: planItems(steps).map(({ mark: _, ...item }) => item),
+        ...done,
+      };
+      return void console.log(JSON.stringify(result, null, 2));
+    }
     console.log();
     printPlan(steps);
     if (changes.size === 0) return void console.log('\nNothing to do.');
@@ -690,6 +813,11 @@ export async function main(): Promise<void> {
     const { written, deleted } = await apply(changes);
     const summary = [written && `${written} written`, deleted && `${deleted} deleted`].filter(Boolean).join(', ');
     console.log(styleText('green', `✓ ${summary || 'nothing changed'}`));
+  } catch (e) {
+    if (!json) throw e;
+    const error = e instanceof JenError ? { code: e.code, message: e.message, ...e.details } : { code: 'error', message: e instanceof Error ? e.message : String(e) };
+    console.error(JSON.stringify({ error }, null, 2));
+    process.exitCode = 1;
   } finally {
     for (const cleanup of extra.cleanups) cleanup();
   }
