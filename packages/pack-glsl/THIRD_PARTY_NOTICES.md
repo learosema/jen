@@ -87,3 +87,32 @@ SOFTWARE.
 - Source: https://github.com/skeeto/hash-prospector
 - License: The Unlicense (public domain); no notice required.
 - Used in: `util/hash`, which is pack-glsl's own code (MIT-0) built on the `lowbias32` constants, credited in its comment.
+
+## Inigo Quilez – articles on distance functions and raymarching
+
+- Source: https://iquilezles.org/articles/ – its index says: "all technical code snippets you'll find are under the MIT license so you can easily reuse them, but the mathematical/shader art is protected and requires a license for use." Only technical snippets are included, no shader art.
+- License: MIT (`glsl/licenses/iquilezles.glsl`)
+- Chunks: `sdf2d/box`, `sdf2d/circle`, `sdf2d/round-box`, `sdf2d/segment`, `sdf3d/box`, `sdf3d/capsule`, `sdf3d/cylinder`, `sdf3d/plane`, `sdf3d/round-box`, `sdf3d/sphere`, `sdf3d/torus`, `sdfop/extrude`, `sdfop/revolve`, `sdfop/smooth-union` (from [distance functions](https://iquilezles.org/articles/distfunctions/), [2D distance functions](https://iquilezles.org/articles/distfunctions2d/) and [smooth minimum](https://iquilezles.org/articles/smin/)), `raymarch/normal` ([normals for an SDF](https://iquilezles.org/articles/normalsSDF/)), `raymarch/soft-shadow` ([soft shadows](https://iquilezles.org/articles/rmshadows/))
+- Changes: names and parameters adapted to the pack's conventions, comments added; `raymarch/normal` and `raymarch/soft-shadow` call the scene through a forward-declared `scene()`.
+
+```
+Copyright (c) Inigo Quilez
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```

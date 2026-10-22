@@ -1,5 +1,5 @@
-// @license MIT-0
-// opSmoothUnion · pack-glsl · MIT-0
+// @license iquilezles
+// opSmoothUnion · Inigo Quilez · MIT
 // Union blended over a distance k (k > 0): shapes melt into each other.
 // Quadratic polynomial smooth minimum.
 // Formula: Inigo Quilez, https://iquilezles.org/articles/smin/

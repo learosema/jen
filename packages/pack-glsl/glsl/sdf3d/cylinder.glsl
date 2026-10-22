@@ -1,5 +1,5 @@
-// @license MIT-0
-// sdCylinder · pack-glsl · MIT-0
+// @license iquilezles
+// sdCylinder · Inigo Quilez · MIT
 // Capped cylinder along y: radius r, half height h.
 // Formula: Inigo Quilez, https://iquilezles.org/articles/distfunctions/
 float sdCylinder(vec3 p, float r, float h) {

@@ -1,5 +1,5 @@
-// @license MIT-0
-// softShadow · pack-glsl · MIT-0
+// @license iquilezles
+// softShadow · Inigo Quilez · MIT
 // Soft shadow towards a light: marches from ro along rd (to the light) and
 // tracks how closely the ray passes geometry. 0 is full shadow, 1 fully lit;
 // larger k gives harder shadows (try 8–32). Start at a small tMin to leave
