@@ -446,6 +446,16 @@ describe('note', () => {
     assert.match(jen(['tell', '--dir=css'], { cwd: dir }).stdout, /info: css[/\\]a\.css is fine/);
   });
 
+  it('with warning: true, is a warning – which --strict turns into exit code 1', () => {
+    const dir = fixture({ '.jen/check.mjs': `export const actions = () => [{ note: 'uses .crad', file: 'index.html', warning: true }, { note: 'checked 1 page' }];` });
+    const r = jen(['check'], { cwd: dir });
+    assert.equal(r.code, 0);
+    assert.match(r.stdout, /\n {2}warning: index\.html uses \.crad\n {2}info: checked 1 page\n/);
+    assert.equal(jen(['check', '--strict'], { cwd: dir }).code, 1);
+    const fine = fixture({ '.jen/check.mjs': `export const actions = () => [{ note: 'checked 1 page' }];` });
+    assert.equal(jen(['check', '--strict'], { cwd: fine }).code, 0);
+  });
+
   it('with written: true, only shows when the file is written', () => {
     const dir = fixture({
       '.jen/page.mjs': `export const actions = () => [

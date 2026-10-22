@@ -37,6 +37,7 @@ toc:
 
 - **`--dry-run`, `-n`**: show the plan, write nothing.
 - **`--force`, `-f`**: overwrite existing files.
+- **`--strict`**: exit with `1` if the plan has a `warning:` – the run itself goes ahead. For CI, e.g. `jen web:check --strict`.
 - **`--dir=<path>`**: write there instead of the current directory. See [where files go]({{ '/#where' | relative_url }}).
 - **`--from <package>`**: fetch a pack, or a package a pack runs, for one run: `jen --from generator-code yeoman:code`.
 - **`--list`, `-l`**: list every generator and its source – or one pack's: `jen web --list`.
@@ -59,7 +60,7 @@ Path params like `--into` are relative to where you run jen, not to `--dir`, and
 
 Some params take only a few values. Anything else fails: `cpp:enum --std: expected one of "20", "23", got "17"`.
 
-`list`, `dry-run`, `force`, `from`, `find` and `help` are reserved. `json` and `dir` aren't: a generator with its own `dir` param gets `--dir`.
+`list`, `dry-run`, `force`, `from`, `find`, `strict` and `help` are reserved. `json` and `dir` aren't: a generator with its own `dir` param gets `--dir`.
 
 ### Unknown flags {#unknown}
 
@@ -144,7 +145,7 @@ Packs that aren't installed aren't searched – the output names jen's own that 
 
 ### Exit codes {#exit}
 
-`0` when jen ran – including nothing to do, `--dry-run`, `info:` and `warning:`. `1` with a message on stderr otherwise: a missing, unknown or unreadable param, an unknown generator, or bare `jen`. Nothing is written then.
+`0` when jen ran – including nothing to do, `--dry-run`, `info:` and `warning:` (unless `--strict`). `1` with a message on stderr otherwise: a missing, unknown or unreadable param, an unknown generator, or bare `jen`. Nothing is written then.
 
 ### `--json` results and errors {#json-run}
 

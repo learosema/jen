@@ -81,8 +81,9 @@ export type Action =
    * `{ note: '.reel is already here, nothing to add', file: 'css/layout.css' }`.
    * The plan shows it as `info:`, with `file` placed like any action path.
    * `written: true` makes it a note about what an `add` of `file` writes: left out when that add is skipped.
+   * `warning: true` shows it as `warning:` – something the user should fix (`--strict` then exits 1).
    */
-  | { note: string; file?: string; written?: boolean };
+  | { note: string; file?: string; written?: boolean; warning?: boolean };
 
 /** Where an insert goes: `before` or `after` a marker – the other one stays undefined, so `a.before` can still be read. */
 export type InsertAt = { before: string | RegExp | number; after?: undefined } | { after: string | RegExp; before?: undefined };
@@ -95,7 +96,7 @@ export type Placed =
   | { modify: string; pattern: RegExp; replace: string }
   | { append: string; text: string }
   | { delete: string }
-  | { note: string; file?: string; written?: true }
+  | { note: string; file?: string; written?: true; warning?: true }
   /** `skip` is the file it was about, or `''` if there is none to name; `hint` if the note is a `Find`'s own `missing`, so nothing went wrong. */
   | { skip: string; note: string; hint?: true };
 
@@ -285,7 +286,7 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
       continue;
     }
     if (!('add' in a || 'delete' in a || 'insert' in a || 'append' in a || 'modify' in a)) {
-      const step: Step = { mark: 'info', file: a.file ? resolve(ROOT, a.file) : '', note: a.note };
+      const step: Step = { mark: a.warning ? 'warning' : 'info', file: a.file ? resolve(ROOT, a.file) : '', note: a.note };
       if (a.written && a.file) aboutWritten.add(step);
       steps.push(step);
       continue;
