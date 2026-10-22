@@ -14,7 +14,7 @@ toc:
       - { title: Options, id: options }
       - { title: Params, id: params }
       - { title: Unknown flags, id: unknown }
-      - { title: Reading the plan, id: plan }
+      - { title: The plan, id: plan }
       - { title: Fetching packs, id: fetching }
   - title: Looking around
     links:
@@ -25,8 +25,8 @@ toc:
   - title: Scripts
     links:
       - { title: Exit codes, id: exit }
-      - { title: "--json results and errors", id: json-run }
-      - { title: Passing flags on, id: passthrough }
+      - { title: "--json output", id: json-run }
+      - { title: Passthrough, id: passthrough }
 ---
 
 ## Running a generator {#running}
@@ -34,6 +34,8 @@ toc:
 ### Options {#options}
 
 `jen [generator] [--param=value …] [options]`. The generator is a name (`class`), or prefixed by its pack (`cpp:class`) or source (`user:class`).
+
+The built-in `jen generator --name=…` writes a new generator into `.jen/`: a skeleton, or with `--like=<files>` a draft that reproduces existing files ([from existing files]({{ '/generators.html#like' | relative_url }})).
 
 - **`--dry-run`, `-n`**: show the plan, write nothing.
 - **`--force`, `-f`**: overwrite existing files.
