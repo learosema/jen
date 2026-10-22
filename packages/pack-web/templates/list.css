@@ -1,0 +1,15 @@
+@layer blocks {
+  .list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .list > * {
+    padding-block: var(--list-space, 0.75em);
+  }
+
+  .list--divided > * + * {
+    border-block-start: thin solid var(--color-border-subtle, var(--color-border));
+  }
+}

@@ -15,7 +15,9 @@ import pack from '../src/index.ts';
 import { dialogMarkup } from '../src/dialog.ts';
 import { groupsFor } from '../src/palette.ts';
 import { popoverMarkup } from '../src/popover.ts';
+import { NAV_MARKUP } from '../src/blocks.ts';
 import { DASHBOARD_MARKUP } from '../src/recipes.ts';
+import { TOGGLE_MARKUP } from '../src/theme-toggle.ts';
 import { PROGRESS_MARKUP } from '../src/scroll.ts';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
@@ -78,6 +80,7 @@ function run(generator: string, answers: Record<string, string | boolean> = {}):
 run('cube', COLORS);
 run('card');
 run('avatars');
+for (const block of ['nav', 'badge', 'stat', 'table', 'list', 'field', 'theme-toggle']) run(block);
 run('dialog', { name: 'confirm' });
 run('popover', { name: 'menu' });
 run('scroll');
@@ -232,6 +235,52 @@ ${[5, 4, 3, 2, 1, 0, -1, -2].map((n) => `<p class="step-${n}">step ${n}</p>`).jo
     'Dashboard',
     DASHBOARD_MARKUP.replace(/^<body[^>]*>/, '<div class="flow">').replace(/<\/body>$/, '</div>').replaceAll('href="/', 'href="#'),
   ),
+  'nav.html': page(
+    'Navigation',
+    `<div class="sidebar" style="--sidebar-target: 10rem">
+${NAV_MARKUP.replaceAll('href="/', 'href="#')}
+<div>${NAV_MARKUP.replace('class="nav"', 'class="nav" data-direction="vertical"').replace('aria-label="Main"', 'aria-label="Sections"').replaceAll('href="/', 'href="#')}</div>
+</div>`,
+  ),
+  'badge.html': page(
+    'Badges',
+    `<p class="cluster">${[['', 'New'], ['neutral', 'Draft'], ['secondary', 'Featured'], ['success', 'Paid'], ['warning', 'Due'], ['danger', 'Overdue'], ['info', 'Beta']]
+      .map(([mod, text]) => `<span class="badge${mod ? ` badge--${mod}` : ''}">${text}</span>`)
+      .join('')}</p>`,
+  ),
+  'stat.html': page(
+    'Stats',
+    `<div class="grid" style="--grid-min-item-size: 10rem">
+${[['Visitors', '12,480', 'up', '+4 % since last week'], ['Churn', '1.2 %', 'down', '−0.3 % since last week'], ['Sign-ups', '318', 'flat', 'same as last week']]
+  .map(([label, value, trend, text]) => `<article class="card stat"><p class="stat__label">${label}</p><p class="stat__value">${value}</p><p class="stat__trend" data-trend="${trend}">${text}</p></article>`)
+  .join('\n')}
+</div>`,
+  ),
+  'table.html': page(
+    'Table',
+    `<div class="table-scroll" role="region" aria-labelledby="sales" tabindex="0" style="--table-max-height: 11rem">
+<table class="table table--striped">
+<caption id="sales">Sales by region</caption>
+<thead><tr><th>Region</th><th data-numeric>Orders</th><th data-numeric>Revenue</th></tr></thead>
+<tbody>
+${[['North', '1,204', '€48,160'], ['South', '987', '€39,480'], ['East', '1,530', '€61,200'], ['West', '842', '€33,680'], ['Online', '4,310', '€172,400']]
+  .map(([region, orders, revenue]) => `<tr><td>${region}</td><td data-numeric>${orders}</td><td data-numeric>${revenue}</td></tr>`)
+  .join('\n')}
+</tbody>
+</table>
+</div>`,
+  ),
+  'list.html': page('List', `<ul class="list list--divided" role="list"><li>Anna paid an invoice</li><li>Ben signed up</li><li>Cleo left a comment</li></ul>`),
+  'field.html': page(
+    'Fields',
+    `<form class="flow" style="max-inline-size: 24rem">
+<div class="field"><label for="email">Email</label><p class="field__hint" id="email-hint">We only use it for receipts.</p><input id="email" type="email" aria-describedby="email-hint"></div>
+<div class="field"><label for="name">Name</label><p class="field__error" id="name-error">Enter your name</p><input id="name" aria-invalid="true" aria-describedby="name-error"></div>
+<div class="field field--check"><input id="terms" type="checkbox"><label for="terms">I agree to the terms</label></div>
+</form>`,
+  ),
+  // the toggle sets data-theme on this frame's own <html>, so both frames can be switched on their own
+  'theme-toggle.html': page('Theme toggle', TOGGLE_MARKUP),
   'dialog.html': page('Dialog', dialogMarkup('confirm', 'Confirm').join('\n')),
   'popover.html': page('Popover', popoverMarkup('menu').join('\n')),
   'scroll.html': page(

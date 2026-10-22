@@ -1,9 +1,9 @@
 <body class="flow" style="padding-block: var(--space-s-m)">
   <header class="wrapper repel">
     <a href="/"><b>Acme</b></a>
-    <nav>
-      <ul class="cluster" role="list">
-        <li><a href="/">Overview</a></li>
+    <nav class="nav" aria-label="Main">
+      <ul role="list">
+        <li><a href="/" aria-current="page">Overview</a></li>
         <li><a href="/reports">Reports</a></li>
         <li><a href="/settings">Settings</a></li>
       </ul>
@@ -18,11 +18,11 @@
     </aside>
     <main id="main" class="flow">
       <h1>Dashboard</h1>
-      <div class="grid" style="--grid-min-item-size: 10rem">
-        <article class="card"><h2 class="step-0">Visitors</h2><p class="step-2">12,480</p></article>
-        <article class="card"><h2 class="step-0">Sign-ups</h2><p class="step-2">318</p></article>
-        <article class="card"><h2 class="step-0">Revenue</h2><p class="step-2">€4,210</p></article>
-        <article class="card"><h2 class="step-0">Churn</h2><p class="step-2">1.2 %</p></article>
+      <div class="grid" style="--grid-min-item-size: 10rem; --stat-value-size: var(--step-2)">
+        <article class="card stat"><h2 class="stat__label">Visitors</h2><p class="stat__value">12,480</p><p class="stat__trend" data-trend="up">+4 %</p></article>
+        <article class="card stat"><h2 class="stat__label">Sign-ups</h2><p class="stat__value">318</p><p class="stat__trend" data-trend="flat">±0 %</p></article>
+        <article class="card stat"><h2 class="stat__label">Revenue</h2><p class="stat__value">€4,210</p><p class="stat__trend" data-trend="up">+12 %</p></article>
+        <article class="card stat"><h2 class="stat__label">Churn</h2><p class="stat__value">1.2 %</p><p class="stat__trend" data-trend="down">−0.3 %</p></article>
       </div>
     </main>
   </div>

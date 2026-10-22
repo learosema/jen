@@ -1,6 +1,7 @@
 /** `web:cube`: base, fluid, compositions and utilities at once – plus palette and buttons with `--primary`. */
 import type { Generator } from '@codejen/jen';
 import { BASE, RESET } from './base.ts';
+import { BLOCK_NAMES } from './blocks.ts';
 import { buttonCss } from './button.ts';
 import { fail } from './common.ts';
 import { NAMES, compositionItem } from './compositions.ts';
@@ -25,7 +26,7 @@ const cubeGenerator: Generator = {
   usage: [
     'writes reset.css, base.css, fluid.css, compositions/*.css and utilities/*.css, imported by styles.css (--into: all in one file); --primary adds palette.css and button.css',
     `the compositions: ${NAMES.map((n) => `.${n}`).join(', ')} – each one's markup: jen web:<name> --help`,
-    'blocks to add: jen web:card, web:avatars, web:dialog, web:popover',
+    `blocks to add: jen web:card, web:button (with --primary already in), ${['avatars', 'dialog', 'popover', 'theme-toggle', ...BLOCK_NAMES].map((n) => `web:${n}`).join(', ')}`,
     'with --primary, the palette\'s role tokens:',
     ...paletteUsage(),
   ],

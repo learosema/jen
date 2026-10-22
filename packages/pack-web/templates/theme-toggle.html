@@ -1,0 +1,20 @@
+<fieldset class="theme-toggle">
+  <legend>Theme</legend>
+  <label><input type="radio" name="theme" value="light"> Light</label>
+  <label><input type="radio" name="theme" value="dark"> Dark</label>
+  <label><input type="radio" name="theme" value="system" checked> System</label>
+</fieldset>
+<script>
+  for (const input of document.querySelectorAll('.theme-toggle input[name="theme"]')) {
+    input.checked = input.value === (document.documentElement.dataset.theme ?? 'system');
+    input.addEventListener('change', () => {
+      const theme = input.value;
+      if (theme === 'system') delete document.documentElement.dataset.theme;
+      else document.documentElement.dataset.theme = theme;
+      try {
+        if (theme === 'system') localStorage.removeItem('theme');
+        else localStorage.setItem('theme', theme);
+      } catch {}
+    });
+  }
+</script>
