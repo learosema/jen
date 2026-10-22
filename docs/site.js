@@ -59,18 +59,19 @@
     {
       cmd: 'jen cpp:class --name=rigid_body --moveOnly --dir=src',
       head: 'cpp:class (pack @codejen/pack-cpp) – create a C++ class (header + source), wired into the CMakeLists.txt with # jen:sources',
-      rows: [['add', '+ src/RigidBody.h'], ['add', '+ src/RigidBody.cpp'], ['mod', '~ src/CMakeLists.txt  + RigidBody.cpp']],
+      rows: [['add', '+ src/RigidBody.h'], ['add', '+ src/RigidBody.cpp'], ['mod', '~ src/CMakeLists.txt:9  + RigidBody.cpp']],
       done: '✓ 3 written',
     },
     {
       cmd: 'jen cpp:shader --file=shaders/vignette.frag.glsl',
       head: 'cpp:shader (pack @codejen/pack-cpp) – embed an existing GLSL file as a C string via cmake/embed-glsl.cmake, wired in at # jen:embed (write the shader with glsl:frag or by hand)',
       rows: [
-        ['dim', '= cmake/embed-glsl.cmake  exists, skipped'],
-        ['mod', '~ src/CMakeLists.txt  + include(${PROJECT_SOURCE_DIR}/cmake/embed-glsl.cmake)'],
-        ['mod', '~ src/CMakeLists.txt  + embed_glsl("../shaders/vignette.frag.glsl" …)'],
+        ['dim', 'info: cmake/embed-glsl.cmake exists, skipped'],
+        ['mod', '~ src/CMakeLists.txt:7  + include(${PROJECT_SOURCE_DIR}/cmake/embed-glsl.cmake)'],
+        ['mod', '~ src/CMakeLists.txt:8  + embed_glsl("../shaders/vignette.frag.glsl" …)'],
+        ['dim', 'info: 1 file exists and was skipped – --force overwrites it'],
       ],
-      done: '✓ 2 written',
+      done: '✓ 1 written',
     },
     {
       cmd: 'jen cpp:sdl3 --name=MyGame',

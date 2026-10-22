@@ -50,6 +50,9 @@ toc:
   - title: Tailwind
     links:
       - { title: "web:tailwind", id: web-tailwind }
+  - title: Recipes
+    links:
+      - { title: A dashboard, id: dashboard }
   - title: Finally
     links:
       - { title: Credits, id: credits }
@@ -116,6 +119,8 @@ Six shades per color, `--color-primary-1` (lightest) to `-6` (darkest), placed b
 `--color-primary-5` on `--color-danger-1` is AAA. You also get a tinted neutral, success, warning, danger and info.
 
 Colors: any CSS color (`deeppink`, `#f37`, `oklch(0.65 0.24 5)`, `color(display-p3 …)`, …) or a hue like `264`. Alpha is ignored.
+
+Your color keeps its hue, but its lightness goes to whichever shade the contrast needs – a light teal can become a dark teal button. The plan then says which shade your color is closest to and which roles use it: `info: #0d9488 is closest to --color-primary-3 (--color-primary-large in dark mode); buttons and links use the darker -5 in light mode, -4 with --contrast=aa`.
 
 {% include terminal.html id="web_palette" %}
 
@@ -332,7 +337,7 @@ Progressive enhancement: without support, the page still works. Markup goes in w
 
 ### `web:page` {#web-page}
 
-A page after [Manuel Matuzović's HTML boilerplate](https://matuzo.at/blog/html-boilerplate/), linking your stylesheet, palette `theme-color`, and any existing icons and manifest. `--url` adds canonical and `og:` tags.
+A page after [Manuel Matuzović's HTML boilerplate](https://matuzo.at/blog/html-boilerplate/), linking your stylesheet, palette `theme-color`, and any existing icons and manifest – the plan says what it linked. No stylesheet yet: run [`web:cube`](#web-cube) first, then the page again with `--force`. `--url` adds canonical and `og:` tags; without `--description`, the page has no description tags, and search engines take text from the page. For a layout, see [a dashboard](#dashboard).
 
 {% include terminal.html id="web_page" %}
 
@@ -417,6 +422,62 @@ View transitions between pages: crossfade, or `--style=slide`. Off with reduced 
 Imports Tailwind into the entry point, in CUBE CSS layer order. Then `web:palette` writes into `@theme` (`bg-surface`, `text-on-primary`, …) replacing Tailwind's colors, and `web:fluid` gives `text-step-1`, `p-s-m`. Install `tailwindcss` and e.g. `@tailwindcss/vite` yourself.
 
 {% include terminal.html id="web_tailwind" %}
+
+## Recipes {#recipes}
+
+### A dashboard {#dashboard}
+
+A header, a sidebar and a row of cards. Three commands write the CSS and the page:
+
+```sh
+jen web:cube --primary=#0d9488 --dir=css
+jen web:card --dir=css
+jen web:page --name=index --title=Dashboard
+```
+
+`web:cube` comes first, so `web:page` finds `css/styles.css` and links it. The page's `<body>` then takes this markup:
+
+```html
+<body class="flow" style="padding-block: var(--space-s-m)">
+  <header class="wrapper repel">
+    <a href="/"><b>Acme</b></a>
+    <nav>
+      <ul class="cluster" role="list">
+        <li><a href="/">Overview</a></li>
+        <li><a href="/reports">Reports</a></li>
+        <li><a href="/settings">Settings</a></li>
+      </ul>
+    </nav>
+  </header>
+  <div class="wrapper sidebar">
+    <aside>
+      <div class="card">
+        <h2>Filters</h2>
+        <p>Last 30 days</p>
+      </div>
+    </aside>
+    <main id="main" class="flow">
+      <h1>Dashboard</h1>
+      <div class="grid" style="--grid-min-item-size: 10rem">
+        <article class="card"><h2 class="step-0">Visitors</h2><p class="step-2">12,480</p></article>
+        <article class="card"><h2 class="step-0">Sign-ups</h2><p class="step-2">318</p></article>
+        <article class="card"><h2 class="step-0">Revenue</h2><p class="step-2">€4,210</p></article>
+        <article class="card"><h2 class="step-0">Churn</h2><p class="step-2">1.2 %</p></article>
+      </div>
+    </main>
+  </div>
+</body>
+```
+
+{% include web-preview.html src="dashboard.html" title="A dashboard" height="22rem" dual=true %}
+
+- **header**: [`.repel`](#web-compositions) puts the name and the nav at either end, `.cluster` lines up the links.
+- **sidebar**: [`.sidebar`](#web-compositions) – the `<aside>` comes first, `<main>` takes the rest and goes below it when it gets narrower than half the width. The card sits inside the `<aside>`, so it keeps its own height.
+- **grid**: [`.grid`](#web-compositions) with [`.card`](#web-card)s. Its default 16rem columns fit three next to a sidebar; at 10rem it's four in a row from about 72em wide.
+- **wrapper**: [`.wrapper`](#web-compositions) centers the header and the content, with room at the sides.
+- **type**: `.step-0` and `.step-2` are [utilities](#web-utilities) from the fluid type scale.
+
+`jen web:page --help` lists the same parts, and `jen --find dashboard` shows the recipe's steps.
 
 ## Credits {#credits}
 

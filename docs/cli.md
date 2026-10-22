@@ -21,9 +21,11 @@ toc:
       - { title: "--help", id: help }
       - { title: "--list", id: list }
       - { title: "--list --json", id: json }
+      - { title: "--find", id: find }
   - title: Scripts
     links:
       - { title: Exit codes, id: exit }
+      - { title: "--json results and errors", id: json-run }
       - { title: Passing flags on, id: passthrough }
 ---
 
@@ -38,7 +40,8 @@ toc:
 - **`--dir=<path>`**: write there instead of the current directory. See [where files go]({{ '/#where' | relative_url }}).
 - **`--from <package>`**: fetch a pack, or a package a pack runs, for one run: `jen --from generator-code yeoman:code`.
 - **`--list`, `-l`**: list every generator and its source – or one pack's: `jen web --list`.
-- **`--json`**: with `--list`, as JSON.
+- **`--find "<words>"`**: search generators and recipes – or one pack's: `jen web --find "dark mode"`.
+- **`--json`**: with `--list`, `--find` or `--help`, as JSON; with a generator, the [plan or the error as JSON](#json-run).
 - **`--help`, `-h`**: jen's help, or a generator's params.
 - **`--version`, `-v`**: jen's version.
 
@@ -56,7 +59,7 @@ Path params like `--into` are relative to where you run jen, not to `--dir`, and
 
 Some params take only a few values. Anything else fails: `cpp:enum --std: expected one of "20", "23", got "17"`.
 
-`list`, `dry-run`, `force`, `from` and `help` are reserved. `json` and `dir` aren't: a generator with its own `dir` param gets `--dir`.
+`list`, `dry-run`, `force`, `from`, `find` and `help` are reserved. `json` and `dir` aren't: a generator with its own `dir` param gets `--dir`.
 
 ### Unknown flags {#unknown}
 
@@ -115,7 +118,7 @@ The same catalog as JSON on stdout, for tools. Each generator has:
 
 - **`name`**: e.g. `cpp:class`
 - **`source`**: e.g. `pack @codejen/pack-cpp`, `project`, `built-in`
-- **`pack`**: its `name`, plus `version`, `description` and `homepage` if set
+- **`pack`**: its `name`, plus `version`, `description` and `homepage` if set, and its `recipes`: each with `name`, `description`, `steps` (as `jen` and `npx` calls like `examples`) and `docs`
 - **`shadowed`**: `true` if another of the same name wins
 - **`description`**: or `""`
 - **`params`**: in `--help` order, each with
@@ -129,11 +132,40 @@ A generator that fails to load gets an `error` instead, and the listing goes on.
 
 {% include terminal.html id="cli_json" %}
 
+`jen cpp:class --help --json` prints one generator the same way.
+
+### `--find` {#find}
+
+`jen --find "sidebar layout"` ranks generators and recipes by the words they share with the query – in the name most, then the description, then usage and params – and shows the best ten. A recipe comes with its steps. Quote the words; plurals don't matter.
+
+Packs that aren't installed aren't searched – the output names jen's own that are missing. `jen web --find "dark mode"` searches one pack, [fetched](#fetching) like `jen web --list`. With `--json`: `{ query, results }`, each result with a `kind` (`generator` or `recipe`) and a `score`, generators as in [`--list --json`](#json), recipes with their `steps`, `usage` and `docs`.
+
 ## For scripts {#scripts}
 
 ### Exit codes {#exit}
 
 `0` when jen ran – including nothing to do, `--dry-run`, `info:` and `warning:`. `1` with a message on stderr otherwise: a missing, unknown or unreadable param, an unknown generator, or bare `jen`. Nothing is written then.
+
+### `--json` results and errors {#json-run}
+
+With `--json`, a run prints only JSON on stdout – no header, no plan:
+
+- **`generator`**, **`source`**: what ran
+- **`root`**: the project root from where you stand, if it's elsewhere
+- **`dryRun`**: `true` with `--dry-run`
+- **`steps`**: the plan, each with a `kind` – `created`, `changed`, `overwritten`, `deleted`, `info` or `warning` – and `file` (from where you stand), `line` for an insert and `note` where there are
+- **`written`**, **`deleted`**: how many files
+
+An error is JSON on stderr, exit code `1`: `{ "error": { "code", "message", … } }`. The codes and what comes with them:
+
+- **`missing_param`**: `missing` (the flags), `params` (as in [`--list --json`](#json)) and `examples`
+- **`unknown_flag`**: `flags`, each with a `didYouMean` if one is close, and the `known` ones
+- **`bad_value`**: `param`, `value`, and `choices` – or `expected: "boolean"`
+- **`not_found`**: `query` and `didYouMean`
+- **`unknown_pack`**: `pack`
+- **`error`**: anything else, e.g. a generator's own check
+
+A generator with a `json` param of its own gets `--json` instead.
 
 ### Passing flags on {#passthrough}
 
