@@ -1,6 +1,6 @@
 {
   "name": "@codejen/pack-web",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "jen pack for web development: contrast-checked color palettes, CUBE CSS layers, reset and base styles, buttons",
   "homepage": "https://learosema.github.io/jen/web.html",
   "type": "module",

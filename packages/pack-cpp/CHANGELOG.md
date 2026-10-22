@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.2](https://github.com/learosema/jen/compare/pack-cpp-v1.4.1...pack-cpp-v1.4.2) (2026-10-22)
+
+
+### Bug Fixes
+
+* **main:** update peer deps ([7140575](https://github.com/learosema/jen/commit/7140575657f46696d9630d75fac771b9e8616c16))
+
 ## [1.4.1](https://github.com/learosema/jen/compare/pack-cpp-v1.4.0...pack-cpp-v1.4.1) (2026-10-22)
 
 

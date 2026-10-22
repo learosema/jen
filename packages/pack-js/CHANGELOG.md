@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.2](https://github.com/learosema/jen/compare/pack-js-v1.5.1...pack-js-v1.5.2) (2026-10-22)
+
+
+### Bug Fixes
+
+* **pack-js:** update peer deps ([cc0f530](https://github.com/learosema/jen/commit/cc0f530cd6c3f190484f5162828facd0b9c817f2))
+
 ## [1.5.1](https://github.com/learosema/jen/compare/pack-js-v1.5.0...pack-js-v1.5.1) (2026-10-22)
 
 

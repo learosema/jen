@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.2](https://github.com/learosema/jen/compare/pack-glsl-v2.3.1...pack-glsl-v2.3.2) (2026-10-22)
+
+
+### Bug Fixes
+
+* **pack-glsl:** update peer deps ([e993821](https://github.com/learosema/jen/commit/e993821fd024fb7d07b35431783e4f8320574077))
+
 ## [2.3.1](https://github.com/learosema/jen/compare/pack-glsl-v2.3.0...pack-glsl-v2.3.1) (2026-10-22)
 
 
