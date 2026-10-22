@@ -119,6 +119,17 @@ export const params = {
 - **`choices`**: the only values allowed, checked before `actions()`. The default always passes, so `default: ""` can mean "not given".
 - **`path: true`**: arrives as an action path from the project root (`/shaders/main.glsl`). Fails outside the project.
 
+A default from another param: give it `default: ""`, and fill it in `actions()`:
+
+```js
+export const params = { name: {}, path: { default: "" } };
+
+export const actions = ({ name, path }, { kebab }) => {
+  const route = path || `/${kebab(name)}`; // --path, else from --name
+  // …
+};
+```
+
 Params are `--<name>=<value>` on the [command line]({{ '/cli.html#params' | relative_url }}). No prompts, no `validate`: check in `actions()` and throw.
 
 ### Examples and usage {#examples}
@@ -150,7 +161,7 @@ Shown under `usage:` in `--help` and as `usage` in `--list --json`.
 - **`insert` … `after`**: `{ insert, after, line }` inserts `line` after the **last** line containing `after` (or matching a `RegExp`) – one level deeper after a line ending in `[`, `{` or `(`. `after: /^import /` is "after the imports". A multi-line import ends on another line than it starts, so match that one too: `after: /^import |^} from /`.
 - **`modify`**: `{ modify, pattern, replace }` – `RegExp` search and replace; also removes lines. Unlike `insert` and `append`, it doesn't skip text that's already there: run twice, it replaces twice. Make the pattern match only the old state, or use `insert`.
 - **`append`**: `{ append, text }` adds `text` on its own line at the end (`\n` first for a blank line). Skipped if already there.
-- **`note`**: `{ note, file? }` changes nothing, prints an `info:` line: `{ note: ".reel is already here, nothing to add", file: "css/layout.css" }`.
+- **`note`**: `{ note, file? }` changes nothing, prints an `info:` line: `{ note: ".reel is already here, nothing to add", file: "css/layout.css" }`. With `written: true`, it's about what an `add` of `file` writes, and left out when that add is skipped: `{ note: "links css/styles.css", file: "index.html", written: true }`.
 - **`delete`**: `{ delete }` deletes a file, never a directory.
 
 **A generator says what, jen says where.** Paths are relative to where the files go (current directory or `--dir`); `/` starts at the project root: `{ add: "/test/routes/users.test.js", … }` lands there wherever jen runs. Nothing outside the root is touched. Actions on one file build on each other.
@@ -178,6 +189,8 @@ export const actions = ({ name }, { camel, kebab }) => [
 ```
 
 The import goes after the last import, the entry before the list's closing `];`, one level deeper. A rerun adds neither twice.
+
+**Reruns and `--force`.** `--force` only touches `add`: a file that exists is skipped – the plan says so and that `--force` overwrites it – and with `--force` it's written again. `insert` and `append` never add a line twice, with or without it. `modify` runs every time.
 
 `line` and `replace` may be a `\n`-joined block: it keeps its nesting, in the target's indent style ([EditorConfig](#editorconfig)).
 
@@ -282,6 +295,20 @@ export default { class: cls, example };
 - **No dependency on jen**, unless you import its helpers (then a peer dependency).
 - **`jen-pack` keyword**: for npm search.
 - **`description`, `version`, `homepage`**: go into [`--list --json`]({{ '/cli.html#json' | relative_url }}); `--help` links the `homepage`.
+
+A pack can also export `recipes`: generators that make something together, in order. `--list` shows them, [`--find`]({{ '/cli.html#find' | relative_url }}) finds them:
+
+```js
+export const recipes = [
+  {
+    name: "dashboard",
+    description: "a dashboard page: a header, a sidebar and a row of cards",
+    steps: ["web:cube --primary=#0d9488 --dir=css", "web:card --dir=css", "web:page --name=index"],
+    usage: ['<div class="wrapper sidebar"><aside>…</aside><main id="main">…</main></div>'], // how the results fit together
+    docs: "https://example.com/dashboard", // optional
+  },
+];
+```
 
 Any kind of dependency in the project's or user directory's `package.json` is found:
 
