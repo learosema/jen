@@ -18,7 +18,7 @@ jen js:menu --dir=src/lib
 
 ## Credits
 
-The keyboard patterns follow the [ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/) by the W3C Web Accessibility Initiative. `js:vite` runs [create-vite](https://github.com/vitejs/vite/tree/main/packages/create-vite) by the Vite team, and `js:esbuild`'s project layout follows it. Everything is written fresh for this pack and credited where it's used.
+The keyboard patterns follow the [ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/) by the W3C Web Accessibility Initiative. `js:vite` runs [create-vite](https://github.com/vitejs/vite/tree/main/packages/create-vite) by the Vite team, and `js:esbuild`'s project layout follows it.
 
 ## License
 
