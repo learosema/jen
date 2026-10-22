@@ -2,7 +2,7 @@
 layout: doc
 permalink: /web.html
 title: jen — web pack recipes
-description: "Every jen command in @codejen/pack-web: a contrast-checked palette with dark mode, a CUBE CSS starter with fluid type and space, layout compositions, utilities, buttons and cards – with live previews."
+description: "Every jen command in @codejen/pack-web: a contrast-checked palette with dark mode, a CUBE CSS starter with fluid type and space, layout compositions, utilities, and blocks from buttons and cards to tables and form fields – with live previews."
 eyebrow: "@codejen/pack-web"
 mega: styles
 lede: Every generator, with the command, the output it prints, and the CSS it makes – running live, in light and dark mode.
@@ -18,6 +18,7 @@ toc:
     links:
       - { title: The entry point, id: where }
       - { title: One file for several, id: into }
+      - { title: "Your own: web:import", id: web-import }
   - title: Starter
     links:
       - { title: "web:cube", id: web-cube }
@@ -38,6 +39,12 @@ toc:
       - { title: "web:button", id: web-button }
       - { title: "web:card", id: web-card }
       - { title: "web:avatars", id: web-avatars }
+      - { title: "web:nav", id: web-nav }
+      - { title: "web:badge", id: web-badge }
+      - { title: "web:stat", id: web-stat }
+      - { title: "web:table", id: web-table }
+      - { title: "web:list", id: web-list }
+      - { title: "web:field", id: web-field }
   - title: Pages and platform
     links:
       - { title: "web:page", id: web-page }
@@ -45,11 +52,15 @@ toc:
       - { title: "web:sw", id: web-sw }
       - { title: "web:dialog", id: web-dialog }
       - { title: "web:popover", id: web-popover }
+      - { title: "web:theme-toggle", id: web-theme-toggle }
       - { title: "web:scroll", id: web-scroll }
       - { title: "web:transitions", id: web-transitions }
   - title: Tailwind
     links:
       - { title: "web:tailwind", id: web-tailwind }
+  - title: Checking
+    links:
+      - { title: "web:check", id: web-check }
   - title: Recipes
     links:
       - { title: A dashboard, id: dashboard }
@@ -87,6 +98,14 @@ One generator, one file: `jen web:sidebar` writes `compositions/sidebar.css`, `j
 `--into=<file.css>` appends to one stylesheet instead – created and imported if missing. It's a [path from where you run jen]({{ '/cli.html#paths' | relative_url }}). Works for every single-item generator and for `web:compositions` and `web:utilities`:
 
 {% include terminal.html id="web_into" %}
+
+### Your own stylesheet: `web:import` {#web-import}
+
+Your own CSS goes in a file of its own, imported into the entry point like the generated ones. `web:import` adds the `@import`, and starts the file if it doesn't exist yet – it never overwrites one.
+
+{% include terminal.html id="web_import" %}
+
+{% include params.html generator="web:import" %}
 
 Unlayered, so these rules beat everything layered. Reruns add nothing twice.
 
@@ -132,7 +151,7 @@ Your color keeps its hue, but its lightness goes to whichever shade the contrast
 
 Role tokens switch with `light-dark()` (falling back to `prefers-color-scheme`). `data-theme="light"` or `"dark"` on `<html>` forces a mode.
 
-- **Neutral**: `--color-surface`, `--color-surface-2` (cards, sidebars), `--color-text`, `--color-text-muted`, `--color-border`, `--color-focus`
+- **Neutral**: `--color-surface`, `--color-surface-2` (cards, sidebars), `--color-text`, `--color-text-muted`, `--color-border`, `--color-border-subtle` (dividers that carry no meaning – not 3:1, so not for inputs), `--color-focus`
 - **Per color** (shown for primary): `--color-primary`, `--color-primary-strong` (hover, and colored text on tints), `--color-primary-subtle` (tinted background), `--color-on-primary` (text on the color), `--color-primary-large` (large text only)
 
 Every text pair is AAA, measured in both modes before writing – the generator fails rather than write a miss.
@@ -331,6 +350,68 @@ Overlapping avatars that spread on hover or focus, at AAA target size.
 
 {% include usage.html generator="web:avatars" %}
 
+### `web:nav` {#web-nav}
+
+Links in a row, or a column with `data-direction="vertical"`. The current page is marked by `aria-current="page"`, so screen readers say it too. `--into=<page.html>` adds the markup, before `--line` or `</body>`.
+
+{% include terminal.html id="web_nav" %}
+
+{% include web-preview.html src="nav.html" title="Navigation" height="9rem" dual=true %}
+
+{% include usage.html generator="web:nav" %}
+
+{% include params.html generator="web:nav" %}
+
+### `web:badge` {#web-badge}
+
+A small label for a status, a count or a tag – one modifier per palette color, each its `-strong` on its `-subtle`, a pair the palette checks.
+
+{% include terminal.html id="web_badge" %}
+
+{% include web-preview.html src="badge.html" title="Badges" height="5rem" dual=true %}
+
+{% include usage.html generator="web:badge" %}
+
+### `web:stat` {#web-stat}
+
+A metric: label, value, and a trend. `data-trend="up"`, `"down"` or `"flat"` colors the trend and adds an arrow, but the text says which way – color alone doesn't.
+
+{% include terminal.html id="web_stat" %}
+
+{% include web-preview.html src="stat.html" title="Stats" height="10rem" dual=true %}
+
+{% include usage.html generator="web:stat" %}
+
+### `web:table` {#web-table}
+
+Readable data tables: numbers in `data-numeric` cells aligned at the end, `table--striped` for stripes. The table sits in a scroll region you can reach and scroll with the keyboard, after [Adrian Roselli's under-engineered responsive tables](https://adrianroselli.com/2020/11/under-engineered-responsive-tables.html); with a `--table-max-height`, the header stays put.
+
+{% include terminal.html id="web_table" %}
+
+{% include web-preview.html src="table.html" title="Table" height="15rem" dual=true caption="Scroll the rows: the header stays" %}
+
+{% include usage.html generator="web:table" %}
+
+### `web:list` {#web-list}
+
+A list without bullets for feeds and settings; `list--divided` draws lines between the items.
+
+{% include terminal.html id="web_list" %}
+
+{% include web-preview.html src="list.html" title="List" height="11rem" dual=true %}
+
+{% include usage.html generator="web:list" %}
+
+### `web:field` {#web-field}
+
+A form control with its label above, a hint and an error message, after the [GOV.UK Design System](https://design-system.service.gov.uk/components/text-input/). The hint and error are tied to the control with `aria-describedby`, so screen readers read them with it. [`web:base`](#web-base) already gives text fields the palette's colors.
+
+{% include terminal.html id="web_field" %}
+
+{% include web-preview.html src="field.html" title="Fields" height="20rem" dual=true %}
+
+{% include usage.html generator="web:field" %}
+
 ## Pages and platform features {#platform}
 
 Progressive enhancement: without support, the page still works. Markup goes in with `--into=<page.html>`, before `</body>` or before `--line` (`--line=8`, or `--line="</nav>"`). Nothing is rewritten or duplicated.
@@ -395,6 +476,18 @@ A `.popover` anchored to its button, flipping when out of room – centered wher
 
 {% include params.html generator="web:popover" %}
 
+### `web:theme-toggle` {#web-theme-toggle}
+
+Light, Dark and System as three radio buttons: every state visible and labeled, keyboard and screen readers work out of the box. The choice sets `data-theme` on `<html>`, which [the palette](#roles) reads, and is remembered in `localStorage`. `--into` also adds a small script to `<head>` that applies it before the first paint, so the page doesn't flash – after [Josh W. Comeau](https://www.joshwcomeau.com/react/dark-mode/). Both scripts are inline and classic, so they work from `file://`.
+
+{% include terminal.html id="web_theme_toggle" %}
+
+{% include web-preview.html src="theme-toggle.html" title="Theme toggle" height="5rem" caption="Pick one: this frame switches" %}
+
+{% include usage.html generator="web:theme-toggle" %}
+
+{% include params.html generator="web:theme-toggle" %}
+
 ### `web:scroll` {#web-scroll}
 
 Scroll-driven animations without JavaScript: `.reading-progress`, `.reveal` and `.parallax`. Static with reduced motion.
@@ -423,15 +516,31 @@ Imports Tailwind into the entry point, in CUBE CSS layer order. Then `web:palett
 
 {% include terminal.html id="web_tailwind" %}
 
+## Checking {#checking}
+
+### `web:check` {#web-check}
+
+Reads the project's pages and stylesheets and writes nothing. It warns about what's easy to miss:
+
+- **classes no stylesheet defines** – a typo gets the closest class that exists, a pack-web class the generator that writes it
+- **stylesheets nothing loads**: not linked from a page, imported from a script, or `@import`ed from one of those – and links to stylesheets that don't exist
+- **color pairs the palette didn't measure**: a rule, or an element's `color-*` and `bg-*` classes, putting one role token on another that isn't a [checked pair](#roles) – with one that is
+
+It reads `.html` files and the `<style>` in them, not classes set by scripts or in templates of a framework. In a Tailwind project, it leaves classes alone. `--strict` exits with `1` if there's a warning, e.g. in CI.
+
+{% include terminal.html id="web_check" %}
+
 ## Recipes {#recipes}
 
 ### A dashboard {#dashboard}
 
-A header, a sidebar and a row of cards. Three commands write the CSS and the page:
+A header, a sidebar and a row of stats. Five commands write the CSS and the page:
 
 ```sh
 jen web:cube --primary=#0d9488 --dir=css
 jen web:card --dir=css
+jen web:nav --dir=css
+jen web:stat --dir=css
 jen web:page --name=index --title=Dashboard
 ```
 
@@ -441,9 +550,9 @@ jen web:page --name=index --title=Dashboard
 <body class="flow" style="padding-block: var(--space-s-m)">
   <header class="wrapper repel">
     <a href="/"><b>Acme</b></a>
-    <nav>
-      <ul class="cluster" role="list">
-        <li><a href="/">Overview</a></li>
+    <nav class="nav" aria-label="Main">
+      <ul role="list">
+        <li><a href="/" aria-current="page">Overview</a></li>
         <li><a href="/reports">Reports</a></li>
         <li><a href="/settings">Settings</a></li>
       </ul>
@@ -458,11 +567,11 @@ jen web:page --name=index --title=Dashboard
     </aside>
     <main id="main" class="flow">
       <h1>Dashboard</h1>
-      <div class="grid" style="--grid-min-item-size: 10rem">
-        <article class="card"><h2 class="step-0">Visitors</h2><p class="step-2">12,480</p></article>
-        <article class="card"><h2 class="step-0">Sign-ups</h2><p class="step-2">318</p></article>
-        <article class="card"><h2 class="step-0">Revenue</h2><p class="step-2">€4,210</p></article>
-        <article class="card"><h2 class="step-0">Churn</h2><p class="step-2">1.2 %</p></article>
+      <div class="grid" style="--grid-min-item-size: 10rem; --stat-value-size: var(--step-2)">
+        <article class="card stat"><h2 class="stat__label">Visitors</h2><p class="stat__value">12,480</p><p class="stat__trend" data-trend="up">+4 %</p></article>
+        <article class="card stat"><h2 class="stat__label">Sign-ups</h2><p class="stat__value">318</p><p class="stat__trend" data-trend="flat">±0 %</p></article>
+        <article class="card stat"><h2 class="stat__label">Revenue</h2><p class="stat__value">€4,210</p><p class="stat__trend" data-trend="up">+12 %</p></article>
+        <article class="card stat"><h2 class="stat__label">Churn</h2><p class="stat__value">1.2 %</p><p class="stat__trend" data-trend="down">−0.3 %</p></article>
       </div>
     </main>
   </div>
@@ -471,13 +580,12 @@ jen web:page --name=index --title=Dashboard
 
 {% include web-preview.html src="dashboard.html" title="A dashboard" height="22rem" dual=true %}
 
-- **header**: [`.repel`](#web-compositions) puts the name and the nav at either end, `.cluster` lines up the links.
+- **header**: [`.repel`](#web-compositions) puts the name and the [`.nav`](#web-nav) at either end; `aria-current="page"` marks where you are.
 - **sidebar**: [`.sidebar`](#web-compositions) – the `<aside>` comes first, `<main>` takes the rest and goes below it when it gets narrower than half the width. The card sits inside the `<aside>`, so it keeps its own height.
-- **grid**: [`.grid`](#web-compositions) with [`.card`](#web-card)s. Its default 16rem columns fit three next to a sidebar; at 10rem it's four in a row from about 72em wide.
+- **grid**: [`.grid`](#web-compositions) of [`.card`](#web-card)s that are also [`.stat`](#web-stat)s. Its default 16rem columns fit three next to a sidebar; at 10rem it's four in a row from about 72em wide, with the values a step smaller to fit.
 - **wrapper**: [`.wrapper`](#web-compositions) centers the header and the content, with room at the sides.
-- **type**: `.step-0` and `.step-2` are [utilities](#web-utilities) from the fluid type scale.
 
-`jen web:page --help` lists the same parts, and `jen --find dashboard` shows the recipe's steps.
+`jen web:page --help` lists the same parts, and `jen --find dashboard` shows the recipe's steps. Then [`jen web:check`](#web-check) looks for classes that don't exist and colors that clash.
 
 ## Credits {#credits}
 
@@ -495,5 +603,8 @@ Each file credits its sources:
 - **[How to Favicon in 2021](https://evilmartians.com/chronicles/how-to-favicon-in-2021-six-files-that-fit-most-needs)** by Andrey Sitnik (Evil Martians): the icon set `web:page` links and `web:manifest` lists
 - **[Web app manifest](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest)** reference by MDN: `web:manifest`
 - **[The Offline Cookbook](https://web.dev/articles/offline-cookbook)** by Jake Archibald: the caching strategies in `web:sw`
+- **[Under-Engineered Responsive Tables](https://adrianroselli.com/2020/11/under-engineered-responsive-tables.html)** by Adrian Roselli: the scroll region of `web:table`
+- **[GOV.UK Design System](https://design-system.service.gov.uk/components/text-input/)** by the Government Digital Service: the label, hint and error pattern of `web:field`
+- **[The Quest for the Perfect Dark Mode](https://www.joshwcomeau.com/react/dark-mode/)** by Josh W. Comeau: applying the stored theme before the first paint in `web:theme-toggle`
 
 Written fresh, not copied. ISC licensed.

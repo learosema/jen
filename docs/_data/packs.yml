@@ -16,7 +16,7 @@
     name: "@codejen/pack-web",
     langs: [HTML, CSS],
     url: "/web.html",
-    text: "A contrast-checked palette, a CUBE CSS starter, layout compositions, buttons and cards.",
+    text: "A contrast-checked palette, a CUBE CSS starter, layout compositions, and blocks from buttons to tables and form fields.",
   }
 - {
     name: "@codejen/pack-js",
