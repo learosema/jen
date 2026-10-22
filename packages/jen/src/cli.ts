@@ -688,6 +688,7 @@ const HELP = `jen – the code jen(erator)
                   (or the error) as JSON, with --help: the generator's params
   --dry-run, -n   only show the plan
   --force,   -f   overwrite existing files
+  --strict        exit with 1 if the plan has a warning (for CI)
   --dir           where the files go instead of the current directory
   --from          fetch a pack via npm, run it once, then remove it – or a package
                   a pack runs, e.g. a Yeoman generator: --from generator-code yeoman:code
@@ -708,6 +709,7 @@ const FLAGS = {
   force: { type: 'boolean', short: 'f' },
   from: { type: 'string' },
   find: { type: 'string' },
+  strict: { type: 'boolean' },
   help: { type: 'boolean', short: 'h' },
 } as const;
 
@@ -792,6 +794,8 @@ export async function main(): Promise<void> {
     if (!json) for (const n of notes) console.log(dim(`  ${n}`));
 
     const { steps, changes } = await plan(actions, Boolean(values.force), entry.source === 'built-in' ? [USER_DIR] : []);
+    // the run itself goes ahead; --strict only changes how it ends
+    if (values.strict && steps.some((s) => s.mark === 'warning')) process.exitCode = 1;
     if (json) {
       const dryRun = Boolean(values['dry-run']);
       const done = dryRun || changes.size === 0 ? { written: 0, deleted: 0 } : await apply(changes);
