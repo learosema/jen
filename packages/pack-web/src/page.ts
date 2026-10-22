@@ -13,6 +13,9 @@ export const ICONS: [string, (href: string) => string][] = [
   ['manifest.webmanifest', (href) => `<link rel="manifest" href="${href}">`],
 ];
 
+/** "a", "a and b", "a, b and c". */
+const list = (items: string[]): string => (items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items.at(-1)}` : items[0]);
+
 const escape = (s: string): string => s.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
 
 /** `path` (from the project root) as seen from the folder `from`. */
@@ -29,9 +32,11 @@ export function surfaces(ctx: Context): [string, string] | null {
   return light && dark ? [light, dark] : null;
 }
 
-/** Which of `names` the project has, at its root or in public/, as the paths they're served at. */
-export const iconsIn = (ctx: Context, names: string[]): string[] =>
-  names.flatMap((icon) => [icon, `public/${icon}`]).filter((p) => ctx.exists(p)).map((p) => p.replace(/^public\//, ''));
+/** Which of `names` the project has, at its root or in public/. */
+const iconFiles = (ctx: Context, names: string[]): string[] => names.flatMap((icon) => [icon, `public/${icon}`]).filter((p) => ctx.exists(p));
+
+/** The same as the paths they're served at. */
+export const iconsIn = (ctx: Context, names: string[]): string[] => iconFiles(ctx, names).map((p) => p.replace(/^public\//, ''));
 
 export interface PageOptions {
   title: string;
@@ -61,7 +66,7 @@ export function pageHtml(file: string, o: PageOptions): string {
     lang: escape(o.lang),
     title,
     heading: escape(o.title),
-    description: escape(o.description),
+    description: o.description ? escape(o.description) : null,
     locale: /^[a-z]{2,3}-[A-Z]{2}$/.test(o.lang) ? o.lang.replace('-', '_') : null,
     stylesheet: o.stylesheet && relativeTo(dir, o.stylesheet),
     url: pageUrl,
@@ -81,17 +86,26 @@ const pageGenerator: Generator = {
     name: { description: 'file name: about makes about.html' },
     title: { default: '', description: 'page title (default: from --name, e.g. About)' },
     site: { default: '', description: 'site name, appended to the title: "title – site"' },
-    description: { default: 'Page description', description: 'for search results and link previews' },
+    description: { default: '', description: 'for search results and link previews (default: none – they take text from the page)' },
     lang: { default: 'en', description: 'page language; with a region (en-GB), it also sets og:locale' },
     url: { default: '', description: 'the site\'s address, for link previews' },
     image: { default: '', description: 'image that link previews show' },
     imageAlt: { default: '', description: 'alt text for --image' },
     script: { path: true, default: '', description: 'a module script to load at the end of the body' },
   },
+  usage: [
+    '<main id="main"> starts with just the <h1>; a layout from compositions and blocks, each with its own --help:',
+    'header:  <header class="wrapper repel"><a href="/">…</a><nav>…</nav></header>  – jen web:repel --help',
+    'sidebar: <div class="wrapper sidebar"><aside>…</aside><main id="main">…</main></div>  – jen web:sidebar --help',
+    'grid:    <div class="grid" style="--grid-min-item-size: 10rem"><article class="card">…</article> …</div>  – jen web:grid --help, jen web:card --help',
+    'wrapper: class="wrapper" centers each part with room at the sides  – jen web:wrapper --help',
+    'jen web:cube writes all of these compositions; a whole dashboard, step by step: https://learosema.github.io/jen/web.html#dashboard',
+  ],
   examples: ['--name=about', '--name=about --site="My Site" --lang=en-GB --url=https://example.com'],
   actions: (answers, { kebab }, ctx) => {
     const name = kebab(String(answers.name));
     const file = posix.join(ctx.destDir, `${name}.html`);
+    const stylesheet = findEntry(ctx);
     const html = pageHtml(file, {
       title: String(answers.title) || sentence(name),
       site: String(answers.site),
@@ -100,12 +114,17 @@ const pageGenerator: Generator = {
       url: String(answers.url),
       image: String(answers.image),
       imageAlt: String(answers.imageAlt),
-      stylesheet: findEntry(ctx),
+      stylesheet,
       script: answers.script ? String(answers.script).replace(/^\//, '') : null,
       icons: iconsIn(ctx, ICONS.map(([icon]) => icon)),
       themeColors: surfaces(ctx),
     });
-    return [{ add: `${name}.html`, template: html }];
+    const linked = [...(stylesheet ? [stylesheet] : []), ...iconFiles(ctx, ICONS.map(([icon]) => icon))].map((f) => posix.relative(ctx.cwd, f));
+    return [
+      { add: `${name}.html`, template: html },
+      ...(linked.length ? [{ note: `links ${list(linked)}`, file: `${name}.html`, written: true }] : []),
+      ...(stylesheet ? [] : [{ note: 'no stylesheet to link yet – run jen web:cube (or web:base) first, then make the page again with --force' }]),
+    ];
   },
 };
 

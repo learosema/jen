@@ -41,6 +41,7 @@ const USAGE: Record<string, string[]> = {
   sidebar: [
     '<div class="sidebar"><aside>…</aside><main>…</main></div>',
     'the first child is the sidebar; data-direction="end" makes it the last',
+    'set these on .sidebar itself, not on its children:',
     ...props('.sidebar', [
       ['--sidebar-target: 20rem', 'the sidebar\'s width'],
       ['--sidebar-content-min: 50%', 'the content\'s narrowest width before both stack'],
@@ -56,6 +57,7 @@ const USAGE: Record<string, string[]> = {
     '<ul class="grid" role="list"><li>…</li><li>…</li><li>…</li></ul>',
     ...props('.grid', [
       ['--grid-min-item-size: 16rem', 'each column\'s narrowest width: as many columns as fit'],
+      ['--grid-min-item-size: 10rem', 'four in a row next to a sidebar'],
       ['--grid-placement: auto-fit', 'auto-fill keeps empty columns, so a few items don\'t stretch'],
       GUTTER,
     ]),
