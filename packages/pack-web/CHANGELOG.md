@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.0.0](https://github.com/learosema/jen/compare/pack-web-v1.5.0...pack-web-v2.0.0) (2026-10-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* new projects put utilities after blocks, so a utility class on a block wins. Existing styles.css files keep their order.
+
+### Features
+
+* **pack-web:** --dir hint, usage as CSS, styled form fields ([9e2b63f](https://github.com/learosema/jen/commit/9e2b63fb278d760b2ac52a6240a1cfd150f50e4f))
+* **pack-web:** add ability to merge utils into one file ([73cb888](https://github.com/learosema/jen/commit/73cb8884875d1e85c1d5d32f310966afca317f79))
+* **pack-web:** add more granular generators for tools ([bf94b76](https://github.com/learosema/jen/commit/bf94b76313015daee6cbff02c77f54adc044e293))
+* **pack-web:** improve cli experience ([68ac477](https://github.com/learosema/jen/commit/68ac47784a660ee8f511719cc125f715ae5ecf94))
+* **pack-web:** page links note, palette/cube usage, brand color note ([8ed0d78](https://github.com/learosema/jen/commit/8ed0d78fea1ca9fa0ffb525ccd50b07997595336))
+* **pack-web:** web:check, color-border-subtle, import, various blocks, dashboard recipe ([630264f](https://github.com/learosema/jen/commit/630264fc37304f92187032bffae6328321d3afa2))
+* rework utils, notes instead of failures, cube --into, usage ([afb7939](https://github.com/learosema/jen/commit/afb793985fef39c8fe77fc249a31f04efecc76ed))
+
+
+### Bug Fixes
+
+* **pack-web:** fix regex security issue ([76f4baa](https://github.com/learosema/jen/commit/76f4baaf0e58f499d83a93d78567b495308d1a36))
+* **pack-web:** update license ([c23ebc5](https://github.com/learosema/jen/commit/c23ebc51d01858850d7add3a40136cf5c7f86171))
+
 ## [1.5.0](https://github.com/learosema/jen/compare/pack-web-v1.4.0...pack-web-v1.5.0) (2026-10-18)
 
 

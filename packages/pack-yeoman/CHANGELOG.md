@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/learosema/jen/compare/pack-yeoman-v2.1.0...pack-yeoman-v2.2.0) (2026-10-22)
+
+
+### Features
+
+* **pack-yeoman:** update license ([c05ad30](https://github.com/learosema/jen/commit/c05ad304c514682320ec4b97656c8017df7ba1da))
+
 ## [2.1.0](https://github.com/learosema/jen/compare/pack-yeoman-v2.0.1...pack-yeoman-v2.1.0) (2026-10-18)
 
 

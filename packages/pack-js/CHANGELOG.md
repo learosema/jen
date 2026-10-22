@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/learosema/jen/compare/pack-js-v1.5.0...pack-js-v1.5.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* **pack-js:** update license ([61fc75c](https://github.com/learosema/jen/commit/61fc75cabc471f3fb3999063d7e900fe34de8df4))
+
 ## [1.5.0](https://github.com/learosema/jen/compare/pack-js-v1.4.0...pack-js-v1.5.0) (2026-10-18)
 
 

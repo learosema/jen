@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/learosema/jen/compare/pack-cpp-v1.4.0...pack-cpp-v1.4.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* **pack-cpp:** update licenses ([dd53c5e](https://github.com/learosema/jen/commit/dd53c5eaa5c60e55944cfdcd32b7765bdacbc60e))
+
 ## [1.4.0](https://github.com/learosema/jen/compare/pack-cpp-v1.3.0...pack-cpp-v1.4.0) (2026-10-18)
 
 
