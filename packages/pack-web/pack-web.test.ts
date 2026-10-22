@@ -8,7 +8,8 @@ import assert from 'node:assert/strict';
 import { posix } from 'node:path';
 import { describe, it } from 'node:test';
 import type { Action, Answers, Context, Helpers } from '@codejen/jen';
-import pack from './src/index.ts';
+import pack, { recipes } from './src/index.ts';
+import { DASHBOARD_MARKUP } from './src/recipes.ts';
 import { DISTANCE_RATIO, SHADES, contrast, hexToOklch, luminance, oklchToHex, parseColor, targetLuminance } from './src/color.ts';
 import { groupsFor, paletteCss, rolesFor, verify } from './src/palette.ts';
 import { buttonCss } from './src/button.ts';
@@ -306,6 +307,44 @@ describe('web:compositions', () => {
   });
 });
 
+describe('recipes', () => {
+  it('call generators that exist, with flags they have', () => {
+    for (const r of recipes) {
+      for (const step of r.steps) {
+        const [name, ...flags] = step.split(' ');
+        const g = pack[name.replace(/^web:/, '')];
+        assert.ok(g, `${r.name}: ${name}`);
+        for (const flag of flags) assert.ok(/^--(\w+)/.exec(flag)![1] in (g.params ?? {}) || flag.startsWith('--dir='), `${r.name}: ${flag}`);
+      }
+    }
+  });
+
+  it('dashboard: the docs show the same markup', () => {
+    const docs = readFileSync(new URL('../../docs/web.md', import.meta.url), 'utf8');
+    assert.ok(docs.includes(`\`\`\`html\n${DASHBOARD_MARKUP}\n\`\`\``));
+  });
+});
+
+describe('brand color notes', () => {
+  it('say which shade the color is closest to, which roles use it, and what --contrast=aa changes', () => {
+    assert.deepEqual(notes(run('palette', { primary: '#0d9488' }, context({}))), [
+      '#0d9488 is closest to --color-primary-3 (--color-primary-large in dark mode); buttons and links use the darker -5 in light mode, -4 with --contrast=aa',
+    ]);
+    assert.ok(notes(run('cube', { primary: '#0d9488' }, context({}))).some((n) => n.startsWith('#0d9488 is closest to --color-primary-3')));
+  });
+
+  it('stay quiet when the color is the buttons\' shade, for a bare hue, and without a palette', () => {
+    assert.deepEqual(notes(run('palette', { primary: '#5b5bd6', contrast: 'aa' }, context({}))), []);
+    assert.deepEqual(notes(run('palette', { primary: '264' }, context({}))), []);
+    assert.ok(!notes(run('cube', {}, context({}))).some((n) => n.includes('closest')));
+  });
+
+  it('only suggest --contrast=aa when it gets closer', () => {
+    const [dark] = notes(run('palette', { primary: '#1a1a40' }, context({})));
+    assert.match(dark, /use the lighter -5 in light mode$/);
+  });
+});
+
 describe('usage', () => {
   const project = { 'css/styles.css': '/* jen:imports */', 'css/palette.css': paletteCss({ primary: '#5b5bd6', contrast: 'aaa' }) };
 
@@ -324,6 +363,40 @@ describe('usage', () => {
   it('says how the sidebar works', () => {
     assert.deepEqual(pack.sidebar.usage?.slice(0, 2), ['<div class="sidebar"><aside>…</aside><main>…</main></div>', 'the first child is the sidebar; data-direction="end" makes it the last']);
     assert.ok(pack.sidebar.usage?.some((l) => /^\.sidebar \{ --sidebar-content-min: 50%; \} +the content's narrowest width before both stack$/.test(l)));
+  });
+
+  it('shows every role token of the palette, with the pairs measured for it', () => {
+    const css = paletteCss({ primary: '#5b5bd6', contrast: 'aaa' });
+    const usage = pack.palette.usage ?? [];
+    const named = usage.flatMap((l) => [...l.matchAll(/var\((--color-[a-z0-9-]+)\)/g)].map((m) => m[1]));
+    for (const role of rolesFor(groupsFor({ primary: '#5b5bd6' }), 'aaa').filter((r) => r.group === 'neutral' || r.group === 'primary')) {
+      assert.ok(named.includes(`--color-${role.name}`), `--color-${role.name}`);
+    }
+    for (const token of named) assert.match(css, new RegExp(`^\\s*${token}:`, 'm'), token);
+    assert.ok(usage.some((l) => /^\.button \{ color: var\(--color-on-primary\); \} +text on the color – 7:1 on primary, primary-strong; 4\.5:1 on primary-large$/.test(l)));
+    assert.ok(usage.some((l) => /--contrast=aa, 7:1 is 4\.5:1 and 4\.5:1 is 3:1$/.test(l)));
+  });
+
+  it('cube says what it writes, which blocks are separate, and the role tokens', () => {
+    assert.match(pack.cube.description ?? '', /every composition and utility .* – blocks like web:card are separate$/);
+    const usage = pack.cube.usage ?? [];
+    assert.ok(usage.includes('blocks to add: jen web:card, web:avatars, web:dialog, web:popover'));
+    for (const block of ['card', 'avatars', 'dialog', 'popover']) assert.ok(pack[block], block);
+    assert.ok(usage.some((l) => l.includes(COMPOSITIONS.map((n) => `.${n}`).join(', '))));
+    for (const line of pack.palette.usage ?? []) assert.ok(usage.includes(line), line);
+  });
+
+  it('page shows a layout, with generators that exist', () => {
+    const usage = pack.page.usage ?? [];
+    const named = usage.flatMap((l) => [...l.matchAll(/jen web:([a-z-]+) --help/g)].map((m) => m[1]));
+    assert.deepEqual(named, ['repel', 'sidebar', 'grid', 'card', 'wrapper']);
+    for (const name of named) assert.ok(pack[name], name);
+    assert.ok(usage.some((l) => l.includes('https://learosema.github.io/jen/web.html#dashboard')));
+  });
+
+  it('says where the sidebar and grid properties go', () => {
+    assert.ok(pack.sidebar.usage?.includes('set these on .sidebar itself, not on its children:'));
+    assert.ok(pack.grid.usage?.some((l) => /^\.grid \{ --grid-min-item-size: 10rem; \} +four in a row next to a sidebar$/.test(l)));
   });
 
   it('writes custom properties as CSS, never like a flag', () => {
@@ -708,6 +781,27 @@ describe('web:page', () => {
     assert.match(html, /<meta name="theme-color" content="#[0-9a-f]{6}" media="\(prefers-color-scheme: dark\)">/);
     assert.match(html, /<script type="module" src="\.\.\/src\/main\.js"><\/script>\n {2}<\/body>/);
     assert.doesNotMatch(html, /canonical|og:url|og:image/, 'no address-bound tags without --url');
+  });
+
+  it('says what it linked', () => {
+    assert.deepEqual(notes(run('page', { name: 'About' }, context(project, 'pages'))), ['about.html links ../css/styles.css and ../public/favicon.svg']);
+    assert.deepEqual(notes(run('page', { name: 'index' }, context({ 'css/styles.css': '/* jen:imports */' }))), ['index.html links css/styles.css']);
+  });
+
+  it('says when there is no stylesheet to link', () => {
+    assert.deepEqual(notes(run('page', { name: 'index' }, context({ 'favicon.ico': '' }))), [
+      'index.html links favicon.ico',
+      'no stylesheet to link yet – run jen web:cube (or web:base) first, then make the page again with --force',
+    ]);
+  });
+
+  it('leaves out the description tags without --description', () => {
+    const html = template(run('page', { name: 'index' }, context({})), 'index.html');
+    assert.doesNotMatch(html, /description/);
+    assert.match(html, /<meta property="og:title" content="Index">/);
+    const described = template(run('page', { name: 'index', description: 'All about "us"' }, context({})), 'index.html');
+    assert.match(described, /<meta name="description" content="All about &quot;us&quot;">/);
+    assert.match(described, /<meta property="og:description" content="All about &quot;us&quot;">/);
   });
 
   it('adds canonical, og:url, og:image and og:locale when it knows them', () => {

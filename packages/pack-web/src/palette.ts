@@ -1,8 +1,8 @@
 /** `web:palette`: a contrast-checked palette; shade distances after Reasonable Colors by Matthew Howell (https://www.reasonable.work/colors/). */
-import type { Answers, Generator, Params } from '@codejen/jen';
-import { DISTANCE_RATIO, SHADES, colorAtLuminance, contrast, parseColor, targetLuminance } from './color.ts';
+import type { Action, Answers, Generator, Params } from '@codejen/jen';
+import { DISTANCE_RATIO, SHADES, colorAtLuminance, contrast, luminance, oklchToHex, parseColor, targetLuminance } from './color.ts';
 import type { Oklch } from './color.ts';
-import { fail } from './common.ts';
+import { fail, rules } from './common.ts';
 import { importActions, usesTailwind } from './entry.ts';
 
 export const FILE = 'palette.css';
@@ -137,6 +137,84 @@ function claimsFor(groups: Group[], level: Level): Claim[] {
     );
   }
   return claims;
+}
+
+/** Where each role (shown for primary) typically goes, for `usage`: a selector, a declaration using it, what for. */
+const ROLE_USES: Record<string, [string, string, string]> = {
+  surface: ['body', 'background: var(--color-surface)', 'the page'],
+  'surface-2': ['.card', 'background: var(--color-surface-2)', 'cards, sidebars: a tint off the page'],
+  text: ['body', 'color: var(--color-text)', 'text'],
+  'text-muted': ['small', 'color: var(--color-text-muted)', 'secondary text'],
+  border: ['.card', 'border: thin solid var(--color-border)', 'borders and dividers'],
+  primary: ['a', 'color: var(--color-primary)', 'links; the background of a primary button'],
+  'primary-strong': ['a:hover', 'color: var(--color-primary-strong)', 'hover, and colored text on tints'],
+  'primary-large': ['h1', 'color: var(--color-primary-large)', 'large text only (1.5rem, or 1.1667rem bold)'],
+  'primary-subtle': ['.badge', 'background: var(--color-primary-subtle)', 'a tinted background'],
+  'on-primary': ['.button', 'color: var(--color-on-primary)', 'text on the color'],
+  focus: [':focus-visible', 'outline-color: var(--color-focus)', 'focus rings'],
+};
+
+const ratio = (r: number): string => `${r}:1`;
+
+/**
+ * `usage` for the role tokens, made from rolesFor() and claimsFor() so it can't drift: one line per role
+ * (shown for primary), with the pairs measured for it at the default level.
+ */
+export function paletteUsage(): string[] {
+  const groups = groupsFor({ primary: '#5b5bd6' });
+  const shown = rolesFor(groups, 'aaa').filter((r) => r.group === 'neutral' || r.group === 'primary');
+  const names = new Set(shown.map((r) => r.name));
+  const claims = claimsFor(groups, 'aaa').filter((c) => names.has(c.fg) && names.has(c.bg));
+  const lines = rules(
+    shown.map(({ name }): [string, string, string] => {
+      const [selector, decl, what] = ROLE_USES[name] ?? fail(`web:palette: no usage for --color-${name}`);
+      if (!decl.includes(`var(--color-${name})`)) fail(`web:palette: the usage for --color-${name} doesn't use it`);
+      const byRatio = Map.groupBy(claims.filter((c) => c.fg === name), (c) => c.ratio);
+      const checked = [...byRatio].map(([r, cs]) => `${ratio(r)} on ${cs.map((c) => c.bg).join(', ')}`).join('; ');
+      return [selector, decl, checked ? `${what} – ${checked}` : what];
+    }),
+  );
+  const perColor = shown.filter((r) => r.group === 'primary' && r.name !== 'focus').length;
+  const others = [...BRAND.slice(1), ...Object.keys(STATUS)].join(', ');
+  return [
+    ...lines,
+    `the same ${perColor} roles for ${others}: --color-danger, --color-danger-strong, --color-on-danger …`,
+    `each pair is measured in light and dark mode before writing; with --contrast=aa, ${ratio(LEVEL_RATIO.aaa)} is ${ratio(LEVEL_RATIO.aa)} and ${ratio(LARGE_RATIO.aaa)} is ${ratio(LARGE_RATIO.aa)}`,
+  ];
+}
+
+/** A bare hue (`264`, `264deg`) has no lightness of its own to compare. */
+const isHue = (spec: string): boolean => /^\s*-?[\d.]+(deg)?\s*$/.test(spec);
+
+/**
+ * `info:` lines for brand colors whose shade isn't the one `--color-<name>` (buttons, links) uses: the palette
+ * places shades by luminance, so `--primary=#0d9488` can end up as a much darker button. Says which shade the
+ * color is closest to, which roles use it, and what `--contrast=aa` would change.
+ */
+export function brandNotes(answers: Answers): Action[] {
+  const level = String(answers.contrast) as Level;
+  const roles = rolesFor(groupsFor(answers), level);
+  const notes: Action[] = [];
+  for (const name of BRAND) {
+    const given = String(answers[name] ?? '');
+    if (!given || isHue(given)) continue;
+    const y = luminance(oklchToHex(parseColor(given, `--${name}`)));
+    const distance = (n: number) => Math.abs(Math.log((y + 0.05) / (targetLuminance(n) + 0.05)));
+    const closest = Array.from({ length: SHADES }, (_, i) => i + 1).reduce((a, b) => (distance(b) < distance(a) ? b : a));
+    const main = roles.find((r) => r.name === name)!;
+    if (main.light === closest) continue;
+    const users = roles
+      .filter((r) => r.group === name && r.name !== 'focus')
+      .flatMap((r) => [...(r.light === closest ? [`--color-${r.name} in light mode`] : []), ...(r.dark === closest ? [`--color-${r.name} in dark mode`] : [])]);
+    const aa = rolesFor(groupsFor(answers), 'aa').find((r) => r.name === name)!.light;
+    const closer = level === 'aaa' && Math.abs(aa - closest) < Math.abs(main.light - closest);
+    notes.push({
+      note:
+        `${given} is closest to --color-${name}-${closest}${users.length ? ` (${users.join(', ')})` : ''}; ` +
+        `buttons and links use the ${main.light > closest ? 'darker' : 'lighter'} -${main.light} in light mode${closer ? `, -${aa} with --contrast=aa` : ''}`,
+    });
+  }
+  return notes;
 }
 
 /** Measures every shade distance, across colors too; fails on any miss. */
@@ -306,10 +384,12 @@ export const PALETTE_PARAMS: Params = {
 const paletteGenerator: Generator = {
   description: 'create a contrast-checked color palette (CSS custom properties)',
   params: PALETTE_PARAMS,
+  usage: paletteUsage(),
   examples: ['--primary=#5b5bd6', '--primary=#5b5bd6 --secondary=330 --contrast=aa'],
   actions: (answers, _helpers, ctx) => [
     { add: FILE, template: paletteCss(answers, Boolean(answers.tailwind) || usesTailwind(ctx)) },
     ...importActions(ctx, [FILE]),
+    ...brandNotes(answers),
   ],
 };
 

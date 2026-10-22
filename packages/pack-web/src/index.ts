@@ -43,3 +43,4 @@ const pack: Pack = {
 };
 
 export default pack;
+export { recipes } from './recipes.ts';

@@ -6,7 +6,7 @@ import { fail } from './common.ts';
 import { NAMES, compositionItem } from './compositions.ts';
 import { usesTailwind, wireEntry } from './entry.ts';
 import { FLUID_PARAMS, fluidCss } from './fluid.ts';
-import { PALETTE_PARAMS, groupsFor, paletteCss } from './palette.ts';
+import { PALETTE_PARAMS, brandNotes, groupsFor, paletteCss, paletteUsage } from './palette.ts';
 import { INTO_PARAMS, bulkActions, newFiles, unlayer } from './single.ts';
 import type { Item } from './single.ts';
 import { allItems, tokensFrom } from './utilities.ts';
@@ -15,13 +15,20 @@ import { allItems, tokensFrom } from './utilities.ts';
 const layered = (path: string, css: string, defines: string): Item => ({ path, css, rules: unlayer(css), defines });
 
 const cubeGenerator: Generator = {
-  description: 'create a CUBE CSS starter: base, fluid scales, and every composition and utility at once (+ palette and buttons with --primary)',
+  description: 'create a CUBE CSS starter: base, fluid scales, and every composition and utility at once (+ palette and buttons with --primary) – blocks like web:card are separate',
   params: {
     ...PALETTE_PARAMS,
     primary: { default: '', description: 'brand color – adds the palette and buttons: any CSS color (deeppink, #f37, rgb(), hsl(), oklch() …) or a hue in degrees' },
     ...FLUID_PARAMS,
     ...INTO_PARAMS,
   },
+  usage: [
+    'writes reset.css, base.css, fluid.css, compositions/*.css and utilities/*.css, imported by styles.css (--into: all in one file); --primary adds palette.css and button.css',
+    `the compositions: ${NAMES.map((n) => `.${n}`).join(', ')} – each one's markup: jen web:<name> --help`,
+    'blocks to add: jen web:card, web:avatars, web:dialog, web:popover',
+    'with --primary, the palette\'s role tokens:',
+    ...paletteUsage(),
+  ],
   examples: ['--dir=src/css', '--primary=#5b5bd6 --secondary=330 --dir=src/css', '--primary=#0d9488 --into=css/styles.css'],
   actions: (answers, _helpers, ctx) => {
     const tailwind = Boolean(answers.tailwind) || usesTailwind(ctx);
@@ -41,7 +48,7 @@ const cubeGenerator: Generator = {
         ...(button ? [layered('button.css', button, '.button')] : []),
         ...utilities,
       ];
-      return bulkActions(ctx, items, answers.into, false, true);
+      return [...bulkActions(ctx, items, answers.into, false, true), ...(palette ? brandNotes(answers) : [])];
     }
     const compositions = newFiles(ctx, NAMES.map(compositionItem));
     const utilityFiles = newFiles(ctx, utilities);
@@ -54,7 +61,7 @@ const cubeGenerator: Generator = {
       ...(button ? [{ add: 'button.css', template: button }] : []),
       ...utilityFiles.files,
     ];
-    return [...wireEntry(ctx, files, tailwind), ...compositions.notes, ...utilityFiles.notes];
+    return [...wireEntry(ctx, files, tailwind), ...compositions.notes, ...utilityFiles.notes, ...(palette ? brandNotes(answers) : [])];
   },
 };
 
