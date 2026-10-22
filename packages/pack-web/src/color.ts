@@ -288,7 +288,7 @@ function parseFunction(s: string): Oklch | null {
   const fn = m && FUNCTIONS[m[1]];
   if (!fn) return null;
   // legacy commas and the modern spaces both work; alpha comes after "/" or as a fourth value
-  const args = m[2].split('/')[0].trim().split(/\s*,\s*|\s+/).filter(Boolean);
+  const args = m[2].split('/')[0].split(/[\s,]+/).filter(Boolean);
   const legacyAlpha = m[2].includes(',') && args.length === (m[1] === 'color' ? 5 : 4);
   return fn(legacyAlpha ? args.slice(0, -1) : args);
 }
