@@ -1,0 +1,61 @@
+/* Label, hint and error message after the GOV.UK Design System, https://design-system.service.gov.uk/components/text-input/ */
+@layer blocks {
+  .field {
+    display: grid;
+    gap: var(--field-gap, 0.375em);
+    justify-items: start;
+  }
+
+  .field > * {
+    margin: 0;
+  }
+
+  .field > label {
+    font-weight: 600;
+  }
+
+  .field > :is(input, select, textarea) {
+    inline-size: min(100%, var(--field-width, 100%));
+  }
+
+  .field__hint {
+    color: var(--color-text-muted);
+    font-size: var(--step--1, 0.875rem);
+  }
+
+  .field__error {
+    color: var(--color-danger-strong);
+    font-weight: 600;
+  }
+
+  .field :is(input, select, textarea):focus-visible {
+    outline: 0.125rem solid var(--color-focus);
+    outline-offset: 0.0625rem;
+  }
+
+  .field :is(input, select, textarea)[aria-invalid="true"] {
+    border-color: var(--color-danger);
+    border-width: 0.125rem;
+  }
+
+  /* A checkbox or radio before its label. */
+  .field--check {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    column-gap: 0.5em;
+  }
+
+  .field--check > :not(input) {
+    grid-column: 2;
+  }
+
+  .field--check > label {
+    font-weight: inherit;
+  }
+
+  .field input:is([type="checkbox"], [type="radio"]) {
+    inline-size: 1.25em;
+    block-size: 1.25em;
+    accent-color: var(--color-primary);
+  }
+}

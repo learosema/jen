@@ -1,0 +1,45 @@
+@layer blocks {
+  .stat {
+    display: grid;
+    gap: var(--stat-gap, 0.25em);
+    margin: 0;
+  }
+
+  .stat > * {
+    margin: 0;
+  }
+
+  .stat__label {
+    color: var(--color-text-muted);
+    font-size: var(--step--1, 0.875rem);
+  }
+
+  .stat__value {
+    font-size: var(--stat-value-size, var(--step-3, 2rem));
+    font-weight: 700;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* -strong lies further from both surfaces than the base color, so it keeps the palette's level on either. */
+  .stat__trend[data-trend="up"] {
+    color: var(--color-success-strong);
+  }
+
+  .stat__trend[data-trend="down"] {
+    color: var(--color-danger-strong);
+  }
+
+  .stat__trend[data-trend="flat"] {
+    color: var(--color-text-muted);
+  }
+
+  /* The text says which way (+4 %); the arrow only shows it, with no text of its own. */
+  .stat__trend[data-trend="up"]::before {
+    content: "↑ " / "";
+  }
+
+  .stat__trend[data-trend="down"]::before {
+    content: "↓ " / "";
+  }
+}

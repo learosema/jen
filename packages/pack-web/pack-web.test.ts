@@ -11,7 +11,7 @@ import type { Action, Answers, Context, Helpers } from '@codejen/jen';
 import pack, { recipes } from './src/index.ts';
 import { DASHBOARD_MARKUP } from './src/recipes.ts';
 import { DISTANCE_RATIO, SHADES, contrast, hexToOklch, luminance, oklchToHex, parseColor, targetLuminance } from './src/color.ts';
-import { groupsFor, paletteCss, rolesFor, verify } from './src/palette.ts';
+import { claimsFor, groupsFor, paletteCss, rolesFor, verify } from './src/palette.ts';
 import { buttonCss } from './src/button.ts';
 import { BASE, RESET } from './src/base.ts';
 import { LAYERS } from './src/entry.ts';
@@ -307,6 +307,152 @@ describe('web:compositions', () => {
   });
 });
 
+describe('blocks for app UIs', () => {
+  const palette = paletteCss({ primary: '#5b5bd6', secondary: '330', contrast: 'aaa' });
+  const project = { 'css/styles.css': '/* jen:imports */', 'css/palette.css': palette, 'index.html': '<html>\n<head>\n</head>\n<body>\n<main>\n</main>\n</body>\n</html>\n' };
+
+  it('each needs a palette, writes its file and imports it', () => {
+    for (const name of ['nav', 'badge', 'stat', 'table', 'list', 'field', 'theme-toggle']) {
+      assert.throws(() => run(name, {}, context({}, 'css')), /needs a palette/, name);
+      const actions = run(name, {}, context(project, 'css'));
+      assert.deepEqual(added(actions), [`${name}.css`], name);
+      assert.deepEqual(lines(actions), [`@import "./${name}.css";`], name);
+      assert.doesNotMatch(template(actions, `${name}.css`), PX, name);
+    }
+  });
+
+  it('badge: a modifier per palette color, each on a pair the palette checks', () => {
+    const css = template(run('badge', {}, context(project, 'css')), 'badge.css');
+    const mods = [...css.matchAll(/\.badge--([a-z]+) \{/g)].map((m) => m[1]);
+    assert.deepEqual(mods, ['neutral', 'secondary', 'success', 'warning', 'danger', 'info']);
+    const claims = claimsFor(groupsFor({ primary: '#5b5bd6', secondary: '330' }), 'aaa');
+    for (const [, bg, fg] of css.matchAll(/--badge-bg: var\(--color-([a-z0-9-]+)\);\s*--badge-fg: var\(--color-([a-z0-9-]+)\);/g)) {
+      assert.ok(claims.some((c) => c.fg === fg && c.bg === bg), `${fg} on ${bg}`);
+    }
+  });
+
+  it('nav and theme-toggle add their markup with --into, the toggle\'s script also before </head>', () => {
+    const nav = inserts(run('nav', { into: '/index.html', line: '<main' }, context(project, 'css'))).filter((a) => a.insert === '/index.html');
+    assert.equal(nav.length, 1);
+    assert.equal(nav[0].before, '<main');
+    assert.match('line' in nav[0] ? nav[0].line : '', /^<nav class="nav" aria-label="Main">/);
+    const toggle = inserts(run('theme-toggle', { into: '/index.html' }, context(project, 'css'))).filter((a) => a.insert === '/index.html');
+    assert.deepEqual(toggle.map((a) => String(a.before)), ['/<\\/head>/', '/<\\/body>/']);
+    assert.match('line' in toggle[0] ? toggle[0].line : '', /^<!-- Applies a stored light\/dark choice .* Josh W\. Comeau/);
+    assert.match('line' in toggle[1] ? toggle[1].line : '', /<input type="radio" name="theme" value="system" checked> System/);
+    assert.deepEqual(added(run('nav', {}, context(project, 'css'))), ['nav.css'], 'no markup without --into');
+  });
+
+  it('the theme toggle\'s script sets what the palette reads', () => {
+    assert.match(palette, /:root\[data-theme="dark"\]/);
+    const toggle = template(run('theme-toggle', {}, context(project, 'css')), 'theme-toggle.css');
+    assert.match(toggle, /label:has\(:checked\)/);
+  });
+
+  it('border-subtle: a role token with no claim, used by card, list and table with a fallback', () => {
+    assert.match(palette, /--color-border-subtle: light-dark\(var\(--color-neutral-2\), var\(--color-neutral-5\)\);/);
+    assert.ok(!claimsFor(groupsFor({ primary: '#5b5bd6' }), 'aaa').some((c) => c.fg === 'border-subtle' || c.bg === 'border-subtle'));
+    for (const name of ['card', 'list', 'table']) {
+      assert.match(template(run(name, {}, context(project, 'css')), `${name}.css`), /var\(--color-border-subtle, var\(--color-border\)\)/, name);
+    }
+  });
+
+  it('web:check knows which generator writes each block', () => {
+    const page = '<link rel="stylesheet" href="css/styles.css"><nav class="nav"></nav><div class="table-scroll"></div><fieldset class="theme-toggle"></fieldset>';
+    const found = notes(run('check', {}, context({ ...project, 'index.html': page })));
+    assert.ok(found.includes('/index.html uses .nav, which no stylesheet defines – jen web:nav writes it'));
+    assert.ok(found.includes('/index.html uses .table-scroll, which no stylesheet defines – jen web:table writes it'));
+    assert.ok(found.includes('/index.html uses .theme-toggle, which no stylesheet defines – jen web:theme-toggle writes it'));
+  });
+});
+
+describe('web:import', () => {
+  const project = { 'css/styles.css': '/* jen:imports */' };
+
+  it('starts the stylesheet if it\'s missing, and imports it relative to the entry point', () => {
+    const actions = run('import', { file: '/css/own/dashboard.css' }, context(project));
+    assert.deepEqual(added(actions), ['/css/own/dashboard.css']);
+    assert.deepEqual(lines(actions), ['@import "./own/dashboard.css";']);
+    assert.deepEqual(notes(actions), [], 'you named the place: no --dir hint');
+  });
+
+  it('never overwrites a stylesheet that exists', () => {
+    const actions = run('import', { file: '/css/own.css' }, context({ ...project, 'css/own.css': '.x {}' }, 'css'));
+    assert.deepEqual(added(actions), []);
+    assert.deepEqual(lines(actions), ['@import "./own.css";']);
+  });
+
+  it('refuses what isn\'t a stylesheet, and the entry point itself', () => {
+    assert.throws(() => run('import', { file: '/css/own.scss' }, context(project)), /isn't a \.css file/);
+    assert.throws(() => run('import', { file: '/css/styles.css' }, context(project)), /is the entry point itself/);
+  });
+});
+
+describe('web:check', () => {
+  const palette = paletteCss({ primary: '#5b5bd6', contrast: 'aaa' });
+  const base = {
+    'index.html': '<html class="no-js"><head><link rel="stylesheet" href="css/styles.css"></head><body><main class="flow"><h1>Hi</h1></main></body></html>',
+    'css/styles.css': '@layer reset;\n@import "./palette.css";\n@import "./compositions/flow.css";\n/* jen:imports */',
+    'css/palette.css': palette,
+    'css/compositions/flow.css': '.flow > * + * { margin-block-start: 1em; }',
+  };
+  const check = (files: Record<string, string>) => notes(run('check', {}, context(files)));
+  const warnings = (files: Record<string, string>) => run('check', {}, context(files)).flatMap((a) => ('note' in a && a.warning ? [`${a.file} ${a.note}`] : []));
+
+  it('finds nothing to fix in a project that\'s fine, and says what it checked', () => {
+    assert.deepEqual(check(base), ['checked 1 page and 3 stylesheets – nothing to fix']);
+  });
+
+  it('warns about classes no stylesheet defines, with a close name or the generator that writes them', () => {
+    const page = '<body class="flw"><div class="sidebar card__media"><p class="hero bg-primary">x</p></div><style>.local { color: red; }</style><b class="local"></b></body>';
+    assert.deepEqual(warnings({ ...base, 'index.html': `<link rel="stylesheet" href="css/styles.css">${page}` }), [
+      '/index.html uses .flw, which no stylesheet defines – did you mean .flow?',
+      '/index.html uses .sidebar, which no stylesheet defines – jen web:sidebar writes it',
+      '/index.html uses .card__media, which no stylesheet defines – jen web:card writes it',
+      '/index.html uses .hero, which no stylesheet defines',
+      '/index.html uses .bg-primary, which no stylesheet defines – jen web:color-classes --name=primary writes it',
+    ]);
+  });
+
+  it('warns about stylesheets nothing loads, and links to ones that don\'t exist', () => {
+    const files = { ...base, 'css/own.css': '.x {}', 'index.html': base['index.html'].replace('</head>', '<link rel="stylesheet" href="/css/gone.css"></head>') };
+    assert.deepEqual(warnings(files), [
+      '/index.html links /css/gone.css, which doesn\'t exist',
+      '/css/own.css isn\'t linked or imported anywhere – @import it in css/styles.css, or remove it',
+    ]);
+  });
+
+  it('follows stylesheets imported from scripts, not packages', () => {
+    const files = {
+      'src/main.js': "import './app.css';\nimport 'open-props/style.css';",
+      'src/app.css': '@import "./parts/a.css";',
+      'src/parts/a.css': '.a {}',
+      'src/lost.css': '.l {}',
+    };
+    assert.deepEqual(warnings(files), ['/src/lost.css isn\'t linked or imported anywhere – link or @import it, or remove it']);
+  });
+
+  it('warns about color pairs the palette didn\'t check, and names one it did', () => {
+    const files = {
+      ...base,
+      'css/styles.css': `${base['css/styles.css']}\n@import "./own.css";`,
+      'css/own.css': '.ok { color: var(--color-on-primary); background: var(--color-primary); }\n.stat { color: var(--color-text-muted); background-color: var(--color-primary); }',
+      'css/utilities/colors.css': '.color-primary { color: var(--color-primary); } .bg-primary-subtle { background-color: var(--color-primary-subtle); }',
+      'index.html': base['index.html'].replace('<h1>', '<p class="color-primary bg-primary-subtle">new</p><h1>'),
+    };
+    files['css/styles.css'] += '\n@import "./utilities/colors.css";';
+    assert.deepEqual(warnings(files), [
+      '/css/own.css .stat: --color-text-muted on --color-primary isn\'t a pair the palette checked – on --color-primary, use --color-on-primary',
+      '/index.html class="color-primary bg-primary-subtle": --color-primary on --color-primary-subtle isn\'t a pair the palette checked – on --color-primary-subtle, use --color-primary-strong',
+    ]);
+  });
+
+  it('leaves classes alone in a Tailwind project', () => {
+    const files = { 'index.html': '<link rel="stylesheet" href="app.css"><p class="mt-4 text-lg">x</p>', 'app.css': '@import "tailwindcss";' };
+    assert.deepEqual(check(files), ['Tailwind makes its classes on demand, so classes aren\'t checked', 'checked 1 page and 1 stylesheet – nothing to fix']);
+  });
+});
+
 describe('recipes', () => {
   it('call generators that exist, with flags they have', () => {
     for (const r of recipes) {
@@ -349,7 +495,7 @@ describe('usage', () => {
   const project = { 'css/styles.css': '/* jen:imports */', 'css/palette.css': paletteCss({ primary: '#5b5bd6', contrast: 'aaa' }) };
 
   it('names only custom properties the generated CSS reads or sets', () => {
-    for (const name of [...COMPOSITIONS, 'card', 'avatars', 'button', 'dialog', 'popover']) {
+    for (const name of [...COMPOSITIONS, 'card', 'avatars', 'button', 'dialog', 'popover', 'nav', 'badge', 'stat', 'table', 'list', 'field']) {
       const g = pack[name];
       assert.ok(g.usage?.length, `${name} has usage`);
       const actions = run(name, { name: 'x' }, context(project, 'css'));
@@ -380,8 +526,9 @@ describe('usage', () => {
   it('cube says what it writes, which blocks are separate, and the role tokens', () => {
     assert.match(pack.cube.description ?? '', /every composition and utility .* – blocks like web:card are separate$/);
     const usage = pack.cube.usage ?? [];
-    assert.ok(usage.includes('blocks to add: jen web:card, web:avatars, web:dialog, web:popover'));
-    for (const block of ['card', 'avatars', 'dialog', 'popover']) assert.ok(pack[block], block);
+    const blocks = usage.find((l) => l.startsWith('blocks to add: '))!;
+    for (const [, block] of blocks.matchAll(/web:([a-z-]+)/g)) assert.ok(pack[block], block);
+    assert.match(blocks, /web:card, .*web:theme-toggle, web:nav, web:badge, web:stat, web:table, web:list, web:field$/);
     assert.ok(usage.some((l) => l.includes(COMPOSITIONS.map((n) => `.${n}`).join(', '))));
     for (const line of pack.palette.usage ?? []) assert.ok(usage.includes(line), line);
   });
@@ -1206,7 +1353,8 @@ describe('examples', () => {
       for (const args of g.examples ?? []) {
         const flags = exampleFlags(args);
         for (const [flag, value] of Object.entries(flags)) {
-          if (flag === 'dir' && !('dir' in params)) continue;
+          // jen's own flags
+          if ((flag === 'dir' || flag === 'strict') && !(flag in params)) continue;
           assert.ok(flag in params, `${args}: no --${flag}`);
           const choices = params[flag].choices;
           if (choices) assert.ok(choices.includes(String(value)), `${args}: --${flag} takes ${choices.join(', ')}`);

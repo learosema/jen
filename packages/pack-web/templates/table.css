@@ -1,0 +1,51 @@
+/* The scroll region after "Under-Engineered Responsive Tables" by Adrian Roselli, https://adrianroselli.com/2020/11/under-engineered-responsive-tables.html */
+@layer blocks {
+  .table-scroll {
+    max-block-size: var(--table-max-height, none);
+    overflow: auto;
+  }
+
+  .table-scroll:focus-visible {
+    outline: 0.125rem solid var(--color-focus);
+    outline-offset: 0.125rem;
+  }
+
+  .table {
+    inline-size: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .table caption {
+    padding-block-end: 0.5em;
+    font-weight: 600;
+    text-align: start;
+  }
+
+  .table :is(th, td) {
+    padding: var(--table-padding, 0.5em 0.75em);
+    border-block-end: thin solid var(--color-border-subtle, var(--color-border));
+    text-align: start;
+    vertical-align: top;
+  }
+
+  .table thead th {
+    border-block-end-color: var(--color-border);
+    background: var(--table-head-bg, var(--color-surface));
+    font-weight: 600;
+  }
+
+  /* Sticks once the scroll region has a --table-max-height of its own. */
+  .table-scroll .table thead th {
+    position: sticky;
+    inset-block-start: 0;
+  }
+
+  .table :is(th, td)[data-numeric] {
+    text-align: end;
+  }
+
+  .table--striped tbody tr:nth-child(even) {
+    background: var(--color-surface-2);
+  }
+}

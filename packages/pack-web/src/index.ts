@@ -3,13 +3,17 @@ import type { Pack } from '@codejen/jen';
 import avatarsGenerator from './avatars.ts';
 import baseGenerator from './base.ts';
 import buttonGenerator from './button.ts';
+import { blockGenerators } from './blocks.ts';
 import cardGenerator from './card.ts';
+import checkGenerator from './check.ts';
 import compositionsGenerator, { compositionGenerators } from './compositions.ts';
 import cubeGenerator from './cube.ts';
 import dialogGenerator from './dialog.ts';
 import fluidGenerator from './fluid.ts';
+import importGenerator from './import.ts';
 import manifestGenerator from './manifest.ts';
 import pageGenerator from './page.ts';
+import themeToggleGenerator from './theme-toggle.ts';
 import paletteGenerator from './palette.ts';
 import colorGenerator from './single-color.ts';
 import popoverGenerator from './popover.ts';
@@ -26,6 +30,7 @@ const pack: Pack = {
   button: buttonGenerator,
   card: cardGenerator,
   avatars: avatarsGenerator,
+  ...blockGenerators,
   fluid: fluidGenerator,
   compositions: compositionsGenerator,
   ...compositionGenerators,
@@ -37,9 +42,12 @@ const pack: Pack = {
   sw: swGenerator,
   dialog: dialogGenerator,
   popover: popoverGenerator,
+  'theme-toggle': themeToggleGenerator,
   scroll: scrollGenerator,
   transitions: transitionsGenerator,
   tailwind: tailwindGenerator,
+  check: checkGenerator,
+  import: importGenerator,
 };
 
 export default pack;

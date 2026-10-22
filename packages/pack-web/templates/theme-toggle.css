@@ -1,0 +1,47 @@
+@layer blocks {
+  .theme-toggle {
+    display: inline-flex;
+    gap: 0.25em;
+    margin: 0;
+    padding: 0.25em;
+    border: thin solid var(--color-border);
+    border-radius: 100vmax;
+  }
+
+  /* The group's name for screen readers; the labels say the rest. */
+  .theme-toggle legend {
+    position: absolute;
+    inline-size: 0.0625rem;
+    block-size: 0.0625rem;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .theme-toggle label {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 1.5rem;
+    padding: 0.25em 0.875em;
+    border: thin solid transparent;
+    border-radius: 100vmax;
+    cursor: pointer;
+  }
+
+  /* The radio stays in the page for keyboards and screen readers; the label shows its state. */
+  .theme-toggle input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .theme-toggle label:has(:checked) {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+  }
+
+  .theme-toggle label:has(:focus-visible) {
+    outline: 0.125rem solid var(--color-focus);
+    outline-offset: 0.125rem;
+  }
+}

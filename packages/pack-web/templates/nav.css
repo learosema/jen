@@ -1,0 +1,39 @@
+@layer blocks {
+  .nav > ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--nav-gap, 0.25em);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .nav[data-direction="vertical"] > ul {
+    flex-direction: column;
+  }
+
+  .nav a {
+    display: block;
+    padding: 0.375em 0.75em;
+    border-radius: var(--nav-radius, 0.375em);
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .nav a:hover {
+    background: var(--color-surface-2);
+    text-decoration: underline;
+  }
+
+  /* The current page: told by aria-current, so screen readers say it too. */
+  .nav a[aria-current="page"] {
+    background: var(--color-primary-subtle);
+    color: var(--color-primary-strong);
+    font-weight: 600;
+  }
+
+  .nav a:focus-visible {
+    outline: 0.125rem solid var(--color-focus);
+    outline-offset: 0.125rem;
+  }
+}

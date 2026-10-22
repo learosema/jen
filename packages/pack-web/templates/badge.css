@@ -1,0 +1,28 @@
+@layer blocks {
+  /* Each color pairs -strong text with its -subtle tint: a pair the palette checks. */
+  .badge {
+    --badge-bg: var(--color-primary-subtle);
+    --badge-fg: var(--color-primary-strong);
+
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    padding: 0.125em 0.625em;
+    /* Transparent, but forced-colors mode (Windows High Contrast) draws it. */
+    border: thin solid transparent;
+    border-radius: 100vmax;
+    background: var(--badge-bg);
+    color: var(--badge-fg);
+    font-size: 0.8125em;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+
+  .badge--neutral {
+    --badge-bg: var(--color-surface-2);
+    --badge-fg: var(--color-text);
+  }
+
+  {{color-modifiers}}
+}

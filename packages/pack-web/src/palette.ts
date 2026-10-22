@@ -81,7 +81,7 @@ export function groupsFor(answers: Answers): Group[] {
   return groups;
 }
 
-export function rolesFor(groups: Group[], level: Level): Role[] {
+export function rolesFor(groups: Pick<Group, 'name'>[], level: Level): Role[] {
   const d = level === 'aaa' ? 1 : 0;
   const roles: Role[] = [
     { name: 'surface', group: 'neutral', light: 1, dark: 6 },
@@ -89,6 +89,8 @@ export function rolesFor(groups: Group[], level: Level): Role[] {
     { name: 'text', group: 'neutral', light: 6, dark: 1 },
     { name: 'text-muted', group: 'neutral', light: 5, dark: 2 },
     { name: 'border', group: 'neutral', light: 4, dark: 3 },
+    // decorative dividers: WCAG 1.4.11 asks 3:1 only of borders that carry meaning, so claimsFor() has no pair for it
+    { name: 'border-subtle', group: 'neutral', light: 2, dark: 5 },
   ];
   for (const { name } of groups) {
     if (name === 'neutral') continue;
@@ -111,7 +113,7 @@ interface Claim {
   ratio: number;
 }
 
-function claimsFor(groups: Group[], level: Level): Claim[] {
+export function claimsFor(groups: Pick<Group, 'name'>[], level: Level): Claim[] {
   const text = LEVEL_RATIO[level];
   const large = LARGE_RATIO[level];
   const claims: Claim[] = [
@@ -145,7 +147,8 @@ const ROLE_USES: Record<string, [string, string, string]> = {
   'surface-2': ['.card', 'background: var(--color-surface-2)', 'cards, sidebars: a tint off the page'],
   text: ['body', 'color: var(--color-text)', 'text'],
   'text-muted': ['small', 'color: var(--color-text-muted)', 'secondary text'],
-  border: ['.card', 'border: thin solid var(--color-border)', 'borders and dividers'],
+  border: ['input', 'border: thin solid var(--color-border)', 'borders that must be seen: inputs, focusable outlines'],
+  'border-subtle': ['hr', 'border-color: var(--color-border-subtle)', 'dividers that carry no meaning – not 3:1, so not for inputs'],
   primary: ['a', 'color: var(--color-primary)', 'links; the background of a primary button'],
   'primary-strong': ['a:hover', 'color: var(--color-primary-strong)', 'hover, and colored text on tints'],
   'primary-large': ['h1', 'color: var(--color-primary-large)', 'large text only (1.5rem, or 1.1667rem bold)'],
