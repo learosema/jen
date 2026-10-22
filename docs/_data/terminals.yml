@@ -744,6 +744,95 @@ web_button_missing:
   - "web:button (pack @codejen/pack-web) – create a contrast-checked .button block on the palette tokens"
   - "web:button needs a palette – run `jen web:palette --primary=<color>` first"
 
+web_nav:
+  - "$ jen web:nav --dir=src/css"
+  - "web:nav (pack @codejen/pack-web) – create a .nav block: links in a row or a column, the current page marked by aria-current"
+  - ""
+  - "  + src/css/nav.css"
+  - "  ~ src/css/styles.css:7  + @import \"./nav.css\";"
+  - ""
+  - "✓ 2 written"
+
+web_badge:
+  - "$ jen web:badge --dir=src/css"
+  - "web:badge (pack @codejen/pack-web) – create a .badge block: a small label for a status, count or tag, in each palette color"
+  - ""
+  - "  + src/css/badge.css"
+  - "  ~ src/css/styles.css:7  + @import \"./badge.css\";"
+  - ""
+  - "✓ 2 written"
+
+web_stat:
+  - "$ jen web:stat --dir=src/css"
+  - "web:stat (pack @codejen/pack-web) – create a .stat block: a metric with its label and a trend, the direction in words, not color alone"
+  - ""
+  - "  + src/css/stat.css"
+  - "  ~ src/css/styles.css:7  + @import \"./stat.css\";"
+  - ""
+  - "✓ 2 written"
+
+web_table:
+  - "$ jen web:table --dir=src/css"
+  - "web:table (pack @codejen/pack-web) – create a .table block: readable data tables in a scroll region, numbers aligned, optional stripes and sticky header"
+  - ""
+  - "  + src/css/table.css"
+  - "  ~ src/css/styles.css:7  + @import \"./table.css\";"
+  - ""
+  - "✓ 2 written"
+
+web_list:
+  - "$ jen web:list --dir=src/css"
+  - "web:list (pack @codejen/pack-web) – create a .list block: a list without bullets, for feeds and settings – with list--divided, lines between the items"
+  - ""
+  - "  + src/css/list.css"
+  - "  ~ src/css/styles.css:7  + @import \"./list.css\";"
+  - ""
+  - "✓ 2 written"
+
+web_field:
+  - "$ jen web:field --dir=src/css"
+  - "web:field (pack @codejen/pack-web) – create a .field block: a form control with its label above, a hint and an error message"
+  - ""
+  - "  + src/css/field.css"
+  - "  ~ src/css/styles.css:7  + @import \"./field.css\";"
+  - ""
+  - "✓ 2 written"
+
+web_theme_toggle:
+  - "$ jen web:theme-toggle --into=index.html --dir=css"
+  - "web:theme-toggle (pack @codejen/pack-web) – create a light / dark / system .theme-toggle: three radio buttons that set data-theme for the palette and remember it"
+  - ""
+  - "  + css/theme-toggle.css"
+  - "  ~ css/styles.css:32  + @import \"./theme-toggle.css\";"
+  - "  ~ index.html:22  + <!-- Applies a stored light/dark choice before the first paint, so the page doesn't flash: after Josh W. Comeau, https://www.joshwcomeau.com/react/dark-mode/ --> (+6 more)"
+  - "  ~ index.html:34  + <fieldset class=\"theme-toggle\"> (+19 more)"
+  - ""
+  - "✓ 3 written"
+
+web_import:
+  - "$ jen web:import --file=src/css/dashboard.css"
+  - "web:import (pack @codejen/pack-web) – import a stylesheet of your own into the entry point – created empty if it doesn't exist"
+  - ""
+  - "  + src/css/dashboard.css"
+  - "  ~ src/css/styles.css:6  + @import \"./dashboard.css\";"
+  - ""
+  - "✓ 2 written"
+
+web_check:
+  - "$ jen web:check --strict"
+  - "web:check (pack @codejen/pack-web) – check the pages and stylesheets: classes no stylesheet defines, stylesheets nothing loads, color pairs the palette didn't check – writes nothing"
+  - ""
+  - "  warning: index.html links css/missing.css, which doesn't exist"
+  - "  warning: css/own.css isn't linked or imported anywhere – @import it in css/styles.css, or remove it"
+  - "  warning: index.html uses .sidbar, which no stylesheet defines – did you mean .sidebar?"
+  - "  warning: index.html uses .badge, which no stylesheet defines"
+  - "  warning: index.html uses .visually-hidden, which no stylesheet defines – jen web:visually-hidden writes it"
+  - "  warning: css/own.css .stat: --color-text-muted on --color-primary isn't a pair the palette checked – on --color-primary, use --color-on-primary"
+  - "  warning: index.html class=\"badge color-primary bg-primary-subtle\": --color-primary on --color-primary-subtle isn't a pair the palette checked – on --color-primary-subtle, use --color-primary-strong"
+  - "  info: checked 1 page and 30 stylesheets – 7 warnings (--strict exits with 1 then)"
+  - ""
+  - "Nothing to do."
+
 web_tailwind:
   - "$ jen web:tailwind --dir=src/css"
   - "web:tailwind (pack @codejen/pack-web) – set up the stylesheet entry point for Tailwind v4 (layers in CUBE CSS order)"
