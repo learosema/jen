@@ -182,10 +182,17 @@ describe('add + insert', () => {
 
   it('overwrites only with --force', () => {
     const dir = cppProject({ 'src/Foo.h': 'alt' });
-    jen(['class', '--name=foo'], { cwd: dir });
+    const r = jen(['class', '--name=foo'], { cwd: dir });
     assert.equal(read(dir, 'src/Foo.h'), 'alt');
-    jen(['class', '--name=foo', '--force'], { cwd: dir });
+    assert.match(r.stdout, /\n {2}info: src[/\\]Foo\.h exists, skipped\n/);
+    // once, after the plan
+    assert.match(r.stdout, /\n {2}info: 1 file exists and was skipped – --force overwrites it\n✓/);
+    const again = jen(['class', '--name=foo'], { cwd: dir });
+    assert.match(again.stdout, /\n {2}info: 2 files exist and were skipped – --force overwrites them\n/);
+    assert.equal(again.stdout.match(/--force overwrites/g)?.length, 1);
+    const forced = jen(['class', '--name=foo', '--force'], { cwd: dir });
     assert.equal(read(dir, 'src/Foo.h'), 'class Foo {};\n');
+    assert.doesNotMatch(forced.stdout, /--force overwrites/);
   });
 
   it('reports missing markers without aborting', () => {
@@ -437,6 +444,21 @@ describe('note', () => {
   it('places its file from --dir, like any action path', () => {
     const dir = fixture({ '.jen/tell.mjs': `export const actions = () => [{ note: 'is fine', file: 'a.css' }];` });
     assert.match(jen(['tell', '--dir=css'], { cwd: dir }).stdout, /info: css[/\\]a\.css is fine/);
+  });
+
+  it('with written: true, only shows when the file is written', () => {
+    const dir = fixture({
+      '.jen/page.mjs': `export const actions = () => [
+        { add: 'page.html', template: '<link rel="stylesheet" href="a.css">' },
+        { note: 'links a.css', file: 'page.html', written: true },
+        { note: 'about the page anyway', file: 'page.html' },
+      ];`,
+    });
+    assert.match(jen(['page'], { cwd: dir }).stdout, /info: page\.html links a\.css\n/);
+    const rerun = jen(['page'], { cwd: dir }).stdout;
+    assert.doesNotMatch(rerun, /links a\.css/);
+    assert.match(rerun, /info: page\.html exists, skipped\n {2}info: page\.html about the page anyway\n/);
+    assert.match(jen(['page', '--force'], { cwd: dir }).stdout, /info: page\.html links a\.css\n/);
   });
 });
 
@@ -703,8 +725,10 @@ describe('jen <generator> --help', () => {
   it('fails for an unknown pack when fetching is off', () => {
     const r = jen(['lua', '--list'], { cwd: fixture() });
     assert.equal(r.code, 1);
-    assert.match(r.stderr, /"lua" is no pack or source jen knows/);
+    assert.match(r.stderr, /"lua" isn't installed here, and fetching is off \(JEN_NO_FETCH\) – install @codejen\/pack-lua, or run jen inside your project/);
     assert.doesNotMatch(r.stdout + r.stderr, /Fetching/);
+    // not a name jen would fetch anyway
+    assert.match(jen(['Lua_Pack', '--list'], { cwd: fixture() }).stderr, /"Lua_Pack" is no pack or source jen knows/);
   });
 
   it("suggests close names for an unknown generator in a known pack, else that pack's list", () => {
@@ -1455,5 +1479,154 @@ export const actions = ({ into }) => [{ insert: into, before: '// jen:functions'
     const r = jen(['into', '--into=../../x.glsl'], { cwd: dir });
     assert.equal(r.code, 1);
     assert.match(r.stderr, /--into=\.\.\/\.\.\/x\.glsl is outside the project root/);
+  });
+});
+
+// ─── For programs: --json runs and errors, --find, recipes ──────────────────
+
+describe('for programs', () => {
+  const DEMO = `export default {
+    card: {
+      description: 'a card block for content',
+      params: { tone: { default: 'plain', choices: ['plain', 'loud'] }, round: { default: false } },
+      usage: ['<article class="card">…</article>'],
+      examples: ['--tone=loud'],
+      actions: () => [{ add: 'card.css', template: '.card {}' }, { note: 'cards need a palette' }],
+    },
+    sidebar: { description: 'a sidebar layout next to the content', params: { name: {} }, actions: () => [] },
+    plain: { description: 'emits json itself', params: { json: { default: false } }, actions: ({ json }) => [{ note: json ? 'own json' : 'no json' }] },
+  };
+  export const recipes = [{ name: 'dashboard', description: 'a dashboard page with cards', steps: ['demo:card', 'demo:sidebar --name=x'], usage: ['<main>…</main>'], docs: 'https://example.com/#dashboard' }];`;
+  const project = () =>
+    fixture({
+      'package.json': JSON.stringify({ dependencies: { '@codejen/pack-demo': '*' } }),
+      'node_modules/@codejen/pack-demo/package.json': JSON.stringify({ name: '@codejen/pack-demo', type: 'module', exports: './index.mjs' }),
+      'node_modules/@codejen/pack-demo/index.mjs': DEMO,
+    });
+  const parse = (text: string) => JSON.parse(text) as Record<string, unknown>;
+  const error = (r: { stderr: string }) => (parse(r.stderr) as { error: Record<string, unknown> }).error;
+
+  it('prints the plan as JSON with --json, and nothing else on stdout', () => {
+    const dir = project();
+    const dry = jen(['demo:card', '--json', '--dry-run'], { cwd: dir });
+    assert.equal(dry.code, 0, dry.stderr);
+    assert.deepEqual(parse(dry.stdout), {
+      generator: 'demo:card',
+      source: 'pack @codejen/pack-demo',
+      dryRun: true,
+      steps: [{ kind: 'created', file: 'card.css' }, { kind: 'info', note: 'cards need a palette' }],
+      written: 0,
+      deleted: 0,
+    });
+    assert.ok(!existsSync(join(dir, 'card.css')));
+    const run = parse(jen(['demo:card', '--json'], { cwd: dir }).stdout);
+    assert.equal(run.written, 1);
+    assert.ok(existsSync(join(dir, 'card.css')));
+    const rerun = parse(jen(['demo:card', '--json'], { cwd: dir }).stdout) as { steps: unknown[]; written: number };
+    assert.equal(rerun.written, 0);
+    assert.deepEqual(rerun.steps[0], { kind: 'info', file: 'card.css', note: 'exists, skipped' });
+  });
+
+  it('shows the line of an insert', () => {
+    const dir = fixture({
+      'list.txt': 'a\n# marker\n',
+      '.jen/put.mjs': `export const actions = () => [{ insert: 'list.txt', before: '# marker', line: 'b' }];`,
+    });
+    const r = parse(jen(['put', '--json'], { cwd: dir }).stdout) as { steps: unknown[] };
+    assert.deepEqual(r.steps, [{ kind: 'changed', file: 'list.txt', line: 2, note: '+ b' }]);
+  });
+
+  it('prints errors as JSON on stderr, with a code and what a program needs to repair the call', () => {
+    const dir = project();
+    const missing = jen(['demo:sidebar', '--json'], { cwd: dir });
+    assert.equal(missing.code, 1);
+    assert.equal(missing.stdout, '');
+    const m = error(missing);
+    assert.equal(m.code, 'missing_param');
+    assert.deepEqual(m.missing, ['--name']);
+    assert.deepEqual((m.params as Record<string, unknown>).name, { type: 'string', required: true });
+
+    const flag = error(jen(['demo:card', '--tome=loud', '--json'], { cwd: dir }));
+    assert.equal(flag.code, 'unknown_flag');
+    assert.deepEqual(flag.flags, [{ flag: '--tome', didYouMean: '--tone' }]);
+    assert.deepEqual(flag.known, ['--tone', '--round']);
+
+    assert.deepEqual(error(jen(['demo:card', '--tone=quiet', '--json'], { cwd: dir })), {
+      code: 'bad_value',
+      message: 'demo:card --tone: expected one of "plain", "loud", got "quiet"',
+      param: 'tone',
+      value: 'quiet',
+      choices: ['plain', 'loud'],
+    });
+    assert.equal(error(jen(['demo:card', '--round=maybe', '--json'], { cwd: dir })).expected, 'boolean');
+
+    const notFound = error(jen(['demo:crad', '--json'], { cwd: dir }));
+    assert.equal(notFound.code, 'not_found');
+    assert.deepEqual(notFound.didYouMean, ['demo:card']);
+    assert.equal(error(jen(['lua', '--list', '--json'], { cwd: dir })).code, 'unknown_pack');
+  });
+
+  it('keeps errors as text without --json', () => {
+    const r = jen(['demo:card', '--tone=quiet'], { cwd: project() });
+    assert.match(r.stderr, /^demo:card --tone: expected one of/);
+  });
+
+  it("leaves --json to a generator that has a json param of its own", () => {
+    const r = jen(['demo:plain', '--json'], { cwd: project() });
+    assert.match(r.stdout, /info: own json/);
+  });
+
+  it('prints one generator as JSON with --help --json', () => {
+    const g = parse(jen(['demo:card', '--help', '--json'], { cwd: project() }).stdout);
+    assert.equal(g.name, 'demo:card');
+    assert.deepEqual(g.usage, ['<article class="card">…</article>']);
+  });
+
+  it('finds generators and recipes by words, best first', () => {
+    const dir = project();
+    const r = jen(['--find', 'sidebar layout'], { cwd: dir });
+    assert.equal(r.code, 0, r.stderr);
+    assert.match(r.stdout, /^ {2}demo:sidebar +a sidebar layout next to the content\n/);
+    assert.match(r.stdout, /Not installed, so not searched: cpp, glsl, js, web, yeoman – jen <pack> --find "sidebar layout"/);
+    const cards = jen(['demo', '--find', 'Cards'], { cwd: dir }).stdout;
+    assert.match(cards, /^ {2}demo:card +a card block for content\n {2}recipe: dashboard +a dashboard page with cards \(@codejen\/pack-demo\)\n {4}jen demo:card\n {4}jen demo:sidebar --name=x\n {4}docs: https:\/\/example\.com\/#dashboard\n$/);
+    assert.match(jen(['--find', 'spaceship'], { cwd: dir }).stdout, /^Nothing matches "spaceship"/);
+    assert.match(jen(['--find', ''], { cwd: dir }).stderr, /--find needs words/);
+  });
+
+  it('finds with --json: generators as in --list --json, recipes with their steps and usage', () => {
+    const found = parse(jen(['demo', '--find', 'dashboard', '--json'], { cwd: project() }).stdout) as { query: string; results: Array<Record<string, unknown>> };
+    assert.equal(found.query, 'dashboard');
+    assert.deepEqual(found.results[0], {
+      kind: 'recipe',
+      score: (found.results[0] as { score: number }).score,
+      name: 'dashboard',
+      pack: '@codejen/pack-demo',
+      description: 'a dashboard page with cards',
+      steps: [
+        { jen: 'jen demo:card', npx: 'npx --yes @codejen/jen demo:card' },
+        { jen: 'jen demo:sidebar --name=x', npx: 'npx --yes @codejen/jen demo:sidebar --name=x' },
+      ],
+      usage: ['<main>…</main>'],
+      docs: 'https://example.com/#dashboard',
+    });
+    assert.equal(found.results.length, 1);
+  });
+
+  it("lists a pack's recipes, in --list --json without their markup", () => {
+    const dir = project();
+    assert.match(jen(['demo', '--list'], { cwd: dir }).stdout, /\nrecipes:\n {2}dashboard +pack @codejen\/pack-demo +a dashboard page with cards\n {4}jen demo:card\n/);
+    const [first] = JSON.parse(jen(['demo', '--list', '--json'], { cwd: dir }).stdout) as Array<{ pack: { recipes: unknown[] } }>;
+    assert.deepEqual(first.pack.recipes, [
+      {
+        name: 'dashboard',
+        description: 'a dashboard page with cards',
+        steps: [
+          { jen: 'jen demo:card', npx: 'npx --yes @codejen/jen demo:card' },
+          { jen: 'jen demo:sidebar --name=x', npx: 'npx --yes @codejen/jen demo:sidebar --name=x' },
+        ],
+        docs: 'https://example.com/#dashboard',
+      },
+    ]);
   });
 });

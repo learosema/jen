@@ -80,8 +80,9 @@ export type Action =
    * Tell the user something and change nothing, e.g. why a file was left out:
    * `{ note: '.reel is already here, nothing to add', file: 'css/layout.css' }`.
    * The plan shows it as `info:`, with `file` placed like any action path.
+   * `written: true` makes it a note about what an `add` of `file` writes: left out when that add is skipped.
    */
-  | { note: string; file?: string };
+  | { note: string; file?: string; written?: boolean };
 
 /** Where an insert goes: `before` or `after` a marker – the other one stays undefined, so `a.before` can still be read. */
 export type InsertAt = { before: string | RegExp | number; after?: undefined } | { after: string | RegExp; before?: undefined };
@@ -94,7 +95,7 @@ export type Placed =
   | { modify: string; pattern: RegExp; replace: string }
   | { append: string; text: string }
   | { delete: string }
-  | { note: string; file?: string }
+  | { note: string; file?: string; written?: true }
   /** `skip` is the file it was about, or `''` if there is none to name; `hint` if the note is a `Find`'s own `missing`, so nothing went wrong. */
   | { skip: string; note: string; hint?: true };
 
@@ -157,6 +158,20 @@ export interface Generator<Result extends Action[] | Promise<Action[]> = Action[
   actions(answers: Answers, helpers: Helpers, ctx: Context): Result;
 }
 
+/**
+ * A pack's named export `recipes`: generators that make something together, in order – for people and AIs
+ * reading `--list --json` or `--find`. `steps` are whole calls without `jen` (`web:card --dir=css`); `usage` is
+ * how the results fit together, like a generator's `usage`.
+ */
+export interface Recipe {
+  name: string;
+  description: string;
+  steps: string[];
+  usage?: string[];
+  /** A page that explains it step by step. */
+  docs?: string;
+}
+
 /** A generator whose actions may or may not be async. */
 export type AnyGenerator = Generator<Action[] | Promise<Action[]>>;
 
@@ -198,6 +213,18 @@ export const helpers: Helpers = {
 
 export function fail(message: string): never {
   throw new Error(message);
+}
+
+/** An error with a code and details for programs (`--json`): `missing_param`, `unknown_flag`, `bad_value`, `not_found`, `unknown_pack`. */
+export class JenError extends Error {
+  readonly code: string;
+  readonly details: Record<string, unknown>;
+
+  constructor(message: string, code: string, details: Record<string, unknown> = {}) {
+    super(message);
+    this.code = code;
+    this.details = details;
+  }
 }
 
 export const dim = (s: string): string => styleText('dim', s);
@@ -243,6 +270,9 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
   const steps: Step[] = [];
   const changes = new Map<string, string | Uint8Array | null>();
   const added = new Set<string>();
+  // notes about what an add writes (`written: true`), and the adds that were skipped
+  const aboutWritten = new Set<Step>();
+  const skippedAdds = new Set<string>();
   const read = async (f: string): Promise<string | null> => {
     const change = changes.get(f);
     if (change !== undefined) return typeof change === 'string' || change === null ? change : Buffer.from(change).toString('utf8');
@@ -255,7 +285,9 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
       continue;
     }
     if (!('add' in a || 'delete' in a || 'insert' in a || 'append' in a || 'modify' in a)) {
-      steps.push({ mark: 'info', file: a.file ? resolve(ROOT, a.file) : '', note: a.note });
+      const step: Step = { mark: 'info', file: a.file ? resolve(ROOT, a.file) : '', note: a.note };
+      if (a.written && a.file) aboutWritten.add(step);
+      steps.push(step);
       continue;
     }
 
@@ -269,6 +301,7 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
       const exists = (await read(file)) !== null;
       if (exists && !(a.force || force)) {
         steps.push({ mark: 'info', file, note: 'exists, skipped' });
+        skippedAdds.add(file);
         continue;
       }
       changes.set(file, 'bytes' in a ? a.bytes : a.template);
@@ -362,6 +395,15 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
     }
   }
 
+  for (const step of aboutWritten) if (skippedAdds.has(step.file)) steps.splice(steps.indexOf(step), 1);
+
+  // each skipped file says so on its own line; what --force would do, once
+  const skipped = skippedAdds.size;
+  if (skipped > 0) {
+    const what = skipped === 1 ? '1 file exists and was skipped – --force overwrites it' : `${skipped} files exist and were skipped – --force overwrites them`;
+    steps.push({ mark: 'info', file: '', note: what });
+  }
+
   // Only files jen creates (add) are reformatted; insert/modify already reuse
   // the surrounding file's own style, so they're left exactly as computed.
   for (const file of added) {
@@ -411,19 +453,42 @@ const MARK_STYLE = {
   warning: 'yellow',
 } as const;
 
-export function printPlan(steps: Step[]): void {
+/** What `--json` calls each mark. */
+const KIND = { '+': 'created', '~': 'changed', '!': 'overwritten', '-': 'deleted', info: 'info', warning: 'warning' } as const;
+
+export interface PlanItem {
+  kind: (typeof KIND)[keyof typeof KIND];
+  /** Relative to the current directory; absent for a note about no file. */
+  file?: string;
+  line?: number;
+  note?: string;
+}
+
+/** The plan as it's shown: files relative to the current directory, repeated info and warning lines once. */
+export function planItems(steps: Step[]): Array<PlanItem & { mark: Step['mark'] }> {
   const said = new Set<string>();
+  const items: Array<PlanItem & { mark: Step['mark'] }> = [];
   for (const s of steps) {
-    const file = s.file && (relative(process.cwd(), s.file) || '.');
+    const file = s.file ? relative(process.cwd(), s.file) || '.' : undefined;
     if (s.mark === 'info' || s.mark === 'warning') {
-      const text = [file, s.note].filter(Boolean).join(' ');
       // e.g. two inserts into the same missing file: once is enough
-      if (said.has(`${s.mark}:${text}`)) continue;
-      said.add(`${s.mark}:${text}`);
+      const key = `${s.mark}:${[file, s.note].filter(Boolean).join(' ')}`;
+      if (said.has(key)) continue;
+      said.add(key);
+    }
+    items.push({ mark: s.mark, kind: KIND[s.mark], ...(file && { file }), ...(s.line && { line: s.line }), ...(s.note && { note: s.note }) });
+  }
+  return items;
+}
+
+export function printPlan(steps: Step[]): void {
+  for (const s of planItems(steps)) {
+    if (s.mark === 'info' || s.mark === 'warning') {
+      const text = [s.file, s.note].filter(Boolean).join(' ');
       console.log(`  ${styleText(MARK_STYLE[s.mark], `${s.mark}:`)} ${s.mark === 'info' ? dim(text) : text}`);
       continue;
     }
     const note = s.note ? dim(`  ${s.note}`) : '';
-    console.log(`  ${styleText(MARK_STYLE[s.mark], s.mark)} ${file}${s.line ? `:${s.line}` : ''}${note}`);
+    console.log(`  ${styleText(MARK_STYLE[s.mark], s.mark)} ${s.file}${s.line ? `:${s.line}` : ''}${note}`);
   }
 }
