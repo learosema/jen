@@ -34,4 +34,4 @@ The starters (`cpp:app`, `cpp:lib`, `cpp:module`, `cpp:sdl3`, `cpp:sdl3-opengl`)
 
 ## License
 
-ISC © Lea Rosema
+ISC © Lea Rosema; the vendored glad loader CC0 and its `khrplatform.h` MIT © The Khronos Group – see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
