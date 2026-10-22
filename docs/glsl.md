@@ -16,7 +16,7 @@ toc:
       - { title: Not at all, id: install-npx }
   - title: Where files go
     links:
-      - { title: Files and the project root, id: where }
+      - { title: Project root, id: where }
   - title: Starters
     links:
       - { title: "glsl:webgl", id: glsl-webgl }
@@ -25,7 +25,7 @@ toc:
       - { title: "glsl:port", id: glsl-port }
   - title: Functions
     links:
-      - { title: How they get in, id: into }
+      - { title: Including, id: into }
       - { title: "glsl:noise", id: glsl-noise }
       - { title: "glsl:sdf", id: glsl-sdf }
       - { title: "glsl:raymarch", id: glsl-raymarch }
@@ -35,7 +35,7 @@ toc:
       - { title: "glsl:util", id: glsl-util }
   - title: Finally
     links:
-      - { title: Licenses and credits, id: credits }
+      - { title: Credits, id: credits }
 ---
 
 ## Install {#install}

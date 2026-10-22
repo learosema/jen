@@ -16,13 +16,13 @@ toc:
       - { title: Not at all, id: install-npx }
   - title: Running generators
     links:
-      - { title: How it runs, id: how }
+      - { title: Overview, id: how }
       - { title: Questions, id: questions }
       - { title: Any generator, id: generators }
   - title: JHipster
     links:
       - { title: "yeoman:jhipster", id: jhipster }
-      - { title: JDL and commands, id: jdl }
+      - { title: JDL, id: jdl }
   - title: Finally
     links:
       - { title: Credits, id: credits }

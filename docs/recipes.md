@@ -16,7 +16,7 @@ toc:
       - { title: Not at all, id: install-npx }
   - title: Where files go
     links:
-      - { title: Files and the project root, id: where }
+      - { title: Project root, id: where }
   - title: App starters
     links:
       - { title: "cpp:sdl3", id: cpp-sdl3 }
@@ -24,7 +24,7 @@ toc:
       - { title: "cpp:app", id: cpp-app }
       - { title: "cpp:lib", id: cpp-lib }
       - { title: "cpp:module", id: cpp-module }
-      - { title: Core library and markers, id: markers }
+      - { title: Markers, id: markers }
   - title: Classes and types
     links:
       - { title: "cpp:class", id: cpp-class }
@@ -39,7 +39,7 @@ toc:
       - { title: "cpp:pimpl", id: cpp-pimpl }
       - { title: "cpp:variant", id: cpp-variant }
       - { title: "--withTest", id: with-test }
-      - { title: "Virtual, variant or templates?", id: choosing }
+      - { title: Choosing, id: choosing }
   - title: Tooling
     links:
       - { title: "cpp:doctest", id: cpp-doctest }
@@ -61,7 +61,7 @@ toc:
       - { title: "cpp:embed", id: cpp-embed }
   - title: Finally
     links:
-      - { title: Putting it together, id: putting-it-together }
+      - { title: Full example, id: putting-it-together }
       - { title: C++ standard, id: cpp-standard }
 ---
 

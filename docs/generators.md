@@ -11,12 +11,13 @@ cta: { text: "Your first generator ↓", url: "#start" }
 toc:
   - title: Getting started
     links:
-      - { title: Your first generator, id: start }
+      - { title: First steps, id: start }
+      - { title: From existing files, id: like }
       - { title: A generator, id: generator }
   - title: Reference
     links:
       - { title: Params, id: params }
-      - { title: Examples and usage, id: examples }
+      - { title: Examples, id: examples }
       - { title: Actions, id: actions }
       - { title: EditorConfig, id: editorconfig }
       - { title: Helpers, id: helpers }
@@ -24,7 +25,7 @@ toc:
       - { title: Types, id: types }
   - title: Sharing
     links:
-      - { title: Where jen looks, id: lookup }
+      - { title: Lookup, id: lookup }
       - { title: Packs, id: packs }
       - { title: VS Code tasks, id: vscode }
   - title: Finally
@@ -41,6 +42,29 @@ jen generator --name=hello --location=project
 ```
 
 That writes `.jen/hello.mjs`. `jen hello --name=world` then writes `World.txt`. `--location=user` makes it available in every project.
+
+### Start from existing files {#like}
+
+Most generators make what a project already has once more, under a new name. Point jen at the files, and it drafts the generator for you:
+
+```sh
+jen generator --name=route --like=src/routes/users.js,test/routes/users.test.js
+```
+
+```
+  + .jen/route.mjs
+  info: .jen/route.mjs reproduces src/routes/users.js, test/routes/users.test.js – replaced users 10×; check where the name shouldn't change
+  info: src/routes/index.js mentions users too (lines 2 and 6) – add inserts for it (docs: Actions)
+✓ 1 written
+```
+
+`jen route --name=users` writes the two files again, byte for byte; `jen route --name=order-items` writes `src/routes/order-items.js` with `orderItems` and `/order-items` in it. From there, refine the draft: more params, inserts, wording.
+
+- **The word** that varies is `--word`, or else the first file's name without its extensions: `users` from `users.test.js`, `UserCard` from `UserCard.tsx`. Every spelling the [helpers](#helpers) make is replaced – `users`, `Users`, `USERS`; for two words also `userCard`, `user-card`, `user_card`, `USER_CARD` and `user card`. Only whole names: `usersCount` and `superusers` stay, and the plan lists them.
+- **Plurals** are different words: `user` and `users` don't replace each other.
+- **Paths** are from the project root (`/src/routes/${kebab(name)}.js`), so the files land where the examples are, wherever you run jen.
+- **Other files** that mention the word, like an index file registering every route, are only named, not changed: add an [`insert`](#actions) for each.
+- Directories, binary files, files over 256 KB and files outside the project are refused before anything is written.
 
 ### A generator {#generator}
 

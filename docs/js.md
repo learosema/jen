@@ -16,7 +16,7 @@ toc:
       - { title: Not at all, id: install-npx }
   - title: Output styles
     links:
-      - { title: "TypeScript, JSDoc or plain", id: styles }
+      - { title: "TS or JSDoc", id: styles }
   - title: Projects
     links:
       - { title: "js:vite", id: js-vite }
@@ -38,7 +38,7 @@ toc:
       - { title: "js:brand", id: js-brand }
       - { title: "js:error", id: js-error }
       - { title: "js:emitter", id: js-emitter }
-  - title: Modules and tests
+  - title: Modules
     links:
       - { title: "js:module", id: js-module }
       - { title: "js:test", id: js-test }

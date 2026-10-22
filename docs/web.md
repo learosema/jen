@@ -16,9 +16,9 @@ toc:
       - { title: Not at all, id: install-npx }
   - title: Where files go
     links:
-      - { title: The entry point, id: where }
-      - { title: One file for several, id: into }
-      - { title: "Your own: web:import", id: web-import }
+      - { title: Entry point, id: where }
+      - { title: "--into", id: into }
+      - { title: "web:import", id: web-import }
   - title: Starter
     links:
       - { title: "web:cube", id: web-cube }
@@ -45,7 +45,7 @@ toc:
       - { title: "web:table", id: web-table }
       - { title: "web:list", id: web-list }
       - { title: "web:field", id: web-field }
-  - title: Pages and platform
+  - title: Platform
     links:
       - { title: "web:page", id: web-page }
       - { title: "web:manifest", id: web-manifest }
