@@ -416,6 +416,8 @@ After the [ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/).
 
 #### `web:roving` {#web-roving}
 
+Hands the arrow keys to the browser's `focusgroup` where it has one.
+
 {% include terminal.html id="js_roving" %}
 
 {% include web-preview.html base="/js/" src="roving.html" title="Roving tabindex" height="21rem" dual=true caption="Click a control, or Tab into a group, then use the arrow keys" %}
@@ -542,4 +544,5 @@ Each file credits its sources:
 - **[GOV.UK Design System](https://design-system.service.gov.uk/components/text-input/)** by the Government Digital Service: the label, hint and error pattern of `web:field`
 - **[The Quest for the Perfect Dark Mode](https://www.joshwcomeau.com/react/dark-mode/)** by Josh W. Comeau: applying the stored theme before the first paint in `web:theme-toggle`
 - **[ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/)** by the W3C WAI: the [keyboard interface practices](https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/), [menubar](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/) and [grid](https://www.w3.org/WAI/ARIA/apg/patterns/grid/) patterns
+- **[Detecting focusgroup](https://adactio.com/journal/22445)** by Jeremy Keith: feature-detecting `focusgroup` by its property in `web:roving`
 - **[create-vite](https://github.com/vitejs/vite/tree/main/packages/create-vite)** by the Vite team: run by `web:vite`, and the layout of `web:esbuild`

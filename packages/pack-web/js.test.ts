@@ -177,6 +177,16 @@ describe('keyboard patterns', () => {
     }
   });
 
+  it('web:roving hands the arrow keys to a native focusgroup, detected by its property, and keeps selecting itself', () => {
+    for (const types of ['ts', 'jsdoc'] as const) {
+      const source = styled('roving-tabindex', types);
+      assert.match(source, /'focusGroup' in HTMLElement\.prototype/);
+      assert.match(source, /adactio\.com\/journal\/22445/, 'credits Jeremy Keith');
+      assert.match(source, /if \(!native\) \{\n\s+root\.addEventListener\(\n\s+'keydown'/);
+      assert.match(source, /root\.setAttribute\('focusgroup'/);
+    }
+  });
+
   it('keep the TypeScript and JSDoc templates in step', () => {
     const exported = (text: string) => [...text.matchAll(/^export (?:function|const) (\w+)/gm)].map((m) => m[1]);
     for (const file of Object.values(FILES)) assert.deepEqual(exported(styled(file, 'jsdoc')), exported(styled(file, 'ts')), file);
