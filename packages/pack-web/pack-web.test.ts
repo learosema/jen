@@ -416,6 +416,16 @@ describe('web:check', () => {
     assert.deepEqual(check(base), ['checked 1 page and 3 stylesheets – nothing to fix']);
   });
 
+  it('warns about placeholder content a layout left, but not about the nav links a real site may share', () => {
+    const page = run('page', { name: 'index', layout: 'dashboard' }, context(base)).flatMap((a) => ('template' in a ? [a.template] : []))[0];
+    const left = (html: string) => warnings({ ...base, 'index.html': html }).filter((w) => w.includes('placeholder'));
+    assert.deepEqual(left(page), [
+      '/index.html still has placeholder content from web:page\'s dashboard layout: the site name, the sidebar card ("Filters"), the 4 stat cards, the activity list – replace it with your own',
+    ]);
+    const filled = page.replace('<b>Acme</b>', '<b>Tealboard</b>').replace('<p>Last 30 days</p>', '<p>This week</p>').replace('12,480', '12,345').replace('Ada signed up', 'Sam signed up');
+    assert.deepEqual(left(filled), []);
+  });
+
   it('warns about classes no stylesheet defines, with a close name or the generator that writes them', () => {
     const page = '<body class="flw"><div class="sidebar card__media"><p class="hero bg-primary">x</p></div><style>.local { color: red; }</style><b class="local"></b></body>';
     assert.deepEqual(warnings({ ...base, 'index.html': `<link rel="stylesheet" href="css/styles.css">${page}` }), [
@@ -983,13 +993,37 @@ describe('web:page', () => {
     const html = template(actions, 'index.html');
     assert.match(html, /\n {2}<body class="flow" style="padding-block: var\(--space-s-m\)">\n {4}<header class="wrapper repel">\n {6}<a href="index.html"><b>Shop<\/b><\/a>/);
     assert.doesNotMatch(html, /href="\//, 'links that work from file://');
-    assert.match(html, /\n {6}<main id="main" class="flow">\n {8}<h1>Stats &amp; more<\/h1>/);
+    assert.match(html, /\n {6}<main id="main" class="flow">\n {8}<div class="repel">\n {10}<h1>Stats &amp; more<\/h1>\n {10}<button class="button" type="button">/);
     assert.match(html, /<title>Stats &amp; more – Shop<\/title>/);
     assert.match(html, /<\/main>\n {4}<\/div>\n {2}<\/body>\n<\/html>/);
-    assert.ok(notes(actions).includes('index.html has placeholder content from the dashboard layout – replace the nav links, the sidebar card ("Filters"), the 4 stat cards; then jen web:check finds classes no stylesheet defines'));
+    assert.ok(notes(actions).includes('index.html has placeholder content from the dashboard layout – replace the nav links, the sidebar card ("Filters"), the 4 stat cards and the activity list; then jen web:check finds what\'s left and classes no stylesheet defines'));
     const unnamed = run('page', { name: 'index', layout: 'dashboard' }, context(files));
     assert.match(template(unnamed, 'index.html'), /<b>Acme<\/b>/, 'a placeholder without --site');
     assert.ok(notes(unnamed).some((n) => n.includes('replace the site name (or use --site), the nav links')));
+  });
+
+  it('--like takes another page\'s body, with <main> down to the <h1> and the nav\'s current link moved', () => {
+    const files = { 'css/styles.css': '/* jen:imports */' };
+    const index = template(run('page', { name: 'index', title: 'Dashboard', site: 'Tealboard & Co', layout: 'dashboard' }, context(files)), 'index.html');
+    const actions = run('page', { name: 'settings', like: 'index.html' }, context({ ...files, 'index.html': index }));
+    const html = template(actions, 'settings.html');
+    assert.match(html, /<title>Settings – Tealboard &amp; Co<\/title>/, 'the site name from its title');
+    assert.match(html, /<a href="index.html"><b>Tealboard &amp; Co<\/b><\/a>/);
+    assert.match(html, /<li><a href="index.html">Overview<\/a><\/li>/);
+    assert.match(html, /<li><a href="settings.html" aria-current="page">Settings<\/a><\/li>/);
+    assert.match(html, /\n {6}<aside>\n {8}<div class="card">/, 'the sidebar, indented like the page');
+    assert.match(html, /\n {6}<main id="main" class="flow">\n {8}<h1>Settings<\/h1>\n {6}<\/main>\n {4}<\/div>\n {2}<\/body>/);
+    assert.doesNotMatch(html, /stat__value|Recent activity/);
+    assert.ok(notes(actions).includes('settings.html has index.html\'s header, nav and sidebar; <main> holds just the <h1> – add your content'));
+    const help = notes(run('page', { name: 'help', like: 'index.html', site: 'Other' }, context({ ...files, 'index.html': index })));
+    assert.ok(help.some((n) => n.endsWith('no nav link points to help.html yet – add one on both pages')));
+  });
+
+  it('--like fails on a page that isn\'t there, has no <main>, or with --layout', () => {
+    const files = { 'index.html': '<body>\n  <p>No main</p>\n</body>' };
+    assert.throws(() => run('page', { name: 'a', like: 'nope.html' }, context(files)), /web:page --like: there's no nope.html/);
+    assert.throws(() => run('page', { name: 'a', like: 'index.html' }, context(files)), /index.html has no <body> with a <main> to take/);
+    assert.throws(() => run('page', { name: 'a', like: 'index.html', layout: 'dashboard' }, context(files)), /use one of them/);
   });
 
   it('says when there is no stylesheet to link', () => {
@@ -1406,15 +1440,15 @@ describe('web:check --render', () => {
     const dir = mkdtempSync(join(tmpdir(), 'jen-render-'));
     t.after(() => rmSync(dir, { recursive: true, force: true }));
     const files: Record<string, string> = {};
-    for (const step of [...recipes[0].steps.slice(0, -1), 'web:list --dir=css']) {
+    for (const step of recipes[0].steps.slice(0, -1)) {
       const [name, ...flags] = step.replace(/^web:/, '').split(' ');
       const answers = Object.fromEntries(flags.filter((f) => !f.startsWith('--dir=')).map((f) => f.slice(2).split('=')));
       for (const a of run(name, answers, context(files, 'css'))) if ('template' in a) files[posix.join('css', a.add)] = a.template;
     }
     files['css/styles.css'] = Object.keys(files).filter((f) => f !== 'css/styles.css').map((f) => `@import "./${f.slice(4)}";\n`).join('') + '/* jen:imports */\n';
     const dashboard = template(run('page', { name: 'index', title: 'Dashboard', layout: 'dashboard' }, context(files)), 'index.html');
-    // a divided list's rows meet at their divider on purpose
-    files['index.html'] = dashboard.replace('</main>', '<ul class="list list--divided" role="list"><li>One</li><li>Two</li><li>Three</li></ul>\n</main>');
+    // its activity list is divided: the rows meet at their divider on purpose
+    files['index.html'] = dashboard;
     files['bad.html'] = dashboard
       .replace(/<body class="flow"[^>]*>/, '<body>')
       .replace('<main id="main" class="flow">', '<main id="main"><p style="color: #bbb">Pale</p><div style="inline-size: 60rem">Wide</div>')
@@ -1425,7 +1459,7 @@ describe('web:check --render', () => {
     }
     const found = await renderCheck(files, dir);
     assert.deepEqual(
-      found.filter((n) => n.startsWith('warning: /index.html')),
+      found.filter((n) => n.startsWith('warning: /index.html') && !n.includes('placeholder content')),
       [],
       `the dashboard layout is fine:\n${found.join('\n')}`,
     );

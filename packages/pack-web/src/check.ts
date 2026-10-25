@@ -4,6 +4,7 @@ import type { Action, AnyGenerator, Context } from '@codejen/jen';
 import { BLOCK_NAMES } from './blocks.ts';
 import { NAMES as COMPOSITIONS } from './compositions.ts';
 import { findEntry, usesTailwind } from './entry.ts';
+import { PLACEHOLDERS, placeholdersIn } from './page.ts';
 import { claimsFor, rolesFor } from './palette.ts';
 import { SCHEMES, WIDTHS, findChrome, renderPages, where } from './render.ts';
 import { tokensFrom } from './utilities.ts';
@@ -165,6 +166,15 @@ export function checkActions(ctx: Context, rendered: Action[] = [], how = ''): A
         const hint = near ? ` – did you mean .${near}?` : writer ? ` – jen ${writer} writes it` : '';
         warn(page, `uses .${cls}, which no stylesheet defines${hint}`);
       }
+    }
+  }
+
+  // ─── Placeholder content a layout left ────────────────────────────────────
+  for (const page of pages) {
+    const html = ctx.read(page) ?? '';
+    for (const layout of Object.keys(PLACEHOLDERS)) {
+      const left = placeholdersIn(html, layout);
+      if (left.length > 0) warn(page, `still has placeholder content from web:page's ${layout} layout: ${left.join(', ')} – replace it with your own`);
     }
   }
 

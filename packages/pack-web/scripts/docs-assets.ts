@@ -235,7 +235,7 @@ ${[5, 4, 3, 2, 1, 0, -1, -2].map((n) => `<p class="step-${n}">step ${n}</p>`).jo
   // the dashboard recipe (recipes.ts, docs/web.md#dashboard): its <body> as a .flow
   'dashboard.html': page(
     'Dashboard',
-    DASHBOARD_MARKUP.replace(/^<body[^>]*>/, '<div class="flow">').replace(/<\/body>$/, '</div>').replaceAll('href="/', 'href="#'),
+    DASHBOARD_MARKUP.replace(/^<body[^>]*>/, '<div class="flow">').replace(/<\/body>$/, '</div>').replace(/href="[\w-]+\.html"/g, 'href="#"'),
   ),
   'nav.html': page(
     'Navigation',
