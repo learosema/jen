@@ -22,3 +22,14 @@ const pack: Pack = {
 
 export default pack;
 
+/** Generators that moved to pack-web, so `jen js:vite` says where they went. */
+export const moved: Record<string, string> = {
+  vite: 'web:vite',
+  esbuild: 'web:esbuild',
+  element: 'web:element',
+  roving: 'web:roving',
+  menu: 'web:menu',
+  hotkeys: 'web:hotkeys',
+  grid: 'web:grid-navigation',
+};
+
