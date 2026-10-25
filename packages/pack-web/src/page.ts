@@ -69,7 +69,7 @@ export const PLACEHOLDERS: Record<string, Array<[what: string, snippet: string |
   dashboard: [
     ['the site name', '<b>Acme</b>'],
     ['the nav links', null],
-    ['the sidebar card ("Filters")', '<p>Last 30 days</p>'],
+    ['the sidebar card', '<p>Last 30 days</p>'],
     ['the 4 stat cards', '<p class="stat__value">12,480</p>'],
     ['the activity list', '<li>Ada signed up – 2 min ago</li>'],
   ],
@@ -78,9 +78,12 @@ export const PLACEHOLDERS: Record<string, Array<[what: string, snippet: string |
 /** A layout's markup, its <body> included; `site` and `heading` are HTML. */
 export const layoutMarkup = (layout: string, site: string, heading: string): string => fill(template(`layouts/${layout}.html`), { site, heading }).trimEnd();
 
+/** A placeholder with its text, so it's easy to find: `the sidebar card ("Last 30 days")`. */
+const quoted = (what: string, snippet: string | null): string => (snippet ? `${what} ("${snippet.replaceAll(/<[^>]*>/g, '')}")` : what);
+
 /** What of `layout`'s placeholder content `html` still has, by the snippets. */
 export const placeholdersIn = (html: string, layout: string): string[] =>
-  (PLACEHOLDERS[layout] ?? []).flatMap(([what, snippet]) => (snippet && html.includes(snippet) ? [what] : []));
+  (PLACEHOLDERS[layout] ?? []).flatMap(([what, snippet]) => (snippet && html.includes(snippet) ? [quoted(what, snippet)] : []));
 
 /**
  * `html`'s <body>, dedented to start at column 0, with <main> holding just the `heading` and
@@ -136,7 +139,7 @@ export function pageHtml(file: string, o: PageOptions): string {
 
 /** All of a layout's placeholder content – the site name only without --site. */
 const placeholders = (layout: string, site: boolean): string[] =>
-  (PLACEHOLDERS[layout] ?? []).flatMap(([what]) => (what !== 'the site name' ? [what] : site ? [] : ['the site name (or use --site)']));
+  (PLACEHOLDERS[layout] ?? []).flatMap(([what, snippet]) => (what !== 'the site name' ? [quoted(what, snippet)] : site ? [] : ['the site name (or use --site)']));
 
 const pageGenerator: Generator = {
   description: 'create an HTML page (after matuzo.at\'s boilerplate), linked to the stylesheet, palette and icons',
