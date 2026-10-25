@@ -58,6 +58,9 @@ export interface PageOptions {
 /** Page layouts (templates/layouts/): `none` is the bare <main> with its <h1>. */
 export const LAYOUTS = ['none', 'dashboard'];
 
+/** What a layout's placeholder content is, by element. */
+const PLACEHOLDERS: Record<string, string> = { dashboard: 'the nav links, the sidebar card ("Filters"), the 4 stat cards' };
+
 /** A layout's markup, its <body> included; `site` and `heading` are HTML. */
 export const layoutMarkup = (layout: string, site: string, heading: string): string => fill(template(`layouts/${layout}.html`), { site, heading }).trimEnd();
 
@@ -113,7 +116,7 @@ const pageGenerator: Generator = {
     '<main id="main"> holds just the <h1>; --layout=dashboard writes a whole dashboard (its markup: jen --find dashboard)',
     'a layout of your own, from compositions and blocks:',
     'body:    <body class="flow"> puts space between the header and what follows  – jen web:flow --help',
-    'header:  <header class="wrapper repel"><a href="/">…</a><nav>…</nav></header>  – jen web:repel --help',
+    'header:  <header class="wrapper repel"><a href="index.html">…</a><nav>…</nav></header>  – jen web:repel --help',
     'sidebar: <div class="wrapper sidebar"><aside>…</aside><main id="main" class="flow">…</main></div>  – jen web:sidebar --help',
     'grid:    <div class="grid" style="--grid-min-item-size: 10rem"><article class="card">…</article> …</div>  – jen web:grid --help, jen web:card --help',
     'wrapper: class="wrapper" centers each part with room at the sides  – jen web:wrapper --help',
@@ -141,11 +144,17 @@ const pageGenerator: Generator = {
     const linked = [...(stylesheet ? [stylesheet] : []), ...iconFiles(ctx, ICONS.map(([icon]) => icon))].map((f) => posix.relative(ctx.cwd, f));
     return [
       { add: `${name}.html`, template: html },
-      ...(linked.length ? [{ note: `links ${list(linked)}`, file: `${name}.html`, written: true }] : []),
+      ...(linked.length ? [{ note: `links ${list(linked)} by relative paths – works from file://`, file: `${name}.html`, written: true }] : []),
       ...(stylesheet ? [] : [{ note: 'no stylesheet to link yet – run jen web:cube (or web:base) first, then make the page again with --force' }]),
       ...(answers.layout === 'none'
         ? []
-        : [{ note: `has placeholder content from the ${answers.layout} layout to replace – then jen web:check finds classes no stylesheet defines`, file: `${name}.html`, written: true as const }]),
+        : [
+            {
+              note: `has placeholder content from the ${answers.layout} layout – replace ${answers.site ? '' : 'the site name (or use --site), '}${PLACEHOLDERS[String(answers.layout)]}; then jen web:check finds classes no stylesheet defines`,
+              file: `${name}.html`,
+              written: true as const,
+            },
+          ]),
     ];
   },
 };

@@ -482,12 +482,12 @@ jen web:page --name=index --title=Dashboard --site=Acme --layout=dashboard
 ```html
 <body class="flow" style="padding-block: var(--space-s-m)">
   <header class="wrapper repel">
-    <a href="/"><b>Acme</b></a>
+    <a href="index.html"><b>Acme</b></a>
     <nav class="nav" aria-label="Main">
       <ul role="list">
-        <li><a href="/" aria-current="page">Overview</a></li>
-        <li><a href="/reports">Reports</a></li>
-        <li><a href="/settings">Settings</a></li>
+        <li><a href="index.html" aria-current="page">Overview</a></li>
+        <li><a href="reports.html">Reports</a></li>
+        <li><a href="settings.html">Settings</a></li>
       </ul>
     </nav>
   </header>

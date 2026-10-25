@@ -73,6 +73,8 @@ const added = (actions: Action[]) => actions.flatMap((a) => ('add' in a ? [a.add
 const inserts = (actions: Action[]) => actions.flatMap((a) => ('insert' in a ? [a] : []));
 /** The plan's `info:` lines: `file note`. */
 const notes = (actions: Action[]) => actions.flatMap((a) => ('note' in a ? [`${a.file ?? ''} ${a.note}`.trim()] : []));
+/** The notes without the `guaranteed:` line that palette, fluid and cube end with. */
+const plainNotes = (actions: Action[]) => notes(actions).filter((n) => !n.startsWith('guaranteed: '));
 const lines = (actions: Action[]) => inserts(actions).map((a) => ('line' in a ? a.line : ''));
 const template = (actions: Action[], file: string) => {
   const a = actions.find((x) => 'add' in x && x.add === file);
@@ -490,16 +492,26 @@ describe('recipes', () => {
 
 describe('brand color notes', () => {
   it('say which shade the color is closest to, which roles use it, and what --contrast=aa changes', () => {
-    assert.deepEqual(notes(run('palette', { primary: '#0d9488' }, context({}))), [
+    assert.deepEqual(plainNotes(run('palette', { primary: '#0d9488' }, context({}))), [
       '#0d9488 is closest to --color-primary-3; buttons and links use a darker color between -4 and -5 in light mode, between -3 and -4 with --contrast=aa',
     ]);
     assert.ok(notes(run('cube', { primary: '#0d9488' }, context({}))).some((n) => n.startsWith('#0d9488 is closest to --color-primary-3')));
   });
 
   it('stay quiet when the color is the buttons\' shade, for a bare hue, and without a palette', () => {
-    assert.deepEqual(notes(run('palette', { primary: '#5b5bd6', contrast: 'aa' }, context({}))), []);
-    assert.deepEqual(notes(run('palette', { primary: '264' }, context({}))), []);
+    assert.deepEqual(plainNotes(run('palette', { primary: '#5b5bd6', contrast: 'aa' }, context({}))), []);
+    assert.deepEqual(plainNotes(run('palette', { primary: '264' }, context({}))), []);
     assert.ok(!notes(run('cube', {}, context({}))).some((n) => n.includes('closest')));
+  });
+
+  it('end with what the files guarantee, at the level asked for', () => {
+    const guarantee = (generator: string, answers: Record<string, string>) => notes(run(generator, answers, context({}))).filter((n) => n.startsWith('guaranteed: '));
+    assert.deepEqual(guarantee('palette', { primary: '#5b5bd6', contrast: 'aa' }), [
+      'guaranteed: WCAG AA for the role tokens in light and dark mode (light-dark()): text, links and buttons 4.5:1, -large 3:1, borders and focus 3:1 – measured before writing',
+    ]);
+    assert.deepEqual(guarantee('fluid', {}), ['guaranteed: type and space grow with the viewport via clamp(), in rem – no px']);
+    assert.match(guarantee('cube', { primary: '#5b5bd6' })[0], /^guaranteed: WCAG AAA .*7:1.*; type and space grow .*; no px in any file$/);
+    assert.doesNotMatch(guarantee('cube', {})[0], /WCAG/, 'no palette, no contrast claim');
   });
 
   it('only suggest --contrast=aa when it gets closer', () => {
@@ -748,7 +760,7 @@ describe('web:cube', () => {
     assert.ok(!added(actions).includes('styles.css'));
     assert.ok(!added(actions).includes('compositions/grid.css'));
     assert.equal(inserts(actions).length, added(actions).length);
-    assert.deepEqual(notes(actions), ['/layout.css .grid is already here, nothing to add']);
+    assert.deepEqual(plainNotes(actions), ['/layout.css .grid is already here, nothing to add']);
   });
 
   describe('--into', () => {
@@ -782,7 +794,7 @@ describe('web:cube', () => {
       const actions = run('cube', { into: '/all.css' }, context({ 'styles.css': '/* jen:imports */', 'mine.css': '.grid {}' }));
       assert.deepEqual(added(actions), ['all.css']);
       assert.deepEqual(lines(actions), ['@import "./all.css";']);
-      assert.deepEqual(notes(actions), ['/mine.css .grid is already here, nothing to add']);
+      assert.deepEqual(plainNotes(actions), ['/mine.css .grid is already here, nothing to add']);
     });
 
     it('refuses Tailwind projects', () => {
@@ -959,8 +971,8 @@ describe('web:page', () => {
   });
 
   it('says what it linked', () => {
-    assert.deepEqual(notes(run('page', { name: 'About' }, context(project, 'pages'))), ['about.html links ../css/styles.css and ../public/favicon.svg']);
-    assert.deepEqual(notes(run('page', { name: 'index' }, context({ 'css/styles.css': '/* jen:imports */' }))), ['index.html links css/styles.css']);
+    assert.deepEqual(notes(run('page', { name: 'About' }, context(project, 'pages'))), ['about.html links ../css/styles.css and ../public/favicon.svg by relative paths – works from file://']);
+    assert.deepEqual(notes(run('page', { name: 'index' }, context({ 'css/styles.css': '/* jen:imports */' }))), ['index.html links css/styles.css by relative paths – works from file://']);
   });
 
   it('writes a layout into the body: the dashboard with --site and --title, or just the <h1>', () => {
@@ -969,17 +981,20 @@ describe('web:page', () => {
     assert.match(plain, /\n {2}<body>\n {4}<main id="main">\n {6}<h1>Index<\/h1>\n {4}<\/main>\n {2}<\/body>/);
     const actions = run('page', { name: 'index', title: 'Stats & more', site: 'Shop', layout: 'dashboard' }, context(files));
     const html = template(actions, 'index.html');
-    assert.match(html, /\n {2}<body class="flow" style="padding-block: var\(--space-s-m\)">\n {4}<header class="wrapper repel">\n {6}<a href="\/"><b>Shop<\/b><\/a>/);
+    assert.match(html, /\n {2}<body class="flow" style="padding-block: var\(--space-s-m\)">\n {4}<header class="wrapper repel">\n {6}<a href="index.html"><b>Shop<\/b><\/a>/);
+    assert.doesNotMatch(html, /href="\//, 'links that work from file://');
     assert.match(html, /\n {6}<main id="main" class="flow">\n {8}<h1>Stats &amp; more<\/h1>/);
     assert.match(html, /<title>Stats &amp; more – Shop<\/title>/);
     assert.match(html, /<\/main>\n {4}<\/div>\n {2}<\/body>\n<\/html>/);
-    assert.ok(notes(actions).includes('index.html has placeholder content from the dashboard layout to replace – then jen web:check finds classes no stylesheet defines'));
-    assert.match(template(run('page', { name: 'index', layout: 'dashboard' }, context(files)), 'index.html'), /<b>Acme<\/b>/, 'a placeholder without --site');
+    assert.ok(notes(actions).includes('index.html has placeholder content from the dashboard layout – replace the nav links, the sidebar card ("Filters"), the 4 stat cards; then jen web:check finds classes no stylesheet defines'));
+    const unnamed = run('page', { name: 'index', layout: 'dashboard' }, context(files));
+    assert.match(template(unnamed, 'index.html'), /<b>Acme<\/b>/, 'a placeholder without --site');
+    assert.ok(notes(unnamed).some((n) => n.includes('replace the site name (or use --site), the nav links')));
   });
 
   it('says when there is no stylesheet to link', () => {
     assert.deepEqual(notes(run('page', { name: 'index' }, context({ 'favicon.ico': '' }))), [
-      'index.html links favicon.ico',
+      'index.html links favicon.ico by relative paths – works from file://',
       'no stylesheet to link yet – run jen web:cube (or web:base) first, then make the page again with --force',
     ]);
   });

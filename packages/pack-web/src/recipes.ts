@@ -15,7 +15,7 @@ export const recipes: Recipe[] = [
       'web:stat --dir=css',
       'web:page --name=index --title=Dashboard --site=Acme --layout=dashboard',
     ],
-    usage: ['web:page --layout=dashboard writes this <body>, with --site in the header and --title as the <h1>; then replace the placeholder content:', ...DASHBOARD_MARKUP.split('\n')],
+    usage: ['web:page --layout=dashboard writes this <body>, with --site in the header and --title as the <h1> – all the blocks\' markup is in it, no need for their --help; then replace the placeholder content:', ...DASHBOARD_MARKUP.split('\n')],
     docs: 'https://learosema.github.io/jen/web.html#dashboard',
   },
 ];

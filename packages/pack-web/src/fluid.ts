@@ -111,6 +111,9 @@ export const FLUID_PARAMS = {
   tailwind: { default: false, description: 'also map the scales into Tailwind\'s text-* and spacing' },
 };
 
+/** What the scales guarantee. */
+export const FLUID_GUARANTEE = 'type and space grow with the viewport via clamp(), in rem';
+
 const fluidGenerator: Generator = {
   description: 'create fluid type and space scales (Utopia-style clamp() tokens)',
   params: FLUID_PARAMS,
@@ -118,6 +121,7 @@ const fluidGenerator: Generator = {
   actions: (answers, _helpers, ctx) => [
     { add: FILE, template: fluidCss(answers, Boolean(answers.tailwind) || usesTailwind(ctx)) },
     ...importActions(ctx, [FILE]),
+    { note: `guaranteed: ${FLUID_GUARANTEE} – no px` },
   ],
 };
 

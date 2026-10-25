@@ -236,6 +236,12 @@ export function brandNotes(answers: Answers): Action[] {
   return notes;
 }
 
+/** What the palette's files guarantee, so nobody has to measure them again. */
+export const paletteGuarantee = (answers: Answers): string => {
+  const level = String(answers.contrast) as Level;
+  return `WCAG ${level.toUpperCase()} for the role tokens in light and dark mode (light-dark()): text, links and buttons ${ratio(LEVEL_RATIO[level])}, -large ${ratio(LARGE_RATIO[level])}, borders and focus 3:1`;
+};
+
 /** Measures every shade distance, across colors too; fails on any miss. */
 export function verifyShades(groups: Group[], generator = 'web:palette'): void {
   for (const a of groups) {
@@ -409,6 +415,7 @@ const paletteGenerator: Generator = {
     { add: FILE, template: paletteCss(answers, Boolean(answers.tailwind) || usesTailwind(ctx)) },
     ...importActions(ctx, [FILE]),
     ...brandNotes(answers),
+    { note: `guaranteed: ${paletteGuarantee(answers)} – measured before writing` },
   ],
 };
 

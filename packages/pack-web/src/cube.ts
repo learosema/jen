@@ -6,8 +6,8 @@ import { buttonCss } from './button.ts';
 import { fail } from './common.ts';
 import { NAMES, compositionItem } from './compositions.ts';
 import { usesTailwind, wireEntry } from './entry.ts';
-import { FLUID_PARAMS, fluidCss } from './fluid.ts';
-import { PALETTE_PARAMS, brandNotes, groupsFor, paletteCss } from './palette.ts';
+import { FLUID_GUARANTEE, FLUID_PARAMS, fluidCss } from './fluid.ts';
+import { PALETTE_PARAMS, brandNotes, groupsFor, paletteCss, paletteGuarantee } from './palette.ts';
 import { INTO_PARAMS, bulkActions, newFiles, unlayer } from './single.ts';
 import type { Item } from './single.ts';
 import { allItems, tokensFrom } from './utilities.ts';
@@ -36,6 +36,7 @@ const cubeGenerator: Generator = {
     const fluid = fluidCss(answers, tailwind);
     const button = palette ? buttonCss(groupsFor(answers).map((g) => g.name)) : null;
     const utilities = tailwind ? [] : allItems(tokensFrom(palette, fluid));
+    const guarantee = { note: `guaranteed: ${[...(palette ? [paletteGuarantee(answers)] : []), FLUID_GUARANTEE, 'no px in any file'].join('; ')}` };
     if (answers.into) {
       if (tailwind) fail('web:cube --into isn\'t for Tailwind projects – Tailwind needs its layers');
       // without layers, source order is the cascade: utilities last, so they win over a block
@@ -48,7 +49,7 @@ const cubeGenerator: Generator = {
         ...(button ? [layered('button.css', button, '.button')] : []),
         ...utilities,
       ];
-      return [...bulkActions(ctx, items, answers.into, false, true), ...(palette ? brandNotes(answers) : [])];
+      return [...bulkActions(ctx, items, answers.into, false, true), ...(palette ? brandNotes(answers) : []), guarantee];
     }
     const compositions = newFiles(ctx, NAMES.map(compositionItem));
     const utilityFiles = newFiles(ctx, utilities);
@@ -62,7 +63,7 @@ const cubeGenerator: Generator = {
       ...utilityFiles.files,
     ];
     const buttonNote = button ? [{ note: 'has the buttons – web:button isn\'t needed', file: 'button.css', written: true as const }] : [];
-    return [...wireEntry(ctx, files, tailwind), ...compositions.notes, ...utilityFiles.notes, ...buttonNote, ...(palette ? brandNotes(answers) : [])];
+    return [...wireEntry(ctx, files, tailwind), ...compositions.notes, ...utilityFiles.notes, ...buttonNote, ...(palette ? brandNotes(answers) : []), guarantee];
   },
 };
 
