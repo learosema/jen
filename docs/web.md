@@ -18,7 +18,6 @@ toc:
     links:
       - { title: Entry point, id: where }
       - { title: "--into", id: into }
-      - { title: "web:import", id: web-import }
   - title: Starter
     links:
       - { title: "web:cube", id: web-cube }
@@ -102,11 +101,9 @@ One generator, one file, `@import`ed into `styles.css` (from `web:base` or `web:
 
 {% include terminal.html id="web_into" %}
 
-### Your own stylesheet: `web:import` {#web-import}
+### Your own stylesheet {#web-import}
 
-{% include terminal.html id="web_import" %}
-
-{% include params.html generator="web:import" %}
+`@import "./dashboard.css";` in `styles.css`, before `/* jen:imports */` – [`web:check`](#web-check) names a stylesheet nothing imports.
 
 ## Starter {#starter}
 

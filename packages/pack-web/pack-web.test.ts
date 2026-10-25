@@ -380,28 +380,6 @@ describe('blocks for app UIs', () => {
   });
 });
 
-describe('web:import', () => {
-  const project = { 'css/styles.css': '/* jen:imports */' };
-
-  it('starts the stylesheet if it\'s missing, and imports it relative to the entry point', () => {
-    const actions = run('import', { file: '/css/own/dashboard.css' }, context(project));
-    assert.deepEqual(added(actions), ['/css/own/dashboard.css']);
-    assert.deepEqual(lines(actions), ['@import "./own/dashboard.css";']);
-    assert.deepEqual(notes(actions), [], 'you named the place: no --dir hint');
-  });
-
-  it('never overwrites a stylesheet that exists', () => {
-    const actions = run('import', { file: '/css/own.css' }, context({ ...project, 'css/own.css': '.x {}' }, 'css'));
-    assert.deepEqual(added(actions), []);
-    assert.deepEqual(lines(actions), ['@import "./own.css";']);
-  });
-
-  it('refuses what isn\'t a stylesheet, and the entry point itself', () => {
-    assert.throws(() => run('import', { file: '/css/own.scss' }, context(project)), /isn't a \.css file/);
-    assert.throws(() => run('import', { file: '/css/styles.css' }, context(project)), /is the entry point itself/);
-  });
-});
-
 describe('web:check', () => {
   const palette = paletteCss({ primary: '#5b5bd6', contrast: 'aaa' });
   const base = {
