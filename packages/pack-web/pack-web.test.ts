@@ -1403,13 +1403,14 @@ describe('web:check --render', () => {
     assert.deepEqual(
       found.filter((n) => n.startsWith('warning: /index.html')),
       [],
-      'the dashboard layout is fine',
+      `the dashboard layout is fine:\n${found.join('\n')}`,
     );
     const bad = found.filter((n) => n.startsWith('warning: /bad.html'));
-    assert.ok(bad.includes('warning: /bad.html header.wrapper.repel and div.wrapper.sidebar touch one above the other – class="flow" on body spaces them out'), bad.join('\n'));
-    assert.ok(bad.some((n) => /"Pale" \(p\) has a contrast of 1\.\d:1, needs 4\.5:1 \(WCAG AA\) \(light mode\)$/.test(n)), bad.join('\n'));
-    assert.ok(bad.includes('warning: /bad.html div is wider than the screen, so the page scrolls sideways'), bad.join('\n'));
-    assert.ok(bad.includes('warning: /bad.html console error: ReferenceError: missing is not defined'), bad.join('\n'));
+    const all = found.join('\n');
+    assert.ok(bad.includes('warning: /bad.html header.wrapper.repel and div.wrapper.sidebar touch one above the other – class="flow" on body spaces them out'), all);
+    assert.ok(bad.some((n) => /"Pale" \(p\) has a contrast of 1\.\d:1, needs 4\.5:1 \(WCAG AA\) \(light mode\)$/.test(n)), all);
+    assert.ok(bad.includes('warning: /bad.html div is wider than the screen, so the page scrolls sideways'), all);
+    assert.ok(bad.includes('warning: /bad.html console error: ReferenceError: missing is not defined'), all);
     assert.match(found.at(-1)!, /^checked 2 pages \(rendered in light and dark, 390 and 1280 wide\) and \d+ stylesheets – \d+ warnings/);
   });
 });

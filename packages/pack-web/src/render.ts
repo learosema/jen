@@ -99,20 +99,22 @@ function launch(chrome: string) {
       for (const listen of listeners) listen(msg);
     }
   });
+  let pipeError = '';
   const quit = () => {
-    const last = stderr.trim().split('\n').at(-1);
-    for (const call of pending.values()) call.reject(new Error(`Chromium quit${last ? `: ${last}` : ''}`));
+    const last = stderr.trim().split('\n').at(-1) || pipeError;
+    const why = /No usable sandbox/.test(stderr)
+      ? ': it can\'t start its sandbox – on Ubuntu 23.10+, allow it with sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0'
+      : last
+        ? `: ${last}`
+        : '';
+    for (const call of pending.values()) call.reject(new Error(`Chromium quit${why}`));
     pending.clear();
   };
   const exited = new Promise<void>((resolve) => proc.on('exit', () => resolve()));
   proc.on('error', (e) => (stderr += `\n${e.message}`));
-  // A pipe Chromium closed (it quit, or is shutting down) ends the calls in flight, not jen.
-  for (const stream of [input, output, proc.stderr!]) {
-    stream.on('error', (e: Error) => {
-      stderr += `\n${e.message}`;
-      quit();
-    });
-  }
+  // A pipe Chromium closed (it quit, or is shutting down) doesn't crash jen; the calls in flight end when it
+  // has exited and said why on stderr – or time out.
+  for (const stream of [input, output, proc.stderr!]) stream.on('error', (e: Error) => (pipeError ||= e.message));
   void exited.then(quit);
 
   const send = (method: string, params: object = {}, sessionId?: string, timeout = 20_000): Promise<Message['result']> =>
