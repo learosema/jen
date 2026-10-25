@@ -99,12 +99,21 @@ function launch(chrome: string) {
       for (const listen of listeners) listen(msg);
     }
   });
-  const exited = new Promise<void>((resolve) => proc.on('exit', () => resolve()));
-  proc.on('error', (e) => (stderr += e.message));
-  void exited.then(() => {
-    for (const call of pending.values()) call.reject(new Error(`Chromium quit: ${stderr.trim().split('\n').at(-1) ?? ''}`));
+  const quit = () => {
+    const last = stderr.trim().split('\n').at(-1);
+    for (const call of pending.values()) call.reject(new Error(`Chromium quit${last ? `: ${last}` : ''}`));
     pending.clear();
-  });
+  };
+  const exited = new Promise<void>((resolve) => proc.on('exit', () => resolve()));
+  proc.on('error', (e) => (stderr += `\n${e.message}`));
+  // A pipe Chromium closed (it quit, or is shutting down) ends the calls in flight, not jen.
+  for (const stream of [input, output, proc.stderr!]) {
+    stream.on('error', (e: Error) => {
+      stderr += `\n${e.message}`;
+      quit();
+    });
+  }
+  void exited.then(quit);
 
   const send = (method: string, params: object = {}, sessionId?: string, timeout = 20_000): Promise<Message['result']> =>
     new Promise((resolve, reject) => {
@@ -125,10 +134,15 @@ function launch(chrome: string) {
     send,
     listen: (fn: (m: Message) => void) => (listeners.add(fn), () => listeners.delete(fn)),
     close: async () => {
-      proc.kill();
       let timer: NodeJS.Timeout | undefined;
-      await Promise.race([exited, new Promise((resolve) => (timer = setTimeout(resolve, 2000)))]);
-      clearTimeout(timer);
+      const within = (ms: number) => Promise.race([exited, new Promise((resolve) => (timer = setTimeout(resolve, ms)))]).finally(() => clearTimeout(timer));
+      // ask first, so it shuts its pipes down itself; kill it only if that doesn't work
+      await send('Browser.close', {}, undefined, 2000).catch(() => undefined);
+      await within(2000);
+      if (proc.exitCode === null && proc.signalCode === null) {
+        proc.kill();
+        await within(2000);
+      }
       // Chromium's helper processes may hold the pipes open a while longer: don't wait for them
       for (const stream of [input, output, proc.stderr!]) stream.destroy();
       rmSync(profile, { recursive: true, force: true });
