@@ -277,6 +277,12 @@ export const recipes = [
 ];
 ```
 
+And `groups`, one line each in `--list`:
+
+```js
+export const groups = [{ name: "blocks", description: "UI blocks, one file each", generators: ["card", "nav", "stat"] }];
+```
+
 Or a function of `env` (`packages`, `resolve`, `fetch`):
 
 ```js

@@ -174,6 +174,14 @@ export interface Recipe {
   docs?: string;
 }
 
+/** Generators of one kind (a pack's `groups` export), on one line in `--list`: their names after the description. */
+export interface Group {
+  name: string;
+  description: string;
+  /** The generators' names in the pack, without its prefix. */
+  generators: string[];
+}
+
 /** A generator whose actions may or may not be async. */
 export type AnyGenerator = Generator<Action[] | Promise<Action[]>>;
 
