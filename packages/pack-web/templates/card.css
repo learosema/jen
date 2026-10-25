@@ -12,11 +12,11 @@
     border-radius: var(--card-radius, 0.75rem);
     background: var(--color-surface-2);
     color: var(--color-text);
-    box-shadow: var(--card-shadow, 0 0.0625rem 0.125rem oklch(0% 0 0 / 0.05), 0 0.5rem 1.5rem -0.5rem oklch(0% 0 0 / 0.12));
+    box-shadow: var(--card-shadow, none);
     overflow: hidden;
   }
 
-  /* Light: the page's own color, lifted off it by the shadow; dark: a step lighter than the page. */
+  /* Light: the page's own color, set off by the border; dark: a step lighter than the page. */
   @supports (color: light-dark(#000, #fff)) {
     .card {
       background: light-dark(var(--color-surface), var(--color-surface-2));

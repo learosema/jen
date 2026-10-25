@@ -23,7 +23,7 @@
 
   .stat__trend {
     justify-self: start;
-    padding: 0.125em 0.625em;
+    padding: 0.125em 0.75em;
     border-radius: 100vmax;
     font-size: var(--step--1, 0.875rem);
     font-weight: 600;

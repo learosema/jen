@@ -12,7 +12,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.5em;
-    padding: 0.625em 1.25em;
+    padding: 0.5em 1em;
     border: thin solid var(--button-border);
     border-radius: 0.5em;
     background: var(--button-bg);
@@ -49,7 +49,7 @@
     --button-bg-hover: var(--color-surface-2);
     --button-fg: var(--color-text-muted);
     --button-fg-hover: var(--color-text-muted);
-    --button-border: var(--color-border);
+    --button-border: transparent;
     --button-shadow: none;
 
     cursor: not-allowed;
@@ -71,7 +71,7 @@
     --button-bg-hover: var(--color-primary-subtle);
     --button-fg: var(--color-primary);
     --button-fg-hover: var(--color-primary-strong);
-    --button-border: currentColor;
+    --button-border: var(--color-border);
   }
 
   .button--ghost {

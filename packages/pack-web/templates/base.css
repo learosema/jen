@@ -93,10 +93,24 @@
   /* Text fields on the palette's checked pairs, so a form doesn't fall back to the browser's own colors. */
   :where(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="submit"], [type="reset"], [type="button"], [type="image"]), select, textarea) {
     border: thin solid var(--color-border, GrayText);
-    border-radius: 0.25em;
-    padding: 0.375em 0.5em;
+    border-radius: 0.5em;
+    padding: 0.5em 1em;
     background: var(--color-surface, Field);
     color: var(--color-text, FieldText);
+  }
+
+  /* As tall as a .button next to it. */
+  :where(input, select) {
+    line-height: 1.2;
+  }
+
+  /* Chromium keeps a select's line-height normal, so its height is set: the line, padding and two thin borders. */
+  :where(select:not([multiple], [size])) {
+    block-size: calc(1.2em + 1em + 0.125rem);
+  }
+
+  :where(input, select, textarea):hover {
+    border-color: var(--color-text-muted, FieldText);
   }
 
   ::placeholder {
