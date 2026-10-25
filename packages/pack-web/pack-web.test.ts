@@ -421,7 +421,7 @@ describe('web:check', () => {
     const page = run('page', { name: 'index', layout: 'dashboard' }, context(base)).flatMap((a) => ('template' in a ? [a.template] : []))[0];
     const left = (html: string) => warnings({ ...base, 'index.html': html }).filter((w) => w.includes('placeholder'));
     assert.deepEqual(left(page), [
-      '/index.html still has placeholder content from web:page\'s dashboard layout: the site name, the sidebar card ("Filters"), the 4 stat cards, the activity list – replace it with your own',
+      '/index.html still has placeholder content from web:page\'s dashboard layout: the site name ("Acme"), the sidebar card ("Last 30 days"), the 4 stat cards ("12,480"), the activity list ("Ada signed up – 2 min ago") – replace it with your own',
     ]);
     const filled = page.replace('<b>Acme</b>', '<b>Tealboard</b>').replace('<p>Last 30 days</p>', '<p>This week</p>').replace('12,480', '12,345').replace('Ada signed up', 'Sam signed up');
     assert.deepEqual(left(filled), []);
@@ -1028,7 +1028,7 @@ describe('web:page', () => {
     assert.match(html, /\n {6}<main id="main" class="flow">\n {8}<div class="repel">\n {10}<h1>Stats &amp; more<\/h1>\n {10}<button class="button" type="button">/);
     assert.match(html, /<title>Stats &amp; more – Shop<\/title>/);
     assert.match(html, /<\/main>\n {4}<\/div>\n {2}<\/body>\n<\/html>/);
-    assert.ok(notes(actions).includes('index.html has placeholder content from the dashboard layout – replace the nav links, the sidebar card ("Filters"), the 4 stat cards and the activity list; then jen web:check finds what\'s left and classes no stylesheet defines'));
+    assert.ok(notes(actions).includes('index.html has placeholder content from the dashboard layout – replace the nav links, the sidebar card ("Last 30 days"), the 4 stat cards ("12,480") and the activity list ("Ada signed up – 2 min ago"); then jen web:check finds what\'s left and classes no stylesheet defines'));
     const unnamed = run('page', { name: 'index', layout: 'dashboard' }, context(files));
     assert.match(template(unnamed, 'index.html'), /<b>Acme<\/b>/, 'a placeholder without --site');
     assert.ok(notes(unnamed).some((n) => n.includes('replace the site name (or use --site), the nav links')));
