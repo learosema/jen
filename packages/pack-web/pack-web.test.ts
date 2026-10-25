@@ -137,9 +137,8 @@ describe('web:palette', () => {
     }
     assert.doesNotMatch(css, /--color-tertiary/);
     assert.match(css, /--color-surface: light-dark\(var\(--color-neutral-1\), var\(--color-neutral-6\)\);/);
-    assert.match(css, /--color-primary: light-dark\(var\(--color-primary-5\), var\(--color-primary-2\)\);/);
-    assert.match(css, /--color-primary-large: light-dark\(var\(--color-primary-4\), var\(--color-primary-3\)\);/);
-    assert.match(css, /--color-primary-subtle: light-dark\(#[0-9a-f]{6}, #[0-9a-f]{6}\);/, 'tints between shades are literal colors');
+    assert.match(css, /--color-on-primary: light-dark\(var\(--color-primary-1\), var\(--color-primary-6\)\);/);
+    assert.match(css, /--color-primary: light-dark\(#[0-9a-f]{6}, #[0-9a-f]{6}\);/, 'colors between shades are literal colors');
     assert.match(css, /@supports not \(color: light-dark\(#000, #fff\)\)/);
     assert.match(css, /`jen web:palette --primary=#5b5bd6 --secondary=330`/);
     const named = template(run('palette', { primary: 'deeppink', secondary: 'rgb(255 51 119)' }, context({})), 'palette.css');
@@ -149,10 +148,19 @@ describe('web:palette', () => {
     assert.doesNotMatch(css, PX);
   });
 
-  it('relaxes roles to shades 3 apart with --contrast=aa', () => {
+  it('places roles just as far apart as their ratio needs, not a whole shade more', () => {
+    for (const [level, ratio] of [['aaa', 7], ['aa', 4.5]] as const) {
+      const css = paletteCss({ primary: '#5b5bd6', contrast: level });
+      const [, light, dark] = css.match(/--color-primary: light-dark\((#\w+), (#\w+)\);/)!;
+      const on = (n: number) => css.match(new RegExp(`--color-primary-${n}: (#\\w+);`))![1];
+      for (const got of [contrast(light, on(1)), contrast(dark, on(6))]) {
+        assert.ok(got >= ratio && got < ratio * 1.15, `${level}: ${got.toFixed(2)}:1`);
+      }
+    }
+  });
+
+  it('relaxes roles with --contrast=aa', () => {
     const css = paletteCss({ primary: '#5b5bd6', contrast: 'aa' });
-    assert.match(css, /--color-primary: light-dark\(var\(--color-primary-4\), var\(--color-primary-3\)\);/);
-    assert.match(css, /--color-primary-large: light-dark\(var\(--color-primary-3\), var\(--color-primary-4\)\);/);
     assert.match(css, /--contrast=aa`/);
     assert.throws(() => paletteCss({ primary: '#5b5bd6', contrast: 'aaaa' }), /use aa or aaa/);
   });
@@ -483,7 +491,7 @@ describe('recipes', () => {
 describe('brand color notes', () => {
   it('say which shade the color is closest to, which roles use it, and what --contrast=aa changes', () => {
     assert.deepEqual(notes(run('palette', { primary: '#0d9488' }, context({}))), [
-      '#0d9488 is closest to --color-primary-3 (--color-primary-large in dark mode); buttons and links use the darker -5 in light mode, -4 with --contrast=aa',
+      '#0d9488 is closest to --color-primary-3; buttons and links use a darker color between -4 and -5 in light mode, between -3 and -4 with --contrast=aa',
     ]);
     assert.ok(notes(run('cube', { primary: '#0d9488' }, context({}))).some((n) => n.startsWith('#0d9488 is closest to --color-primary-3')));
   });
@@ -496,7 +504,7 @@ describe('brand color notes', () => {
 
   it('only suggest --contrast=aa when it gets closer', () => {
     const [dark] = notes(run('palette', { primary: '#1a1a40' }, context({})));
-    assert.match(dark, /use the lighter -5 in light mode$/);
+    assert.match(dark, /use a lighter color between -4 and -5 in light mode$/);
   });
 });
 
