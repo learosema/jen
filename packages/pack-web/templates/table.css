@@ -30,7 +30,6 @@
   }
 
   .table thead th {
-    border-block-end-color: var(--color-border);
     background: var(--table-head-bg, var(--color-surface));
     font-weight: 600;
   }
@@ -45,7 +44,12 @@
     text-align: end;
   }
 
+  .table--striped :is(th, td) {
+    border-block-end: none;
+  }
+
+  /* Between surface and surface-2, so text on it keeps the contrast both are checked for. */
   .table--striped tbody tr:nth-child(even) {
-    background: var(--color-surface-2);
+    background: color-mix(in oklab, var(--color-surface-2) 50%, var(--color-surface));
   }
 }

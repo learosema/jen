@@ -7,7 +7,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.25em;
-    padding: 0.125em 0.625em;
+    padding: 0.125em 0.75em;
     /* Transparent, but forced-colors mode (Windows High Contrast) draws it. */
     border: thin solid transparent;
     border-radius: 100vmax;
