@@ -41,7 +41,7 @@ toc:
 - **`--dir=<path>`**: write there
 - **`--from <package>`**: fetch a pack for one run
 - **`--list`, `-l`**: all generators, or one pack's: `jen web --list`
-- **`--find "<words>"`**: search generators and recipes
+- **`--find "<words>"`**: search generators and recipes – the place to start: `jen --find dashboard`
 - **`--json`**: JSON for `--list`, `--find`, `--help` and runs
 - **`--help`, `-h`**, **`--version`, `-v`**
 
@@ -83,7 +83,7 @@ A missing `@codejen` pack is fetched for one run; anything else needs `--from`. 
 
 ### `--list` {#list}
 
-`jen --list`, or one pack: `jen web --list`.
+`jen --list`, or one pack: `jen web --list`. Recipes come first – where to start.
 
 ### `--list --json` {#json}
 
