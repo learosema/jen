@@ -3,6 +3,7 @@ import { posix } from 'node:path';
 import type { Context, Generator } from '@codejen/jen';
 import { fail } from './common.ts';
 import { findEntry } from './entry.ts';
+import { surfacesIn } from './recolor.ts';
 import { sentence } from './html.ts';
 import { fill, template } from './templates.ts';
 
@@ -27,10 +28,7 @@ export const relativeTo = (from: string, path: string): string => {
 
 /** The palette's page background in light and dark mode, if there is a palette. */
 export function surfaces(ctx: Context): [string, string] | null {
-  const css = ctx.grep(/\.css$/, '--color-neutral-1:').map((f) => ctx.read(f) ?? '')[0];
-  const shade = (n: number) => new RegExp(`--color-neutral-${n}: (#[0-9a-f]{6});`).exec(css ?? '')?.[1];
-  const [light, dark] = [shade(1), shade(6)];
-  return light && dark ? [light, dark] : null;
+  return surfacesIn(ctx.grep(/\.css$/, '--color-neutral-1:').map((f) => ctx.read(f) ?? '')[0] ?? '');
 }
 
 /** Which of `names` the project has, at its root or in public/. */
