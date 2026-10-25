@@ -8,5 +8,5 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src/jen.ts"]
+  "include": ["src/jen.ts", "src/js.ts"]
 }

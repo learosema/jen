@@ -449,21 +449,24 @@ function withShadowing(entries: Entry[]): Array<{ entry: Entry; shadowed: boolea
 }
 
 async function list(entries: Entry[]): Promise<void> {
+  let source = '';
   for (const { entry: e, shadowed } of withShadowing(entries)) {
     const description = await e.load().then(
       (g) => g.description ?? '',
       (err: Error) => styleText('red', err.message),
     );
-    const line = `  ${qualified(e).padEnd(22)} ${e.source.padEnd(26)} ${description}`;
+    // a heading per source, instead of repeating it on every line
+    if (e.source !== source) console.log(`${source ? '\n' : ''}${(source = e.source)}`);
+    const line = `  ${qualified(e).padEnd(22)} ${description}`;
     console.log(shadowed ? dim(`${line} (shadowed)`) : line);
   }
   const recipes = recipesOf(entries);
   if (recipes.length > 0) console.log('\nrecipes:');
-  for (const { pack, recipe } of recipes) {
-    console.log(`  ${recipe.name.padEnd(22)} ${`pack ${pack.name}`.padEnd(26)} ${recipe.description}`);
-    for (const step of recipeCalls(recipe)) console.log(dim(`    ${step}`));
+  for (const { recipe } of recipes) {
     // the markup would make the list long
-    if (recipe.usage?.length) console.log(dim(`    how it fits together: jen --find ${shellValue(recipe.name)}`));
+    const markup = recipe.usage?.length ? ` – how it fits together: jen --find ${shellValue(recipe.name)}` : '';
+    console.log(`  ${recipe.name.padEnd(22)} ${recipe.description}${markup}`);
+    for (const step of recipeCalls(recipe)) console.log(dim(`    ${step}`));
   }
 }
 
@@ -504,12 +507,11 @@ function paramUsage(name: string, p: ParamInfo): string {
 
 const NPX = 'npx --yes @codejen/jen';
 
-/** A generator's examples as whole calls: with jen installed, and through npx – which needs --from for a pack the @codejen fallback doesn't fetch. */
-function exampleCalls(e: Entry, gen: AnyGenerator): Array<{ jen: string; npx: string }> {
-  const name = qualified(e);
-  const from = e.pack && e.pack.name !== `${FIRST_PARTY_SCOPE}/pack-${e.prefix}` ? ` --from ${e.pack.name}` : '';
-  return (gen.examples ?? []).map((args) => ({ jen: `jen ${name} ${args}`.trimEnd(), npx: `${NPX}${from} ${name} ${args}`.trimEnd() }));
-}
+/** A generator's examples as whole calls. */
+const exampleCalls = (e: Entry, gen: AnyGenerator): string[] => (gen.examples ?? []).map((args) => `jen ${qualified(e)} ${args}`.trimEnd());
+
+/** How npx runs a pack the @codejen fallback doesn't fetch, or null. */
+const npxFrom = (e: Entry): string | null => (e.pack && e.pack.name !== `${FIRST_PARTY_SCOPE}/pack-${e.prefix}` ? `${NPX} --from ${e.pack.name}` : null);
 
 /** One generator, its params and examples, plain like the CLI itself – the single text format for `--help`. */
 function formatGenerator(e: Entry, gen: AnyGenerator): string {
@@ -517,16 +519,16 @@ function formatGenerator(e: Entry, gen: AnyGenerator): string {
   const lines = [gen.description ? `${name} – ${gen.description}` : name];
   for (const [param, spec] of Object.entries(gen.params ?? {})) {
     const p = paramInfo(spec);
-    const description = [p.description, p.path && '(a path from where you run jen)'].filter(Boolean).join(' ');
+    const description = [p.description, p.path && '(path)'].filter(Boolean).join(' ');
     lines.push(`  ${paramUsage(param, p)}${description ? `  ${description}` : ''}`);
   }
   // everyone's flag (built-ins write where they must), unless the generator has a param of that name itself
-  if (e.source !== 'built-in' && !('dir' in (gen.params ?? {}))) lines.push('  --dir=<folder>  where the files go (default: where you run jen)');
+  if (e.source !== 'built-in' && !('dir' in (gen.params ?? {}))) lines.push('  --dir=<folder>  where the files go');
   if (gen.usage?.length) lines.push('', 'usage:', ...gen.usage.map((u) => `  ${u}`));
   const examples = exampleCalls(e, gen);
-  if (examples.length > 0) {
-    lines.push('', 'examples:', ...examples.map((x) => `  ${x.jen}`), `  ${examples[0].npx}  (without installing jen)`);
-  }
+  if (examples.length > 0) lines.push('', 'examples:', ...examples.map((x) => `  ${x}`));
+  const npx = npxFrom(e);
+  if (npx) lines.push(`  without jen installed: ${npx} ${name} …`);
   if (e.pack?.homepage) lines.push('', `docs: ${e.pack.homepage}`);
   return lines.join('\n');
 }
@@ -562,7 +564,7 @@ const listEntry = (e: Entry, g: AnyGenerator | null, shadowed = false) => ({
 /** One generator in `--help --json`: everything `--help` shows. */
 const generatorJson = (e: Entry, g: AnyGenerator) => {
   const params = Object.entries(g.params ?? {});
-  const examples = exampleCalls(e, g).map((x) => x.jen);
+  const examples = exampleCalls(e, g);
   return {
     name: qualified(e),
     source: e.source,
@@ -724,26 +726,21 @@ function rejectUnknown(generator: string, own: Params, given: Record<string, unk
 
 const HELP = `jen – the code jen(erator)
 
-  jen [generator] [--answer=value …] [options]
+  jen [generator] [--param=value …] [options]     e.g. jen cpp:class --name=Foo
 
-  generator       name ("class"), with pack ("cpp:class") or source ("user:class")
-  --list,    -l   list all generators and where they come from – or one pack's: jen web --list
-  --find          search generators and recipes by words: jen --find "sidebar layout",
-                  or one pack's: jen web --find "dark mode"
-  --json          with --list or --find: JSON for programs; with a generator: the plan
-                  (or the error) as JSON, with --help: the generator's params
-  --dry-run, -n   only show the plan
-  --force,   -f   overwrite existing files
-  --strict        exit with 1 if the plan has a warning (for CI)
-  --dir           where the files go instead of the current directory
-  --from          fetch a pack via npm, run it once, then remove it – or a package
-                  a pack runs, e.g. a Yeoman generator: --from generator-code yeoman:code
-  --help,    -h   show this help, or a generator's params: jen cpp:class --help
-                  (a generator run without its required params shows them, too)
-  --version, -v   show jen's version
+  --list, -l        all generators, or one pack's: jen web --list
+  --find "<words>"  search generators and recipes, or one pack's: jen web --find "dark mode"
+  --help, -h        a generator's params, usage and examples: jen cpp:class --help
+  --dry-run, -n     show the plan only
+  --force, -f       overwrite existing files
+  --dir=<folder>    where the files go
+  --from <package>  fetch a pack (or a package a pack runs) for this run
+  --strict          exit with 1 on a warning
+  --json            JSON for --list, --find, --help and runs
+  --version, -v
 
-  CLI answers always use "=": --name=Foo (flags like --moveOnly work without).
-  A pack that isn't installed is fetched for that run: jen web:palette uses @codejen/pack-web.
+  Params take "=": --name=Foo; switches work bare. Paths are from where you run jen.
+  Without jen installed: npx --yes @codejen/jen …; a missing @codejen pack is fetched.
 `;
 
 /** jen's own package.json sits next to both src/ (development) and dist/ (published). */
@@ -819,7 +816,7 @@ export async function main(): Promise<void> {
         generator: qualified(entry),
         missing: missing.map(([n]) => `--${n}`),
         params: Object.fromEntries(Object.entries(gen.params ?? {}).map(([n, spec]) => [n, paramJson(spec)])),
-        examples: exampleCalls(entry, gen).map((x) => x.jen),
+        examples: exampleCalls(entry, gen),
       });
     }
     const notes: string[] = [];
