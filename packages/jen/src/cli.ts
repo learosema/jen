@@ -42,7 +42,7 @@ import { parseArgs, styleText } from 'node:util';
 import { buildContext, placeActions, resolvePathParams } from './context.ts';
 import { JenError, apply, dim, fail, helpers, plan, planItems, printPlan } from './core.ts';
 import { rank } from './find.ts';
-import type { Answers, AnyGenerator, Context, Generator, Helpers, Pack, PackEnv, PackFactory, Params, Placed, Recipe } from './core.ts';
+import type { Answers, AnyGenerator, Context, Generator, Group, Helpers, Pack, PackEnv, PackFactory, Params, Placed, Recipe } from './core.ts';
 import { likeDraft } from './like.ts';
 import { PROJECT, PROJECT_JEN, ROOT, USER_DIR } from './location.ts';
 
@@ -105,6 +105,8 @@ interface PackMeta {
   homepage?: string;
   /** The pack module's `recipes` export. */
   recipes?: Recipe[];
+  /** The pack module's `groups` export. */
+  groups?: Group[];
 }
 
 const GEN_FILE = /\.(m?js|m?ts)$/;
@@ -262,11 +264,15 @@ async function packSource(name: string, bases = defaultBases(), extra: Extra = n
     console.warn(styleText('yellow', `Pack ${name} not found (install it locally or globally).`));
     return [];
   }
-  const mod = (await import(pathToFileURL(file).href)) as { default?: Pack | PackFactory; recipes?: Recipe[] };
-  const { recipes, ...named } = mod;
+  const mod = (await import(pathToFileURL(file).href)) as { default?: Pack | PackFactory; recipes?: Recipe[]; groups?: Group[] };
+  const { recipes, groups, ...named } = mod;
   const exported = mod.default ?? (named as Pack);
   const pack = typeof exported === 'function' ? await exported(packEnv(extra)) : exported;
-  const meta = { ...packMeta(name, file), ...(Array.isArray(recipes) && recipes.length > 0 && { recipes }) };
+  const meta = {
+    ...packMeta(name, file),
+    ...(Array.isArray(recipes) && recipes.length > 0 && { recipes }),
+    ...(Array.isArray(groups) && groups.length > 0 && { groups }),
+  };
   return Object.entries(pack).map(([gen, g]) => ({
     name: gen,
     source: `pack ${name}`,
@@ -459,13 +465,24 @@ async function list(entries: Entry[]): Promise<void> {
     for (const step of recipeCalls(recipe)) console.log(dim(`    ${step}`));
   }
   let source = '';
-  for (const { entry: e, shadowed } of withShadowing(entries)) {
+  const listed = new Set<Group>();
+  const rows = withShadowing(entries);
+  for (const { entry: e, shadowed } of rows) {
+    const group = shadowed ? undefined : e.pack?.groups?.find((g) => g.generators.includes(e.name));
+    if (group && listed.has(group)) continue;
+    // a heading per source, instead of repeating it on every line
+    if (e.source !== source) console.log(`${source || recipes.length ? '\n' : ''}${(source = e.source)}`);
+    if (group) {
+      // one line for the kind, with the names of its generators – each one's --help has the rest
+      listed.add(group);
+      const names = rows.filter(({ entry: m, shadowed: s }) => !s && m.source === e.source && group.generators.includes(m.name)).map(({ entry: m }) => qualified(m));
+      console.log(`  ${group.name.padEnd(22)} ${group.description}: ${names.join(', ')}`);
+      continue;
+    }
     const description = await e.load().then(
       (g) => g.description ?? '',
       (err: Error) => styleText('red', err.message),
     );
-    // a heading per source, instead of repeating it on every line
-    if (e.source !== source) console.log(`${source || recipes.length ? '\n' : ''}${(source = e.source)}`);
     const line = `  ${qualified(e).padEnd(22)} ${description}`;
     console.log(shadowed ? dim(`${line} (shadowed)`) : line);
   }
@@ -549,7 +566,8 @@ function paramJson(spec: Params[string]): Partial<ParamInfo> {
 }
 
 /** A pack's details in JSON – in `--list --json` once, with its recipes (their markup only in `--find`). */
-const packJson = ({ recipes, ...pack }: PackMeta, withRecipes: boolean) => ({
+// groups only shorten --list; the JSON lists every generator anyway
+const packJson = ({ recipes, groups: _groups, ...pack }: PackMeta, withRecipes: boolean) => ({
   ...pack,
   ...(withRecipes && recipes && { recipes: recipes.map((r) => ({ name: r.name, description: r.description, steps: recipeCalls(r), ...(r.docs && { docs: r.docs }) })) }),
 });

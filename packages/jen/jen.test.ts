@@ -1719,4 +1719,16 @@ describe('for programs', () => {
     const { packs } = JSON.parse(jen(['demo', '--list', '--json'], { cwd: dir }).stdout) as { packs: Array<{ recipes: unknown[] }> };
     assert.deepEqual(packs[0].recipes, [{ name: 'dashboard', description: 'a dashboard page with cards', steps: ['jen demo:card', 'jen demo:sidebar --name=x'], docs: 'https://example.com/#dashboard' }]);
   });
+
+  it("puts a group's generators on one line in --list, and every one of them in --list --json", () => {
+    const dir = project();
+    const index = join(dir, 'node_modules/@codejen/pack-demo/index.mjs');
+    writeFileSync(index, `${read(dir, 'node_modules/@codejen/pack-demo/index.mjs')}\nexport const groups = [{ name: 'layout', description: 'layout parts', generators: ['card', 'sidebar'] }];`);
+    const out = jen(['demo', '--list'], { cwd: dir }).stdout;
+    assert.match(out, /\n {2}layout +layout parts: demo:card, demo:sidebar\n {2}demo:plain +emits json itself\n/);
+    assert.doesNotMatch(out, /a card block for content/);
+    const { generators, packs } = JSON.parse(jen(['demo', '--list', '--json'], { cwd: dir }).stdout) as { generators: Array<{ name: string }>; packs: Array<Record<string, unknown>> };
+    assert.deepEqual(generators.map((g) => g.name).sort(), ['demo:card', 'demo:plain', 'demo:sidebar']);
+    assert.ok(!('groups' in packs[0]));
+  });
 });

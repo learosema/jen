@@ -83,7 +83,7 @@ A missing `@codejen` pack is fetched for one run; anything else needs `--from`. 
 
 ### `--list` {#list}
 
-`jen --list`, or one pack: `jen web --list`. Recipes come first – where to start.
+`jen --list`, or one pack: `jen web --list`. Recipes come first – where to start; a pack's groups take one line each.
 
 ### `--list --json` {#json}
 
