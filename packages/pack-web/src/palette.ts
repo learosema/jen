@@ -396,7 +396,7 @@ ${indent(fallback(groups, roles), '  ')}
 
 export const PALETTE_PARAMS: Params = {
   primary: { description: 'brand color: any CSS color (deeppink, #f37, rgb(), hsl(), oklch() …) or a hue in degrees' },
-  secondary: { default: '', description: 'a second brand color, same formats as --primary' },
+  secondary: { default: '', description: 'a second brand color, e.g. an accent – same formats as --primary, checked the same way' },
   tertiary: { default: '', description: 'a third brand color, same formats as --primary' },
   neutral: { default: '', description: 'the gray\'s tint (default: the primary\'s hue)' },
   success: { default: '', description: 'overrides the built-in success color' },
@@ -408,7 +408,7 @@ export const PALETTE_PARAMS: Params = {
 };
 
 const paletteGenerator: Generator = {
-  description: 'create a contrast-checked color palette (CSS custom properties)',
+  description: 'create a contrast-checked color palette (CSS custom properties) – --secondary and --tertiary for accent colors',
   params: PALETTE_PARAMS,
   usage: paletteUsage(),
   examples: ['--primary=#5b5bd6', '--primary=#5b5bd6 --secondary=330 --contrast=aa'],
