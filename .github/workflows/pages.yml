@@ -49,8 +49,8 @@ jobs:
       - name: Generate web previews
         run: node packages/pack-web/scripts/docs-assets.ts
 
-      - name: Generate js previews
-        run: node packages/pack-js/scripts/docs-assets.ts
+      - name: Generate script previews
+        run: node packages/pack-web/scripts/js-assets.ts
 
       # The Params cards (docs/_data/params.json, gitignored) come from the packs' own param descriptions.
       - name: Generate param data
