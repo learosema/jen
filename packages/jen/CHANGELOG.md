@@ -2,6 +2,16 @@
 
 > Renamed from `@lea.rosema/jen` to `@codejen/jen` and republished as 1.0.0. The history below (up to 1.1.0) is `@lea.rosema/jen`'s; `@lea.rosema/jen` is deprecated in favor of this package.
 
+## [4.0.1](https://github.com/learosema/jen/compare/jen-v4.0.0...jen-v4.0.1) (2026-10-25)
+
+
+### Bug Fixes
+
+* **jen:** --list puts a pack's groups on one line each ([e6f1f08](https://github.com/learosema/jen/commit/e6f1f081ca580bdec8149baee5d1e049590a3e3d))
+* **jen:** --list starts with the recipes, --help with --find ([14cf2cf](https://github.com/learosema/jen/commit/14cf2cf1225de4aebbc696c570771b32b3ddc5fb))
+* **jen:** an insert that starts with a blank line is named by its first line with text ([628c7c6](https://github.com/learosema/jen/commit/628c7c69fc608a0d45583f192f4252753b6d8ce0))
+* **jen:** one plan line for many new files in a folder; say where a moved generator went ([8d40f61](https://github.com/learosema/jen/commit/8d40f61805799cc5ccabe3f1921ba008986c5fb2))
+
 ## [4.0.0](https://github.com/learosema/jen/compare/jen-v3.2.0...jen-v4.0.0) (2026-10-25)
 
 

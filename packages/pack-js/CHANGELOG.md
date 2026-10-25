@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.1](https://github.com/learosema/jen/compare/pack-js-v2.0.0...pack-js-v2.0.1) (2026-10-25)
+
+
+### Bug Fixes
+
+* **pack-js, pack-web:** need @codejen/jen 4 ([b4e99ec](https://github.com/learosema/jen/commit/b4e99ec3fd5920ece7541dd5db8d806283caedff))
+* **pack-js:** say where the generators that moved to pack-web went ([57c814c](https://github.com/learosema/jen/commit/57c814c4cf678c4546ece8fc5202480eab47af4f))
+
 ## [2.0.0](https://github.com/learosema/jen/compare/pack-js-v1.5.2...pack-js-v2.0.0) (2026-10-25)
 
 

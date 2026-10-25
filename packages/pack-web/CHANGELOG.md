@@ -1,5 +1,29 @@
 # Changelog
 
+## [3.0.0](https://github.com/learosema/jen/compare/pack-web-v2.1.0...pack-web-v3.0.0) (2026-10-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* **pack-web:** web:import is gone – add `@import "./your.css";` to styles.css, before /* jen:imports */.
+
+### Bug Fixes
+
+* **pack-js, pack-web:** need @codejen/jen 4 ([b4e99ec](https://github.com/learosema/jen/commit/b4e99ec3fd5920ece7541dd5db8d806283caedff))
+* **pack-web:** a new palette color reaches the buttons and badges the project has ([895596c](https://github.com/learosema/jen/commit/895596ccf9de54a994d6671191fdb9366ceeaff7))
+* **pack-web:** a select's text isn't clipped at the bottom ([dcef91a](https://github.com/learosema/jen/commit/dcef91a914b5155383accf76626c95e57f1067a9))
+* **pack-web:** blocks keep their own lines in --list ([d24d6bf](https://github.com/learosema/jen/commit/d24d6bfab6c4f6a64e5e504d2bca94275e960c48))
+* **pack-web:** dashboard links work from file://, notes say what to replace and what's guaranteed ([c37cc09](https://github.com/learosema/jen/commit/c37cc0920d57585209bc93592b32f78059b17ef5))
+* **pack-web:** fix css bug ([f7438c0](https://github.com/learosema/jen/commit/f7438c0bf964b2b4e1840ad9c4de5bf5a3a937d8))
+* **pack-web:** group the generators in --list; a new palette moves theme-color and the manifest along ([33d11f4](https://github.com/learosema/jen/commit/33d11f4b16e557b4dfbad7c84db384be70210a7c))
+* **pack-web:** quote placeholder text without stripping tags ([9a9176c](https://github.com/learosema/jen/commit/9a9176cedd64fb0a7446efbbeee2202d99726aa1))
+* **pack-web:** remove web:import ([8b86c41](https://github.com/learosema/jen/commit/8b86c4198528afd25bca27048a6aae3d8bd45821))
+* **pack-web:** the placeholder warning quotes the text it found ([84c1b4a](https://github.com/learosema/jen/commit/84c1b4a3922bac579759709671907bd1a93788cc))
+* **pack-web:** the site name as a brand, neutral pills that show on cards, one stat label ([3e84191](https://github.com/learosema/jen/commit/3e841917daf7c1d15443394741a7577a45e77abd))
+* **pack-web:** warn when a new palette drops a color, and when palette tokens are undefined ([eb983ed](https://github.com/learosema/jen/commit/eb983eddff8c8dbc8b0c836150add249a1c420ac))
+* **pack-web:** web:check finds layout placeholders, the dashboard has a button and an activity list, web:page --like ([8dec838](https://github.com/learosema/jen/commit/8dec838e11177847a3c060e9c4206cb8de34e3c3))
+* **pack-web:** web:color and web:palette say where an accent color goes ([37a0750](https://github.com/learosema/jen/commit/37a075048967b49ec9e539cf3303ac3507d411ce))
+
 ## [2.1.0](https://github.com/learosema/jen/compare/pack-web-v2.0.1...pack-web-v2.1.0) (2026-10-25)
 
 
