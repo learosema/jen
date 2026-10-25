@@ -30,7 +30,7 @@ toc:
 
 ## Install {#install}
 
-Every installed `generator-<name>` or `@scope/generator-<name>` becomes `yeoman:<name>`. yeoman-generator, mem-fs and EJS come with the generator.
+Every installed `generator-<name>` becomes `yeoman:<name>`.
 
 ### Globally {#install-global}
 
@@ -42,11 +42,7 @@ Every installed `generator-<name>` or `@scope/generator-<name>` becomes `yeoman:
 
 ### Not at all {#install-npx}
 
-`yeoman:code` with nothing installed fetches the pack and `generator-code` for one run. Only `generator-code` and `generator-jhipster` are fetched this way, so a typo can't install someone else's package. `JEN_NO_FETCH=1` turns it off.
-
 {% include terminal.html id="yeoman" %}
-
-Any other generator: `--from`.
 
 {% include terminal.html id="yeoman_install_from" %}
 
@@ -54,21 +50,13 @@ Any other generator: `--from`.
 
 ### How it runs {#how}
 
-The generator writes into memory; that becomes jen's plan, with `--force`, `--dry-run` and the project boundary as usual. Binary files are kept as they are.
-
-- **No questions**: answers come from flags or defaults.
-- **No network**: any connection fails the run. Generators that download templates, like `generator-office`, can't run.
-- **No install step**: `install` and `end` (`npm install`, `git init`, opening an editor) are skipped – run those yourself.
+Into jen's plan. No questions, no network, no `npm install`.
 
 ### Questions {#questions}
 
-A flag named after the question answers it: `--extensionType` or `--extension-type`. Otherwise it's what Enter would give – default, first choice, or yes. No answer at all: `Missing: --<name>`.
-
-Generator options and positional arguments are passed on too.
+A flag named after the question answers it; otherwise the default.
 
 ### `yeoman:<name>` {#generators}
-
-Runs what `yo <name>` runs, in a minimal Yeoman environment. `composeWith` fails with a message (JHipster gets a full environment). Writes that bypass Yeoman's file system escape the plan.
 
 {% include terminal.html id="yeoman_code" %}
 
@@ -76,15 +64,11 @@ Runs what `yo <name>` runs, in a minimal Yeoman environment. `composeWith` fails
 
 ### `yeoman:jhipster` {#jhipster}
 
-The same files as `jhipster`, minus `npm install` and `git init`. `--defaults` takes every default; any JHipster option works as a flag, e.g. `--base-name=blog`.
+`--defaults`, or any JHipster option as a flag.
 
 {% include terminal.html id="yeoman_jhipster" %}
 
-Blueprints are off (they'd install from npm). Files outside the project, like `~/.yo-rc-global.json`, are skipped.
-
 ### JDL and commands {#jdl}
-
-The first positional is the JHipster command: `jen yeoman:jhipster jdl blog.jdl`. The JDL file must be in the project. Use JDL for entities – `entity` would ask field by field. Regenerating needs `--force`:
 
 {% include terminal.html id="yeoman_jdl" %}
 

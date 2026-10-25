@@ -4,29 +4,29 @@
     name: "@codejen/pack-cpp",
     langs: ["C++", CMake],
     url: "/recipes.html",
-    text: "Modern C++ classes, types, tooling and SDL3 app starters, wired into your CMakeLists.txt.",
+    text: "C++ classes, tooling and SDL3 starters.",
   }
 - {
     name: "@codejen/pack-glsl",
     langs: [GLSL],
     url: "/glsl.html",
-    text: "Shader starters, noise, signed distance fields, raymarching and lighting – with live previews.",
+    text: "Noise, SDFs, raymarching, lighting.",
   }
 - {
     name: "@codejen/pack-web",
     langs: [HTML, CSS],
     url: "/web.html",
-    text: "A contrast-checked palette, a CUBE CSS starter, layout compositions, and blocks from buttons to tables and form fields.",
+    text: "Contrast-checked palette, CUBE CSS, blocks.",
   }
 - {
     name: "@codejen/pack-js",
     langs: [TypeScript, JavaScript],
     url: "/js.html",
-    text: "New Vite and esbuild projects, web components, ARIA keyboard patterns and type patterns – as TypeScript, JSDoc or plain JavaScript.",
+    text: "Vite, esbuild, web components, keyboard patterns.",
   }
 - {
     name: "@codejen/pack-yeoman",
     langs: [],
     url: "/yeoman.html",
-    text: "Runs Yeoman generators, JHipster included, through jen's plan – never interactive, never online.",
+    text: "Yeoman generators, JHipster included.",
   }

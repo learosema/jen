@@ -40,8 +40,6 @@ toc:
 
 ## Install {#install}
 
-It writes plain text: nothing to build or link.
-
 ### Globally {#install-global}
 
 {% include terminal.html id="glsl_install_global" %}
@@ -52,21 +50,19 @@ It writes plain text: nothing to build or link.
 
 ### Not at all {#install-npx}
 
-Any `glsl:` generator without the pack fetches it for one run (`JEN_NO_FETCH=1` turns that off).
-
 {% include terminal.html id="glsl_install_npx" %}
 
 ## Where files go {#where}
 
-Into the current folder, or `--dir`: `glsl:frag --name=Clouds --dir=shaders` writes `shaders/clouds.frag.glsl`. `--into` and `--file` are relative to where you are. `glsl:webgl` makes a new project folder.
+Into the current folder, or `--dir`.
 
 ## Starters {#starters}
 
-GLSL ES 3.00 (WebGL2) by default; `--version=410` or [`glsl:port`](#glsl-port) for desktop. The uniforms `uTime`, `uResolution` and `uMouse` work in both `<shader-canvas>` and `cpp:sdl3-opengl`.
+WebGL2 by default, `--version=410` for desktop. Uniforms: `uTime`, `uResolution`, `uMouse`.
 
 ### `glsl:webgl` {#glsl-webgl}
 
-A no-build playground: `index.html` and a [`<shader-canvas>`](https://github.com/learosema/jen/tree/main/packages/pack-glsl/web/shader-canvas) that recompiles on save – like every preview here.
+A no-build playground with [`<shader-canvas>`](https://github.com/learosema/jen/tree/main/packages/pack-glsl/web/shader-canvas).
 
 {% include terminal.html id="glsl_webgl" %}
 
@@ -78,15 +74,11 @@ A no-build playground: `index.html` and a [`<shader-canvas>`](https://github.com
 
 ### `glsl:frag` {#glsl-frag}
 
-A full-screen fragment shader with centered, aspect-correct coordinates.
-
 {% include terminal.html id="glsl_frag" %}
 
 {% include params.html generator="glsl:frag" %}
 
 ### `glsl:vert` {#glsl-vert}
-
-A vertex shader: `--kind=quad` (as in `cpp:sdl3-opengl`), `triangle` (no buffer), or `mesh` with model/view/projection.
 
 {% include terminal.html id="glsl_vert" %}
 
@@ -94,7 +86,7 @@ A vertex shader: `--kind=quad` (as in `cpp:sdl3-opengl`), `triangle` (no buffer)
 
 ### `glsl:port` {#glsl-port}
 
-Rewrites a shader's `#version` and precisions, from WebGL to desktop and back. To embed it in C++, use [`cpp:shader`]({{ '/recipes.html#cpp-shader' | relative_url }}).
+WebGL ↔ desktop.
 
 {% include terminal.html id="glsl_port" %}
 
@@ -104,13 +96,11 @@ Rewrites a shader's `#version` and precisions, from WebGL to desktop and back. T
 
 ### How they get into your shader {#into}
 
-GLSL has no `#include`. `--into=<shader>` inserts the functions you pick, plus dependencies, above `// jen:functions` (added before your first function). Nothing is duplicated.
-
-Without `--into`, each function gets its own file in `lib/`, for vite-plugin-glsl, glslify or three.js. `--name` writes a preview shader.
+`--into=<shader>` inserts the functions and their dependencies, once each; without it, one file each in `lib/`.
 
 ### `glsl:noise` {#glsl-noise}
 
-Value, Perlin, simplex and Worley noise; fBm, turbulence, ridged and warped fractals; curl noise. 2D and 3D, each with a `period` overload that **tiles seamlessly** – the previews are tiled 2×2.
+Every noise tiles with its `period` overload.
 
 {% include terminal.html id="glsl_noise" %}
 
@@ -128,13 +118,11 @@ Value, Perlin, simplex and Worley noise; fBm, turbulence, ridged and warped frac
 
 {% include terminal.html id="glsl_noise_tile" %}
 
-Fractals are named by base (`simplexFbm`, `perlinFbm`) and take a `gain`; warp takes a `strength`.
+{% include usage.html generator="glsl:noise" %}
 
 {% include params.html generator="glsl:noise" %}
 
 ### `glsl:sdf` {#glsl-sdf}
-
-Signed distance shapes, operators, and 2D effects. Pick with `--shapes`, `--ops` and `--effects`, or `all`.
 
 {% include terminal.html id="glsl_sdf" %}
 
@@ -155,8 +143,6 @@ Signed distance shapes, operators, and 2D effects. Pick with `--shapes`, `--ops`
 
 ### `glsl:raymarch` {#glsl-raymarch}
 
-A raymarcher: `scene()`, orbiting camera, soft shadows, AO and fog, lit by [`glsl:lighting`](#glsl-lighting). `--materials` adds material ids, `--minimal` drops the extras. `--into` gives just the helpers for your own `scene()`.
-
 {% include terminal.html id="glsl_raymarch" %}
 
 <div class="auto-grid shaders">
@@ -165,19 +151,21 @@ A raymarcher: `scene()`, orbiting camera, soft shadows, AO and fog, lit by [`gls
 {% include shader.html src="raymarch-materials.frag.glsl" caption="<code>--lighting=pbr --materials</code>" %}
 </div>
 
+{% include usage.html generator="glsl:raymarch" %}
+
 {% include params.html generator="glsl:raymarch" %}
 
 ### `glsl:lighting` {#glsl-lighting}
 
-Interchangeable shading models: `lambert`, `blinnPhong`, `toon` and `pbr` (Cook-Torrance, metallic/roughness). Plus ACES and Reinhard tonemapping and sRGB.
-
 {% include terminal.html id="glsl_lighting" %}
+
+{% include usage.html generator="glsl:lighting" %}
 
 {% include params.html generator="glsl:lighting" %}
 
 ### `glsl:displace` {#glsl-displace}
 
-Vertex displacement with correct normals: `displace()` by your `displacement(p)`, or `gerstnerWave()` oceans. Drag the previews to turn them.
+Drag the previews to turn them.
 
 {% include terminal.html id="glsl_displace" %}
 
@@ -186,19 +174,19 @@ Vertex displacement with correct normals: `displace()` by your `displacement(p)`
 {% include shader.html src="displace-waves.frag.glsl" vert="displace-waves.vert.glsl" mesh="plane" detail="128" caption="<code>--kind=waves</code> on <code>mesh=&quot;plane&quot;</code>" %}
 </div>
 
+{% include usage.html generator="glsl:displace" %}
+
 {% include params.html generator="glsl:displace" %}
 
 ### `glsl:matrix` {#glsl-matrix}
 
-OpenGL-style matrices: `rotateX/Y/Z`, `rotateAxis`, `perspective`, `lookAt`, `translate`, `scale`, `transform`.
-
 {% include terminal.html id="glsl_matrix" %}
+
+{% include usage.html generator="glsl:matrix" %}
 
 {% include params.html generator="glsl:matrix" %}
 
 ### `glsl:util` {#glsl-util}
-
-`PI`/`TAU`, `rot2`, `remap`, `saturate` and integer hashes.
 
 {% include terminal.html id="glsl_util" %}
 
@@ -206,7 +194,7 @@ OpenGL-style matrices: `rotateX/Y/Z`, `rotateAxis`, `perspective`, `lookAt`, `tr
 
 ## Licenses and credits {#credits}
 
-The pack's own code is [MIT-0](https://github.com/learosema/jen/blob/main/packages/pack-glsl/LICENSE). Others' code is MIT and inserted with its notice.
+Keep the `THIRD_PARTY_NOTICES.md` jen writes next to your shaders.
 
 - **[webgl-noise](https://github.com/stegu/webgl-noise)** by Stefan Gustavson and Ashima Arts, MIT: classic Perlin noise.
 - **[psrdnoise](https://github.com/stegu/psrdnoise)** by Stefan Gustavson and Ian McEwan, MIT: tiling simplex noise and its gradients, behind `simplexNoise` and `curlNoise`.
@@ -214,7 +202,5 @@ The pack's own code is [MIT-0](https://github.com/learosema/jen/blob/main/packag
 - **[hash-prospector](https://github.com/skeeto/hash-prospector)** by Chris Wellons, public domain: the `lowbias32` hash constants.
 - **[Inigo Quilez's articles](https://iquilezles.org/articles/)**, MIT: the [distance functions](https://iquilezles.org/articles/distfunctions/), [smooth minimum](https://iquilezles.org/articles/smin/), [normals](https://iquilezles.org/articles/normalsSDF/) and [soft shadows](https://iquilezles.org/articles/rmshadows/).
 - **Formulas** from Brian Karis's "Real Shading in Unreal Engine 4"; Duff et al.'s orthonormal basis (JCGT 2017); Mark Finch's Gerstner waves (GPU Gems).
-
-The full notices: [THIRD_PARTY_NOTICES.md](https://github.com/learosema/jen/blob/main/packages/pack-glsl/THIRD_PARTY_NOTICES.md).
 
 <script src="{{ '/glsl/shader-canvas.js' | relative_url }}" defer></script>
