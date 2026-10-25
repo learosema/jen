@@ -24,7 +24,7 @@ export function colorItem(name: string, color: string, tailwind: boolean): Item 
 }
 
 const colorGenerator: Generator = {
-  description: 'create six shades of one color, lightest to darkest (--color-<name>-1 … -6)',
+  description: 'create six shades of one color, lightest to darkest (--color-<name>-1 … -6), without light/dark roles – for an accent color, web:palette --secondary checks its pairs',
   params: {
     name: { description: 'what to call it: pink makes --color-pink-1 … --color-pink-6' },
     color: { description: 'the color: any CSS color (deeppink, #f37, rgb(), hsl(), oklch() …) or a hue in degrees' },
