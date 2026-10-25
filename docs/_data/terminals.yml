@@ -835,6 +835,18 @@ web_check:
   - ""
   - "Nothing to do."
 
+web_check_render:
+  - "$ jen web:check --render"
+  - "web:check (pack @codejen/pack-web) – check the pages and stylesheets: classes no stylesheet defines, stylesheets nothing loads, color pairs the palette didn't check – writes nothing"
+  - ""
+  - "  warning: index.html header.wrapper.repel and div.wrapper.sidebar touch one above the other – class=\"flow\" on body spaces them out"
+  - "  warning: index.html h1 and div.grid touch one above the other – class=\"flow\" on main#main spaces them out"
+  - "  warning: index.html table is wider than the screen, so the page scrolls sideways (390 wide)"
+  - "  warning: index.html \"Last 30 days\" (p) has a contrast of 2.9:1, needs 4.5:1 (WCAG AA) (dark mode)"
+  - "  info: checked 1 page (rendered in light and dark, 390 and 1280 wide) and 32 stylesheets – 4 warnings (--strict exits with 1 then)"
+  - ""
+  - "Nothing to do."
+
 web_tailwind:
   - "$ jen web:tailwind --dir=src/css"
   - "web:tailwind (pack @codejen/pack-web) – set up the stylesheet entry point for Tailwind v4 (layers in CUBE CSS order)"
@@ -1280,40 +1292,10 @@ cli_missing:
 
 cli_json:
   - '$ jen --list --json'
-  - '['
-  - '  {'
-  - '    "name": "cpp:enum",'
-  - '    "source": "pack @codejen/pack-cpp",'
-  - '    "pack": {'
-  - '      "name": "@codejen/pack-cpp",'
-  - '      "version": "1.3.0",'
-  - '      "description": "jen pack for C++: class/shader scaffolding in src/, plus SDL3 (+ OpenGL) app starters",'
-  - '      "homepage": "https://learosema.github.io/jen/recipes.html"'
-  - '    },'
-  - '    "shadowed": false,'
-  - '    "description": "create an enum class with to_string() and a std::formatter specialization (header-only)",'
-  - '    "params": {'
-  - '      "name": {'
-  - '        "type": "string",'
-  - '        "required": true,'
-  - '        "description": "the enum, any case: game-state and GameState both make GameState in GameState.h"'
-  - '      },'
-  - '      "std": {'
-  - '        "type": "string",'
-  - '        "required": false,'
-  - '        "default": "23",'
-  - '        "choices": ["20", "23"],'
-  - '        "description": "C++ standard: 23, or 20 (std::abort instead of std::unreachable)"'
-  - '      },'
-  - '      …'
-  - '    },'
-  - '    "examples": ['
-  - '      {'
-  - '        "jen": "jen cpp:enum --name=GameState --values=\"menu, playing, paused\"",'
-  - '        "npx": "npx --yes @codejen/jen cpp:enum --name=GameState --values=\"menu, playing, paused\""'
-  - '      },'
-  - '      …'
-  - '    ]'
-  - '  },'
-  - '  …'
-  - ']'
+  - '{"packs":[{"name":"@codejen/pack-cpp","version":"1.3.0","description":"jen pack for C++: …","homepage":"https://learosema.github.io/jen/recipes.html"}, …],'
+  - ' "generators":[{"name":"cpp:enum","source":"pack @codejen/pack-cpp","description":"create an enum class with to_string() and a std::formatter specialization (header-only)"}, …]}'
+  - ''
+  - '$ jen cpp:enum --help --json'
+  - '{"name":"cpp:enum","source":"pack @codejen/pack-cpp","pack":{…},"description":"…",'
+  - ' "params":{"name":{"required":true,"description":"the enum, any case: …"},"std":{"default":"23","choices":["20","23"],"description":"C++ standard: …"}, …},'
+  - ' "examples":["jen cpp:enum --name=GameState --values=\"menu, playing, paused\""]}'

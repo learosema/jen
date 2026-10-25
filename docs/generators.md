@@ -41,11 +41,10 @@ toc:
 jen generator --name=hello --location=project
 ```
 
-That writes `.jen/hello.mjs`. `jen hello --name=world` then writes `World.txt`. `--location=user` makes it available in every project.
+Writes `.jen/hello.mjs`; `--location=user` for every project.
 
 ### Start from existing files {#like}
 
-Most generators make what a project already has once more, under a new name. Point jen at the files, and it drafts the generator for you:
 
 ```sh
 jen generator --name=route --like=src/routes/users.js,test/routes/users.test.js
@@ -58,17 +57,11 @@ jen generator --name=route --like=src/routes/users.js,test/routes/users.test.js
 ✓ 1 written
 ```
 
-`jen route --name=users` writes the two files again, byte for byte; `jen route --name=order-items` writes `src/routes/order-items.js` with `orderItems` and `/order-items` in it. From there, refine the draft: more params, inserts, wording.
-
-- **The word** that varies is `--word`, or else the first file's name without its extensions: `users` from `users.test.js`, `UserCard` from `UserCard.tsx`. Every spelling the [helpers](#helpers) make is replaced – `users`, `Users`, `USERS`; for two words also `userCard`, `user-card`, `user_card`, `USER_CARD` and `user card`. Only whole names: `usersCount` and `superusers` stay, and the plan lists them.
-- **Plurals** are different words: `user` and `users` don't replace each other.
-- **Paths** are from the project root (`/src/routes/${kebab(name)}.js`), so the files land where the examples are, wherever you run jen.
-- **Other files** that mention the word, like an index file registering every route, are only named, not changed: add an [`insert`](#actions) for each.
-- Directories, binary files, files over 256 KB and files outside the project are refused before anything is written.
+The word that varies is `--word`, or the first file's name; every spelling the [helpers](#helpers) make is replaced, whole names only. Other files that mention it are only named – add [`insert`](#actions)s.
 
 ### A generator {#generator}
 
-A module exporting `params` and `actions()` – named, or as a default export with an optional `description`:
+`params` and `actions()`, named or as a default export:
 
 ```js
 // .jen/class.mjs
@@ -116,15 +109,12 @@ private:
 };
 ```
 
-`actions()` gets the params and returns the list, optionally `async`. A test file on request: `...(withTest ? [{ add: … }] : [])`.
-
-`.mjs`, `.js`, `.ts` or `.mts` – TypeScript runs through Node's type stripping. Only backticks and `${` need escaping, which C++ rarely has.
+`.mjs`, `.js`, `.ts` or `.mts`; `actions()` may be `async`.
 
 ## Reference {#reference}
 
 ### Params {#params}
 
-A name, with optional `default`, `description` and `choices`:
 
 ```js
 export const params = {
@@ -139,34 +129,15 @@ export const params = {
 };
 ```
 
-- **`description`**: what the name doesn't say, in the words people would search for. Shown by `--help` and `--list --json`.
-- **`choices`**: the only values allowed, checked before `actions()`. The default always passes, so `default: ""` can mean "not given".
-- **`path: true`**: arrives as an action path from the project root (`/shaders/main.glsl`). Fails outside the project.
-
-A default from another param: give it `default: ""`, and fill it in `actions()`:
-
-```js
-export const params = { name: {}, path: { default: "" } };
-
-export const actions = ({ name, path }, { kebab }) => {
-  const route = path || `/${kebab(name)}`; // --path, else from --name
-  // …
-};
-```
-
-Params are `--<name>=<value>` on the [command line]({{ '/cli.html#params' | relative_url }}). No prompts, no `validate`: check in `actions()` and throw.
+No prompts: check in `actions()` and throw.
 
 ### Examples and usage {#examples}
 
-`examples`: what follows the generator name on the command line:
 
 ```js
 export const examples = ["--name=Camera", "--name=Texture --moveOnly"];
 ```
 
-[`--help`]({{ '/cli.html#help' | relative_url }}) prints them as `jen class --name=Camera`, [`--list --json`]({{ '/cli.html#json' | relative_url }}) also via `npx`. Quote as a shell needs: `--members="int x, int y"`. Use `""` for a bare call.
-
-`usage`: how to use the output – markup, custom properties, attributes – one plain line each. Write custom properties as CSS, so nobody takes them for flags:
 
 ```js
 export const usage = [
@@ -176,23 +147,16 @@ export const usage = [
 ];
 ```
 
-Shown under `usage:` in `--help` and as `usage` in `--list --json`.
-
 ### Actions {#actions}
 
 - **`add`**: `{ add, template, force? }` creates a file, skipped if it exists unless `force`/`--force`. `{ add, bytes }` writes a `Uint8Array`.
-- **`insert`**: `{ insert, before, line }` inserts `line` before the first line containing `before` (or matching a `RegExp`, or at a 1-based line number). It takes the marker's indentation – one level deeper before a closing line like `</nav>` or `}`. Existing lines are skipped. `path` instead of `line` inserts that file's path relative to the target.
-- **`insert` … `after`**: `{ insert, after, line }` inserts `line` after the **last** line containing `after` (or matching a `RegExp`) – one level deeper after a line ending in `[`, `{` or `(`. `after: /^import /` is "after the imports". A multi-line import ends on another line than it starts, so match that one too: `after: /^import |^} from /`.
-- **`modify`**: `{ modify, pattern, replace }` – `RegExp` search and replace; also removes lines. Unlike `insert` and `append`, it doesn't skip text that's already there: run twice, it replaces twice. Make the pattern match only the old state, or use `insert`.
-- **`append`**: `{ append, text }` adds `text` on its own line at the end (`\n` first for a blank line). Skipped if already there.
-- **`note`**: `{ note, file? }` changes nothing, prints an `info:` line: `{ note: ".reel is already here, nothing to add", file: "css/layout.css" }`. With `written: true`, it's about what an `add` of `file` writes, and left out when that add is skipped: `{ note: "links css/styles.css", file: "index.html", written: true }`. With `warning: true`, it's a `warning:` – something to fix, which `--strict` turns into exit code `1`.
-- **`delete`**: `{ delete }` deletes a file, never a directory.
+- **`insert`**: `{ insert, before | after, line | path }` – before the first or after the last line containing (or matching, or numbered) the marker, at its indentation. Never twice.
+- **`modify`**: `{ modify, pattern, replace }` – `RegExp` replace, every run.
+- **`append`**: `{ append, text }` – at the end, never twice.
+- **`note`**: `{ note, file?, written?, warning? }` – an `info:` or `warning:` line.
+- **`delete`**: `{ delete }` – a file, never a directory.
 
-**A generator says what, jen says where.** Paths are relative to where the files go (current directory or `--dir`); `/` starts at the project root: `{ add: "/test/routes/users.test.js", … }` lands there wherever jen runs. Nothing outside the root is touched. Actions on one file build on each other.
-
-To find an existing file, `insert` and `modify` take `{ find, containing? }`: the nearest file with that name (or `RegExp`) containing `containing` (for `insert`, the marker), in the destination or above, else the shallowest in the project. None found: a `warning:`, or your own `info:` with `missing: "…"`.
-
-A marker is a comment:
+Paths are relative to where the files go; `/` starts at the project root. `{ find, containing? }` finds the nearest matching file for `insert` and `modify`. A marker is a comment:
 
 ```cmake
 target_sources(app PRIVATE
@@ -201,7 +165,7 @@ target_sources(app PRIVATE
 )
 ```
 
-Without a marker, `after` and a `RegExp` still find the spot – registering a route in an `index.js` that imports each route and lists them in `export const routes = [`, one per line, up to `];`:
+Without a marker:
 
 ```js
 const index = { find: "index.js", containing: "export const routes" };
@@ -212,13 +176,7 @@ export const actions = ({ name }, { camel, kebab }) => [
 ];
 ```
 
-The import goes after the last import, the entry before the list's closing `];`, one level deeper. A rerun adds neither twice.
-
-**Reruns and `--force`.** `--force` only touches `add`: a file that exists is skipped – the plan says so and that `--force` overwrites it – and with `--force` it's written again. `insert` and `append` never add a line twice, with or without it. `modify` runs every time.
-
-`line` and `replace` may be a `\n`-joined block: it keeps its nesting, in the target's indent style ([EditorConfig](#editorconfig)).
-
-`delete` and `modify` undo a generator:
+Undoing one:
 
 ```js
 // .jen/destroy.mjs
@@ -237,10 +195,7 @@ export const actions = ({ name }, { pascal }) => [
 
 ### EditorConfig {#editorconfig}
 
-- **`add`**: the new file follows `indent_style`, `indent_size`/`tab_width`, `end_of_line`, `trim_trailing_whitespace` and `insert_final_newline`.
-- **`insert`, `modify`, `append`**: only the inserted text is reindented – by the `.editorconfig`, or else the style found in the file. In `modify`, the first line stays where the match was.
-
-Files are always UTF-8; `max_line_length` isn't applied.
+New files follow `.editorconfig`; inserted text is reindented to it, or to the file's own style.
 
 ### Helpers {#helpers}
 
@@ -254,7 +209,6 @@ The second argument to `actions()`. For `'rigid body'`:
 
 ### Context {#context}
 
-The third argument to `actions()`, for the rare output that depends on the project:
 
 - **`ctx.destDir`**: where the files go, relative to the project root.
 - **`ctx.root`** and **`ctx.cwd`**: the absolute project root, and the current directory relative to it.
@@ -263,7 +217,6 @@ The third argument to `actions()`, for the rare output that depends on the proje
 
 ### Types {#types}
 
-jen ships types, so JSDoc gives JavaScript generators autocompletion – `jen generator` writes:
 
 ```js
 // @ts-check
@@ -274,15 +227,13 @@ export default {
 };
 ```
 
-Types: `Generator`, `Params`, `Action`, `Answers`, `Helpers`, `Context`, `Pack`, `PackFactory`. Without jen installed locally, only autocompletion is lost.
-
-To write TypeScript, JSDoc or plain JavaScript to match the project, as pack-js and pack-web do, import `typesFor`, `detectTypes`, `TYPES_PARAM`, `ext`, `importExt`, `source`, `stripTypes` and `pick` – making `@codejen/jen` a peer dependency.
+Also exported: `Params`, `Action`, `Answers`, `Helpers`, `Context`, `Pack`, `PackFactory`, and `typesFor`, `detectTypes`, `TYPES_PARAM`, `ext`, `importExt`, `source`, `stripTypes`, `pick` for matching the project's types style.
 
 ## Sharing {#sharing}
 
 ### Where jen looks {#lookup}
 
-In order; the first match wins:
+First match wins:
 
 1. **Project**: `.jen/`, searched upwards, but not past the repository or your home folder. A `.jen/` that isn't yours or is world-writable is skipped.
 2. **User**: `$XDG_CONFIG_HOME/jen`, `~/.config/jen`, or `%APPDATA%\jen` on Windows.
@@ -290,11 +241,10 @@ In order; the first match wins:
 4. **Packs**: `jen-pack-*` or `@scope/pack-*` dependencies – project, user directory, then global.
 5. **Built-ins**: `generator`.
 
-[`jen --list`]({{ '/cli.html#list' | relative_url }}) shows shadowing. Prefix to pick one: `jen user:class`, `jen cpp:class`. An unknown pack prefix [fetches]({{ '/cli.html#fetching' | relative_url }}) from `@codejen`.
+A prefix picks one: `jen user:class`, `jen cpp:class`.
 
 ### Packs {#packs}
 
-An npm package whose default export maps names to generators:
 
 ```js
 // index.mjs
@@ -313,14 +263,7 @@ export default { class: cls, example };
 }
 ```
 
-- **Name**: `jen-pack-<name>` or `@scope/pack-<name>`; both run as `<name>:…`.
-- **`exports`**: a plain string – an `import`-only map isn't found.
-- **Ship JavaScript**: Node doesn't strip types in `node_modules`.
-- **No dependency on jen**, unless you import its helpers (then a peer dependency).
-- **`jen-pack` keyword**: for npm search.
-- **`description`, `version`, `homepage`**: go into [`--list --json`]({{ '/cli.html#json' | relative_url }}); `--help` links the `homepage`.
-
-A pack can also export `recipes`: generators that make something together, in order. `--list` shows them, [`--find`]({{ '/cli.html#find' | relative_url }}) finds them:
+`exports` must be a plain string, and the code JavaScript – Node doesn't strip types in `node_modules`. Optional `recipes`:
 
 ```js
 export const recipes = [
@@ -334,15 +277,7 @@ export const recipes = [
 ];
 ```
 
-Any kind of dependency in the project's or user directory's `package.json` is found:
-
-```json
-{ "devDependencies": { "@codejen/pack-cpp": "^1.0.0" } }
-```
-
-Global packs next to jen need no listing, so `npm install -g @codejen/jen @codejen/pack-cpp` works without a `package.json`. A project's `node_modules` isn't scanned – its `package.json` decides.
-
-A default export can also be a (sync or async) function of `env`: `env.packages(re)` lists installed packages matching a pattern, `env.resolve(name)` resolves one, `env.fetch(name)` installs one for this run – only names fixed in the pack's code:
+Or a function of `env` (`packages`, `resolve`, `fetch`):
 
 ```js
 export default (env) =>
@@ -351,7 +286,6 @@ export default (env) =>
 
 ### VS Code tasks {#vscode}
 
-A task in `.vscode/tasks.json` puts a generator in the command palette:
 
 ```json
 {
@@ -368,11 +302,9 @@ A task in `.vscode/tasks.json` puts a generator in the command palette:
 }
 ```
 
-VS Code asks for each `${input:…}`; wire up every required param.
-
 ## Developing jen {#develop}
 
-The [repository](https://github.com/learosema/jen) is an npm workspaces monorepo: `packages/jen` and each pack, like `packages/pack-cpp`. jen is erasable-syntax TypeScript and runs from source.
+[An npm workspaces monorepo](https://github.com/learosema/jen):
 
 ```sh
 npm test            # node:test across every package
@@ -380,5 +312,3 @@ npm run typecheck   # tsc, tests included, across every package
 npm run build       # jen.js + jen.d.ts, and each pack's dist
 npm run docs        # this website, with its live previews, at localhost:4000
 ```
-
-`-w` targets one package: `npm test -w @codejen/pack-cpp`. `prepublishOnly` runs tests, typecheck and build. Tests run jen in temporary folders with their own `XDG_CONFIG_HOME`.
