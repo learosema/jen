@@ -461,7 +461,7 @@ Then `web:palette` and `web:fluid` write into `@theme`.
 
 ### `web:check` {#web-check}
 
-Undefined classes, unloaded stylesheets, unchecked color pairs. `--render` adds contrast, overflow, touching boxes and console errors from headless Chromium, if one is installed.
+Undefined classes and palette tokens, unloaded stylesheets, unchecked color pairs. `--render` adds contrast, overflow, touching boxes and console errors from headless Chromium, if one is installed.
 
 {% include terminal.html id="web_check" %}
 
