@@ -19,9 +19,12 @@
     white-space: nowrap;
   }
 
+  /* surface-2 is a card's own background in dark mode: the border (3:1, checked) keeps it a badge there */
   .badge--neutral {
     --badge-bg: var(--color-surface-2);
     --badge-fg: var(--color-text);
+
+    border-color: var(--color-border);
   }
 
   {{color-modifiers}}

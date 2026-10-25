@@ -1,4 +1,16 @@
 @layer blocks {
+  /* The site's name beside the nav: a heading-like link home. */
+  .site-name {
+    color: var(--color-text);
+    font-size: var(--step-1, 1.25rem);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .site-name:hover {
+    text-decoration: underline;
+  }
+
   .nav > ul {
     display: flex;
     flex-wrap: wrap;

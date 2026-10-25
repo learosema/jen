@@ -23,6 +23,8 @@
   .stat__trend {
     justify-self: start;
     padding: 0.125em 0.75em;
+    /* Transparent, so every trend is the same size – the flat one colors it in. */
+    border: thin solid transparent;
     border-radius: 100vmax;
     font-size: var(--step--1, 0.875rem);
     font-weight: 600;
@@ -39,7 +41,9 @@
     color: var(--color-danger-strong);
   }
 
+  /* surface-2 is a card's own background in dark mode: the border (3:1, checked) keeps the pill visible */
   .stat__trend[data-trend="flat"] {
+    border-color: var(--color-border);
     background: var(--color-surface-2);
     color: var(--color-text-muted);
   }

@@ -413,7 +413,7 @@ describe('web:check', () => {
     assert.deepEqual(left(page), [
       '/index.html still has placeholder content from web:page\'s dashboard layout: the site name ("Acme"), the sidebar card ("Last 30 days"), the 4 stat cards ("12,480"), the activity list ("Ada signed up – 2 min ago") – replace it with your own',
     ]);
-    const filled = page.replace('<b>Acme</b>', '<b>Tealboard</b>').replace('<p>Last 30 days</p>', '<p>This week</p>').replace('12,480', '12,345').replace('Ada signed up', 'Sam signed up');
+    const filled = page.replace('>Acme</a>', '>Tealboard</a>').replace('<p>Last 30 days</p>', '<p>This week</p>').replace('12,480', '12,345').replace('Ada signed up', 'Sam signed up');
     assert.deepEqual(left(filled), []);
   });
 
@@ -1051,14 +1051,14 @@ describe('web:page', () => {
     assert.match(plain, /\n {2}<body>\n {4}<main id="main">\n {6}<h1>Index<\/h1>\n {4}<\/main>\n {2}<\/body>/);
     const actions = run('page', { name: 'index', title: 'Stats & more', site: 'Shop', layout: 'dashboard' }, context(files));
     const html = template(actions, 'index.html');
-    assert.match(html, /\n {2}<body class="flow" style="padding-block: var\(--space-s-m\)">\n {4}<header class="wrapper repel">\n {6}<a href="index.html"><b>Shop<\/b><\/a>/);
+    assert.match(html, /\n {2}<body class="flow" style="padding-block: var\(--space-s-m\)">\n {4}<header class="wrapper repel">\n {6}<a class="site-name" href="index.html">Shop<\/a>/);
     assert.doesNotMatch(html, /href="\//, 'links that work from file://');
     assert.match(html, /\n {6}<main id="main" class="flow">\n {8}<div class="repel">\n {10}<h1>Stats &amp; more<\/h1>\n {10}<button class="button" type="button">/);
     assert.match(html, /<title>Stats &amp; more – Shop<\/title>/);
     assert.match(html, /<\/main>\n {4}<\/div>\n {2}<\/body>\n<\/html>/);
     assert.ok(notes(actions).includes('index.html has placeholder content from the dashboard layout – replace the nav links, the sidebar card ("Last 30 days"), the 4 stat cards ("12,480") and the activity list ("Ada signed up – 2 min ago"); then jen web:check finds what\'s left and classes no stylesheet defines'));
     const unnamed = run('page', { name: 'index', layout: 'dashboard' }, context(files));
-    assert.match(template(unnamed, 'index.html'), /<b>Acme<\/b>/, 'a placeholder without --site');
+    assert.match(template(unnamed, 'index.html'), />Acme<\/a>/, 'a placeholder without --site');
     assert.ok(notes(unnamed).some((n) => n.includes('replace the site name (or use --site), the nav links')));
   });
 
@@ -1068,7 +1068,7 @@ describe('web:page', () => {
     const actions = run('page', { name: 'settings', like: 'index.html' }, context({ ...files, 'index.html': index }));
     const html = template(actions, 'settings.html');
     assert.match(html, /<title>Settings – Tealboard &amp; Co<\/title>/, 'the site name from its title');
-    assert.match(html, /<a href="index.html"><b>Tealboard &amp; Co<\/b><\/a>/);
+    assert.match(html, /<a class="site-name" href="index.html">Tealboard &amp; Co<\/a>/);
     assert.match(html, /<li><a href="index.html">Overview<\/a><\/li>/);
     assert.match(html, /<li><a href="settings.html" aria-current="page">Settings<\/a><\/li>/);
     assert.match(html, /\n {6}<aside>\n {8}<div class="card">/, 'the sidebar, indented like the page');
