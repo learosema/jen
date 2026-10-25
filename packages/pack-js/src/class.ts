@@ -1,8 +1,7 @@
 /** `js:class`: a class with `#private` fields, getters, a static `create()`, and `Symbol.dispose` with `--disposable`. */
 import type { Generator } from '@codejen/jen';
-import { type Named, fail, formatType, parseNamed } from './common.ts';
-import { TYPES_PARAM, type Types, ext, pick, typesFor } from './style.ts';
-import { type Assert, WITH_TEST_PARAMS, sample, testAction } from './testing.ts';
+import { type Assert, ext, formatType, type Named, parseNamed, pick, sample, testAction, type Types, TYPES_PARAM, typesFor, WITH_TEST_PARAMS } from '@codejen/jen/js';
+import { fail } from './common.ts';
 
 export function classSource(types: Types, cls: string, fields: Named[], disposable: boolean): string {
   const options = `${cls}Options`;

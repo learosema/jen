@@ -1,9 +1,7 @@
 /** `js:emitter`: an `EventTarget` with a typed event map – the platform's own event emitter. */
 import type { Generator } from '@codejen/jen';
+import { eventMap, eventMembers, type EventSpec, ext, parseEvents, sample, source, testAction, type Types, TYPES_PARAM, typesFor, WITH_TEST_PARAMS } from '@codejen/jen/js';
 import { fail } from './common.ts';
-import { type EventSpec, eventMap, eventMembers, parseEvents } from './events.ts';
-import { TYPES_PARAM, type Types, ext, source, typesFor } from './style.ts';
-import { WITH_TEST_PARAMS, sample, testAction } from './testing.ts';
 
 export function emitterSource(types: Types, cls: string, events: EventSpec[]): string {
   const map = `${cls}EventMap`;

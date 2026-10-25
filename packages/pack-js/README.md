@@ -1,8 +1,8 @@
 # @codejen/pack-js
 
-A [jen](https://learosema.github.io/jen/) pack for TypeScript and JavaScript: new Vite and esbuild projects, custom elements with typed attributes and events, the ARIA keyboard patterns (roving tabindex, menus, grids, hotkeys), and type patterns – classes, enums, tagged unions, branded types, errors, event emitters and tests. It writes TypeScript, JSDoc-typed JavaScript or plain JavaScript, whichever your project uses.
+A [jen](https://learosema.github.io/jen/) pack for TypeScript and JavaScript patterns – classes, enums, tagged unions, branded types, errors, event emitters, modules and tests – in TypeScript, JSDoc-typed JavaScript or plain JavaScript, whichever your project uses.
 
-**Documentation: <https://learosema.github.io/jen/js.html>** – every generator with its params, the plan it prints, and live previews.
+**Documentation: <https://learosema.github.io/jen/js.html>**
 
 ## Install
 
@@ -11,14 +11,9 @@ npm install --save-dev @codejen/pack-js   # or: npm install -g @codejen/jen @cod
 ```
 
 ```sh
-jen js:vite --name=shop --framework=react --types=ts
-jen js:element --name=star-rating --attrs=max:number --events="change:{value:number}" --into=index.html
-jen js:menu --dir=src/lib
+jen js:union --name=shape --cases="circle:{radius:number},square:{size:number}"
+jen js:brand --name=user-id --withTest
 ```
-
-## Credits
-
-The keyboard patterns follow the [ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/) by the W3C Web Accessibility Initiative. `js:vite` runs [create-vite](https://github.com/vitejs/vite/tree/main/packages/create-vite) by the Vite team, and `js:esbuild`'s project layout follows it.
 
 ## License
 

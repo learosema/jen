@@ -1,26 +1,15 @@
-/** jen pack for TypeScript and JavaScript – documented at https://learosema.github.io/jen/js.html */
+/** jen pack for TypeScript and JavaScript patterns – documented at https://learosema.github.io/jen/js.html */
 import type { Pack } from '@codejen/jen';
 import brandGenerator from './brand.ts';
 import classGenerator from './class.ts';
-import elementGenerator from './element.ts';
 import emitterGenerator from './emitter.ts';
 import enumGenerator from './enum.ts';
 import errorGenerator from './error.ts';
-import esbuildGenerator from './esbuild.ts';
-import { gridGenerator, hotkeysGenerator, menuGenerator, rovingGenerator } from './keyboard.ts';
 import moduleGenerator from './module.ts';
 import testGenerator from './test.ts';
 import unionGenerator from './union.ts';
-import viteGenerator from './vite.ts';
 
 const pack: Pack = {
-  vite: viteGenerator,
-  esbuild: esbuildGenerator,
-  element: elementGenerator,
-  roving: rovingGenerator,
-  menu: menuGenerator,
-  grid: gridGenerator,
-  hotkeys: hotkeysGenerator,
   class: classGenerator,
   enum: enumGenerator,
   union: unionGenerator,
@@ -32,3 +21,4 @@ const pack: Pack = {
 };
 
 export default pack;
+

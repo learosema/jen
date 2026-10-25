@@ -1,9 +1,8 @@
 /** `js:test`: a test file for an existing module, with a first test per export it finds. */
 import type { Generator } from '@codejen/jen';
 import { posix } from 'node:path';
+import { RUNNER_PARAM, testAction, TYPES_PARAM, typesFor } from '@codejen/jen/js';
 import { fail } from './common.ts';
-import { TYPES_PARAM, typesFor } from './style.ts';
-import { RUNNER_PARAM, testAction } from './testing.ts';
 
 /** Named exports of a module's source: functions and classes, then other values. */
 export function exportsOf(text: string): { name: string; callable: boolean }[] {
