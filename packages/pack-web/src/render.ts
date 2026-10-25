@@ -228,12 +228,13 @@ const MEASURE = `(async () => {
     }
   }
 
-  // a box: a border, a shadow, or a background that differs from what's behind it
+  // a box: borders on two sides or more, a shadow, or a background that differs from what's behind it.
+  // A border on one side only is a divider, like a divided list's between its rows.
   const isBox = (el) => {
     const s = getComputedStyle(el);
     if (s.boxShadow !== 'none' || s.backgroundImage !== 'none') return true;
-    const sides = ['Top', 'Right', 'Bottom', 'Left'];
-    if (sides.some((side) => parseFloat(s['border' + side + 'Width']) > 0 && s['border' + side + 'Style'] !== 'none' && rgba(s['border' + side + 'Color'])[3] > 0)) return true;
+    const sides = ['Top', 'Right', 'Bottom', 'Left'].filter((side) => parseFloat(s['border' + side + 'Width']) > 0 && s['border' + side + 'Style'] !== 'none' && rgba(s['border' + side + 'Color'])[3] > 0);
+    if (sides.length > 1) return true;
     const own = rgba(s.backgroundColor);
     if (own[3] === 0 || !el.parentElement) return false;
     const behind = backgroundOf(el.parentElement);

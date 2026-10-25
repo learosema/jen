@@ -7,7 +7,6 @@
     grid-auto-flow: column;
     grid-auto-columns: max(2.75rem, calc(var(--avatar-size) * 0.6));
     justify-content: start;
-    margin: 0;
     padding: 0;
     list-style: none;
   }
