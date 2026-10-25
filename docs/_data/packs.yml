@@ -16,13 +16,13 @@
     name: "@codejen/pack-web",
     langs: [HTML, CSS],
     url: "/web.html",
-    text: "Contrast-checked palette, CUBE CSS, blocks.",
+    text: "Contrast-checked palette, CUBE CSS, blocks, Vite, web components.",
   }
 - {
     name: "@codejen/pack-js",
     langs: [TypeScript, JavaScript],
     url: "/js.html",
-    text: "Vite, esbuild, web components, keyboard patterns.",
+    text: "Type patterns, modules and tests.",
   }
 - {
     name: "@codejen/pack-yeoman",

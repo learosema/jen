@@ -1006,18 +1006,18 @@ web_transitions:
 
 js_install_global:
   - "$ npm install -g @codejen/jen @codejen/pack-js"
-  - "$ jen js:element --name=my-counter --attrs=count:number"
+  - "$ jen web:element --name=my-counter --attrs=count:number"
 
 js_install_local:
   - "$ npm install --save-dev @codejen/jen @codejen/pack-js"
-  - "$ npx jen js:element --name=my-counter --attrs=count:number"
+  - "$ npx jen web:element --name=my-counter --attrs=count:number"
 
 js_install_npx:
-  - "$ npx @codejen/jen js:element --name=my-counter --attrs=count:number"
+  - "$ npx @codejen/jen web:element --name=my-counter --attrs=count:number"
 
 js_element:
-  - "$ jen js:element --name=star-rating --attrs=max:number,readonly:boolean --events=\"change:{value:number}\" --form --into=index.html --dir=src/components"
-  - "js:element (pack @codejen/pack-js) – create a custom element with typed attributes and events (--into loads it from a page or module)"
+  - "$ jen web:element --name=star-rating --attrs=max:number,readonly:boolean --events=\"change:{value:number}\" --form --into=index.html --dir=src/components"
+  - "web:element (pack @codejen/pack-js) – create a custom element with typed attributes and events (--into loads it from a page or module)"
   - ""
   - "  + src/components/star-rating.ts"
   - "  ~ index.html:3  + <star-rating></star-rating>"
@@ -1026,8 +1026,8 @@ js_element:
   - "✓ 2 written"
 
 js_element_jsdoc:
-  - "$ jen js:element --name=my-counter --attrs=count:number --events=change --dir=src/components"
-  - "js:element (pack @codejen/pack-js) – create a custom element with typed attributes and events (--into loads it from a page or module)"
+  - "$ jen web:element --name=my-counter --attrs=count:number --events=change --dir=src/components"
+  - "web:element (pack @codejen/pack-js) – create a custom element with typed attributes and events (--into loads it from a page or module)"
   - ""
   - "  + src/components/my-counter.js"
   - "  + src/components/elements.d.ts"
@@ -1036,32 +1036,32 @@ js_element_jsdoc:
   - "✓ 2 written"
 
 js_roving:
-  - "$ jen js:roving --dir=src/lib"
-  - "js:roving (pack @codejen/pack-js) – create roving tabindex for toolbars, tab lists, radio groups and listboxes (ARIA APG)"
+  - "$ jen web:roving --dir=src/lib"
+  - "web:roving (pack @codejen/pack-js) – create roving tabindex for toolbars, tab lists, radio groups and listboxes (ARIA APG)"
   - ""
   - "  + src/lib/roving-tabindex.ts"
   - ""
   - "✓ 1 written"
 
 js_menu:
-  - "$ jen js:menu --dir=src/lib"
-  - "js:menu (pack @codejen/pack-js) – create menu and menubar keyboard interaction: arrows, Home/End, typeahead, Escape, popover-aware (ARIA APG)"
+  - "$ jen web:menu --dir=src/lib"
+  - "web:menu (pack @codejen/pack-js) – create menu and menubar keyboard interaction: arrows, Home/End, typeahead, Escape, popover-aware (ARIA APG)"
   - ""
   - "  + src/lib/menu.ts"
   - ""
   - "✓ 1 written"
 
 js_grid:
-  - "$ jen js:grid --dir=src/lib"
-  - "js:grid (pack @codejen/pack-js) – create two-dimensional grid navigation with arrows, Home/End, Page Up/Down (ARIA APG)"
+  - "$ jen web:grid-navigation --dir=src/lib"
+  - "web:grid-navigation (pack @codejen/pack-js) – create two-dimensional grid navigation with arrows, Home/End, Page Up/Down (ARIA APG)"
   - ""
   - "  + src/lib/grid-navigation.ts"
   - ""
   - "✓ 1 written"
 
 js_hotkeys:
-  - "$ jen js:hotkeys --dir=src/lib"
-  - "js:hotkeys (pack @codejen/pack-js) – create a hotkeys registry: scoped bindings, modifiers, ignores typing, optional help overlay"
+  - "$ jen web:hotkeys --dir=src/lib"
+  - "web:hotkeys (pack @codejen/pack-js) – create a hotkeys registry: scoped bindings, modifiers, ignores typing, optional help overlay"
   - ""
   - "  + src/lib/hotkeys.ts"
   - ""
@@ -1136,8 +1136,8 @@ js_test:
   - "✓ 1 written"
 
 js_vite:
-  - "$ jen js:vite --name=shop --framework=react --types=ts"
-  - "js:vite (pack @codejen/pack-js) – create a new Vite project in its own directory, from npm create vite@latest"
+  - "$ jen web:vite --name=shop --framework=react --types=ts"
+  - "web:vite (pack @codejen/pack-js) – create a new Vite project in its own directory, from npm create vite@latest"
   - ""
   - "  + shop/.gitignore"
   - "  + shop/.oxlintrc.json"
@@ -1161,8 +1161,8 @@ js_vite:
   - "✓ 18 written"
 
 js_esbuild:
-  - "$ jen js:esbuild --name=tool --types=ts --withTest"
-  - "js:esbuild (pack @codejen/pack-js) – create a new project bundled by esbuild, in its own directory"
+  - "$ jen web:esbuild --name=tool --types=ts --withTest"
+  - "web:esbuild (pack @codejen/pack-js) – create a new project bundled by esbuild, in its own directory"
   - ""
   - "  + tool/package.json"
   - "  + tool/index.html"
@@ -1234,13 +1234,12 @@ cli_help:
   - '  --name (required)  the enum, any case: game-state and GameState both make GameState in GameState.h'
   - '  --values (required)  comma-separated enumerators, e.g. "idle, running, paused"'
   - '  --namespace=""  C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace'
-  - '  --std=23|20  C++ standard: 23, or 20 (std::abort instead of std::unreachable)'
+  - '  --std=23|20  C++ standard (20: std::abort instead of std::unreachable)'
   - '  --withTest  add a doctest case (needs cpp:doctest)'
   - ''
   - 'examples:'
   - '  jen cpp:enum --name=GameState --values="menu, playing, paused"'
   - '  jen cpp:enum --name=GameState --values="menu, playing, paused" --std=20 --withTest'
-  - '  npx --yes @codejen/jen cpp:enum --name=GameState --values="menu, playing, paused"  (without installing jen)'
   - ''
   - 'docs: https://learosema.github.io/jen/recipes.html'
 
@@ -1284,7 +1283,6 @@ cli_missing:
   - 'examples:'
   - '  jen web:palette --primary=#5b5bd6'
   - '  jen web:palette --primary=#5b5bd6 --secondary=330 --contrast=aa'
-  - '  npx --yes @codejen/jen web:palette --primary=#5b5bd6  (without installing jen)'
   - ''
   - 'docs: https://learosema.github.io/jen/web.html'
   - ''

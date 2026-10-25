@@ -55,6 +55,15 @@ toc:
       - { title: "web:theme-toggle", id: web-theme-toggle }
       - { title: "web:scroll", id: web-scroll }
       - { title: "web:transitions", id: web-transitions }
+  - title: Scripts
+    links:
+      - { title: "web:vite", id: web-vite }
+      - { title: "web:esbuild", id: web-esbuild }
+      - { title: "web:element", id: web-element }
+      - { title: "web:roving", id: web-roving }
+      - { title: "web:menu", id: web-menu }
+      - { title: "web:grid-navigation", id: web-grid-navigation }
+      - { title: "web:hotkeys", id: web-hotkeys }
   - title: Tailwind
     links:
       - { title: "web:tailwind", id: web-tailwind }
@@ -368,6 +377,78 @@ Needs a palette.
 
 {% include params.html generator="web:transitions" %}
 
+## Scripts {#scripts}
+
+In the project's [types style]({{ '/js.html#styles' | relative_url }}): TypeScript, JSDoc or plain JavaScript.
+
+### Projects {#projects}
+
+A new folder, with the latest versions from npm.
+
+#### `web:vite` {#web-vite}
+
+`npm create vite@latest`, without questions.
+
+{% include terminal.html id="js_vite" %}
+
+{% include params.html generator="web:vite" %}
+
+#### `web:esbuild` {#web-esbuild}
+
+A page bundled by [esbuild](https://esbuild.github.io/).
+
+{% include terminal.html id="js_esbuild" %}
+
+{% include params.html generator="web:esbuild" %}
+
+### `web:element` {#web-element}
+
+A custom element with typed attributes and events.
+
+{% include terminal.html id="js_element" %}
+
+{% include web-preview.html base="/js/" src="element.html" title="A custom element" height="13rem" dual=true caption="<code>--attrs=count:number,label,open:boolean --events='change:{value:number}'</code>: the properties are typed, and every change shows in the attributes" %}
+
+{% include terminal.html id="js_element_jsdoc" %}
+
+{% include params.html generator="web:element" %}
+
+### Keyboard patterns {#keyboard}
+
+After the [ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/).
+
+#### `web:roving` {#web-roving}
+
+{% include terminal.html id="js_roving" %}
+
+{% include web-preview.html base="/js/" src="roving.html" title="Roving tabindex" height="21rem" dual=true caption="Click a control, or Tab into a group, then use the arrow keys" %}
+
+{% include params.html generator="web:roving" %}
+
+#### `web:menu` {#web-menu}
+
+{% include terminal.html id="js_menu" %}
+
+{% include web-preview.html base="/js/" src="menu.html" title="Menus" height="18rem" dual=true caption="Open the menu, then try the arrow keys and typing S" %}
+
+{% include params.html generator="web:menu" %}
+
+#### `web:grid-navigation` {#web-grid-navigation}
+
+{% include terminal.html id="js_grid" %}
+
+{% include web-preview.html base="/js/" src="grid.html" title="Grid navigation" height="18rem" caption="Click a day, then use the arrow keys" %}
+
+{% include params.html generator="web:grid-navigation" %}
+
+#### `web:hotkeys` {#web-hotkeys}
+
+{% include terminal.html id="js_hotkeys" %}
+
+{% include web-preview.html base="/js/" src="hotkeys.html" title="Hotkeys" height="16rem" dual=true caption="Click into the frame, then press ?" %}
+
+{% include params.html generator="web:hotkeys" %}
+
 ## Tailwind v4 {#tailwind}
 
 ### `web:tailwind` {#web-tailwind}
@@ -451,3 +532,5 @@ Each file credits its sources:
 - **[Under-Engineered Responsive Tables](https://adrianroselli.com/2020/11/under-engineered-responsive-tables.html)** by Adrian Roselli: the scroll region of `web:table`
 - **[GOV.UK Design System](https://design-system.service.gov.uk/components/text-input/)** by the Government Digital Service: the label, hint and error pattern of `web:field`
 - **[The Quest for the Perfect Dark Mode](https://www.joshwcomeau.com/react/dark-mode/)** by Josh W. Comeau: applying the stored theme before the first paint in `web:theme-toggle`
+- **[ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/)** by the W3C WAI: the [keyboard interface practices](https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/), [menubar](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/) and [grid](https://www.w3.org/WAI/ARIA/apg/patterns/grid/) patterns
+- **[create-vite](https://github.com/vitejs/vite/tree/main/packages/create-vite)** by the Vite team: run by `web:vite`, and the layout of `web:esbuild`

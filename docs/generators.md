@@ -227,7 +227,7 @@ export default {
 };
 ```
 
-Also exported: `Params`, `Action`, `Answers`, `Helpers`, `Context`, `Pack`, `PackFactory`, and `typesFor`, `detectTypes`, `TYPES_PARAM`, `ext`, `importExt`, `source`, `stripTypes`, `pick` for matching the project's types style.
+Also exported: `Params`, `Action`, `Answers`, `Helpers`, `Context`, `Pack`, `PackFactory`. For packs that write JavaScript, `@codejen/jen/js` has the types style (`typesFor`, `ext`, `stripTypes`, …), list params, typed events and tests.
 
 ## Sharing {#sharing}
 
