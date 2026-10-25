@@ -6,6 +6,9 @@
  *                    ambient occlusion and fog, lit with the chosen model (see
  *                    glsl:lighting); --minimal: no shadows, AO or fog;
  *                    --materials: sceneMaterial() returns a material id per surface
+ *   --name=Land --scene=terrain [--water] [--minimal]
+ *                    a heightfield flyover instead: terrain() from fbm and ridged
+ *                    noise, materials by slope and height, sky, sun and fog
  *   --into=<shader>  the helpers for your own scene(): raymarch, calcNormal, softShadow,
  *                    calcAO, cameraMatrix (pick with --parts=march,normal,…)
  *
@@ -157,15 +160,95 @@ ${output}
   ];
 }
 
+const TERRAIN_CHUNKS = ['fractal/fbm2@simplex', 'fractal/ridged2@simplex', 'raymarch/march', 'raymarch/normal', 'raymarch/camera', 'lighting/lambert', 'atmosphere/sky', 'color/srgb'];
+
+/** A heightfield flyover: terrain() from noise, the camera flying over it, materials by slope and height. */
+function terrainStarter(file: string, version: Version, ctx: Context, { water, minimal }: { water: boolean; minimal: boolean }): Action[] {
+  const sand = water ? `
+  albedo = mix(albedo, vec3(0.4, 0.34, 0.22), smoothstep(WATER + 0.05, WATER + 0.01, p.y));  // sand at the shore` : '';
+  const waterHit = water ? `
+  // The water: a plane at y = WATER, in front of the terrain or where the ray misses it.
+  float tw = rd.y < 0.0 ? (WATER - eye.y) / rd.y : -1.0;
+  if (tw > 0.0 && (t < 0.0 || tw < t)) {
+    vec3 p = eye + tw * rd;
+    vec3 n = normalize(vec3(0.04 * simplexNoise(p.xz * 3.0 + uTime), 1.0, 0.04 * simplexNoise(p.zx * 3.0 - uTime)));
+    float fresnel = 0.02 + 0.98 * pow(1.0 - max(dot(n, -rd), 0.0), 5.0);  // Schlick
+    vec3 r = reflect(rd, n);
+    color = mix(vec3(0.01, 0.04, 0.06), skyColor(r, sun), fresnel)
+          + vec3(1.0, 0.85, 0.6) * pow(max(dot(r, sun), 0.0), 600.0) * 1.5;  // sun glint
+    t = tw;
+  }` : '';
+  const shadow = minimal ? '1.0' : 'softShadow(p + 0.02 * n, sun, 0.05, 12.0, 12.0)';
+  const fog = minimal ? '' : `
+  if (t > 0.0) color = fogExp2(color, skyColor(rd, sun), t, 0.022);  // haze toward the horizon`;
+  const body = `uniform float uTime;        // seconds since start
+uniform vec2 uResolution;   // viewport size in pixels
+uniform vec2 uMouse;        // pointer position in pixels, origin bottom-left
+
+out vec4 fragColor;
+${water ? '\nconst float WATER = 0.45;  // the water level\n' : ''}
+${MARKER_LINE}
+// The ground's height at xz: rolling hills, and ridged mountains where the mask is high.
+float terrain(vec2 xz) {
+  vec2 p = 0.12 * xz;
+  float hills = 0.5 + 0.5 * simplexFbm(p, 4);
+  float mountains = simplexRidged(0.7 * p + vec2(5.2, 1.3), 6);
+  float mask = smoothstep(0.35, 0.75, 0.5 + 0.5 * simplexFbm(0.25 * p + vec2(-3.1, 7.7), 3));
+  return 1.2 * hills + 3.5 * mask * mountains * mountains;
+}
+
+// A heightfield isn't a true distance: the steeper the slopes, the smaller this factor must be.
+float scene(vec3 p) { return 0.4 * (p.y - terrain(p.xz)); }
+
+// Rock on steep slopes, grass on flat ground, snow up high.
+vec3 terrainColor(vec3 p, vec3 n) {
+  float slope = 1.0 - n.y;  // 0 flat, 1 vertical
+  vec3 albedo = mix(vec3(0.07, 0.13, 0.03), vec3(0.16, 0.13, 0.11), smoothstep(0.12, 0.3, slope));${sand}
+  float snowLine = 2.3 + 0.3 * simplexNoise(0.5 * p.xz);
+  return mix(albedo, vec3(0.8, 0.85, 0.9), smoothstep(snowLine, snowLine + 0.2, p.y) * smoothstep(0.55, 0.35, slope));
+}
+
+void main() {
+  vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution) / uResolution.y;
+
+  // Fly forward above the peaks; move the pointer sideways to look around.
+  float turn = 1.5 * (uMouse.x / uResolution.x - 0.5) * step(1.0, uMouse.x);
+  vec3 eye = vec3(2.0 * sin(0.05 * uTime), 4.8, 1.2 * uTime);
+  vec3 target = eye + vec3(sin(turn), -0.25, cos(turn));
+  vec3 rd = cameraMatrix(eye, target, 0.0) * normalize(vec3(uv, 1.5));
+
+  vec3 sun = normalize(vec3(-0.5, 0.35, 0.8));
+  vec3 color = skyColor(rd, sun);
+  float t = raymarch(eye, rd, 80.0);
+  if (t > 0.0) {
+    vec3 p = eye + t * rd;
+    vec3 n = calcNormal(p);
+    float shadow = ${shadow};
+    vec3 albedo = terrainColor(p, n);
+    color = lambert(n, sun, albedo) * shadow * vec3(1.0, 0.9, 0.75) * 3.0
+          + albedo * (0.5 + 0.5 * n.y) * vec3(0.35, 0.45, 0.6);  // sky light, so shadows aren't black
+  }${waterHit}${fog}
+
+  fragColor = vec4(linearToSrgb(color), 1.0);  // linear → sRGB for display
+}
+`;
+  const chunks = [...TERRAIN_CHUNKS, ...(minimal ? [] : ['raymarch/soft-shadow', 'atmosphere/fog'])];
+  return [{ add: file, template: withHeader(version, body) }, ...chunkActions(chunks, { into: file, dir: '', ctx })];
+}
+
+export const SCENES = ['shapes', 'terrain'];
+
 const raymarchGenerator: Generator = {
   description: 'raymarch signed distance fields',
   params: {
     name: { default: '', description: 'create a starter shader with this name: a small scene, orbiting camera, shadows, AO and fog' },
+    scene: { default: 'shapes', choices: SCENES, description: 'with --name: shapes, or terrain – a heightfield flyover with sky, sun and fog' },
+    water: { default: false, description: 'with --scene=terrain: a water plane in the valleys, with sand at the shore' },
     minimal: { default: false, description: 'with --name: leave out soft shadows, ambient occlusion and fog' },
     materials: { default: false, description: 'with --name: a material id per surface, for different colors' },
     lighting: { default: 'lambert', choices: LIGHTING_MODELS, description: 'with --name: the shading model (see glsl:lighting)' },
     parts: { default: 'all', description: 'with --into, comma-separated: march, normal, soft-shadow, ao, camera – or all' },
-    into: { path: true, default: '', description: 'existing shader to add the raymarching helpers to, for your own scene()' },
+    into: { path: true, default: '', description: 'existing shader or --inline page to add the raymarching helpers to, for your own scene()' },
     version: { default: '300es', choices: VERSIONS, description: 'GLSL dialect: 300es is WebGL2, 330 and 410 desktop OpenGL' },
   },
   usage: [
@@ -176,16 +259,23 @@ const raymarchGenerator: Generator = {
   examples: [
     '--name=Scene',
     '--name=Scene --lighting=pbr --materials --dir=shaders',
+    '--name=Land --scene=terrain --water',
     '--parts=march,normal --into=shaders/scene.frag.glsl',
   ],
-  actions: ({ name, minimal, materials, lighting, parts, into, version }, { kebab }, ctx) => {
+  actions: ({ name, scene, water, minimal, materials, lighting, parts, into, version }, { kebab }, ctx) => {
     const model = String(lighting);
+    if (!SCENES.includes(String(scene))) fail(`glsl:raymarch --scene: expected "shapes" or "terrain", got "${String(scene)}"`);
+    const terrain = scene === 'terrain';
+    if ((terrain || water) && !name) fail('glsl:raymarch --scene and --water: only for a new starter (--name)');
+    if (water && !terrain) fail('glsl:raymarch --water: only with --scene=terrain');
+    if (terrain && (materials || model !== 'lambert')) fail('glsl:raymarch --scene=terrain: lit with lambert, by slope and height – --materials and --lighting are for the shapes scene');
     if (!LIGHTING_MODELS.includes(model)) {
       fail(`glsl:raymarch --lighting: expected one of ${LIGHTING_MODELS.map((m) => `"${m}"`).join(', ')}, got "${model}"`);
     }
     if (name && into) fail('glsl:raymarch: use either --name (new starter) or --into (existing shader), not both');
     if (name) {
       const file = `${kebab(String(name))}.frag.glsl`;
+      if (terrain) return terrainStarter(file, parseVersion(version), ctx, { water: Boolean(water), minimal: Boolean(minimal) });
       return raymarchStarter(file, parseVersion(version), ctx, {
         scene: materials ? MATERIAL_SCENE : SCENE,
         chunks: SCENE_CHUNKS,

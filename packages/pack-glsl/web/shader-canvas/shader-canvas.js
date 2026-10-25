@@ -117,7 +117,7 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
   // ─── The element ────────────────────────────────────────────────────────────
 
   class ShaderCanvas extends HTMLElement {
-    static observedAttributes = ['src', 'vert', 'mesh', 'detail', 'texture0', 'texture1', 'texture2', 'texture3', 'live'];
+    static observedAttributes = ['src', 'vert', 'mesh', 'detail', 'texture0', 'texture1', 'texture2', 'texture3', 'live', 'time'];
 
     #canvas;
     #overlay;
@@ -170,6 +170,7 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
       });
       nearby.observe(this);
       this.#observers = [resize, intersect, nearby];
+      addEventListener('hashchange', this.#onHashChange);
 
       const motion = matchMedia('(prefers-reduced-motion: reduce)');
       this.#playing = !motion.matches;
@@ -186,6 +187,7 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
       this.#pollTimer = 0;
       for (const o of this.#observers) o.disconnect();
       this.#observers = [];
+      removeEventListener('hashchange', this.#onHashChange);
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
@@ -448,8 +450,24 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
       }
     }
 
+    /** A still frame's time: `#t=12.5` in the page's URL, else the `time` attribute; null to animate. */
+    #stillTime() {
+      const hash = /(?:^#|&)t=(\d+(?:\.\d+)?)(?:&|$)/.exec(location.hash);
+      const value = hash ? hash[1] : this.getAttribute('time');
+      return value !== null && value.trim() !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
+    }
+
+    #onHashChange = () => this.#schedule();
+
     #schedule() {
       if (this.#frame || !this.#gl || !this.#program) return;
+      const still = this.#stillTime();
+      if (still !== null) {
+        this.#time = still;
+        this.#lastTick = 0;
+        this.#draw();
+        return;
+      }
       if (!this.#playing || !this.#visible) {
         this.#lastTick = 0;
         return;

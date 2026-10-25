@@ -72,7 +72,7 @@ const noiseGenerator: Generator = {
     kind: { choices: KINDS, description: 'a noise, a fractal (fbm … warp), or curl: a flow field' },
     dim: { default: '2', choices: ['2', '3'], description: 'dimensions' },
     base: { default: 'simplex', choices: NOISE_BASES, description: 'for fractals: the noise under them' },
-    into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
+    into: { path: true, default: '', description: 'existing shader or --inline page to insert the functions into, before main() (default: one file each in lib/)' },
     name: { default: '', description: 'instead of --into: create a preview shader with this name that shows the noise' },
     tile: { default: false, description: 'with --name: draw the tileable noise 2×2 times, to show it is seamless' },
     version: { default: '300es', choices: VERSIONS, description: 'GLSL dialect: 300es is WebGL2, 330 and 410 desktop OpenGL' },

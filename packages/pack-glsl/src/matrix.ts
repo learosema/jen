@@ -15,7 +15,7 @@ const matrixGenerator: Generator = {
   description: 'add matrix helpers',
   params: {
     fns: { description: 'comma-separated: rotate, perspective, look-at, transform (also as translate or scale) – or all' },
-    into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
+    into: { path: true, default: '', description: 'existing shader or --inline page to insert the functions into, before main() (default: one file each in lib/)' },
   },
   usage: [
     'lookAt() turns world space into view space; cameraMatrix() from glsl:raymarch turns rays the other way',
