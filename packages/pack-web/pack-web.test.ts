@@ -13,6 +13,7 @@ import { DASHBOARD_MARKUP } from './src/recipes.ts';
 import { DISTANCE_RATIO, SHADES, contrast, hexToOklch, luminance, oklchToHex, parseColor, targetLuminance } from './src/color.ts';
 import { claimsFor, groupsFor, paletteCss, rolesFor, verify } from './src/palette.ts';
 import { buttonCss } from './src/button.ts';
+import { badgeCss } from './src/blocks.ts';
 import { BASE, RESET } from './src/base.ts';
 import { LAYERS } from './src/entry.ts';
 import { NAMES as COMPOSITIONS } from './src/compositions.ts';
@@ -497,6 +498,37 @@ describe('recipes', () => {
   it('dashboard: the docs show the same markup', () => {
     const docs = readFileSync(new URL('../../docs/web.md', import.meta.url), 'utf8');
     assert.ok(docs.includes(`\`\`\`html\n${DASHBOARD_MARKUP}\n\`\`\``));
+  });
+});
+
+describe('a new palette color in existing blocks', () => {
+  const blocks = (colors: string[]) => ({
+    'css/styles.css': '/* jen:imports */',
+    'css/button.css': buttonCss(colors),
+    'css/badge.css': badgeCss(colors),
+  });
+
+  it('web:palette adds the modifiers .button and .badge don\'t have yet, inside their layer', () => {
+    const project = blocks(['primary', 'neutral', 'success', 'warning', 'danger', 'info']);
+    const actions = run('palette', { primary: '#0d9488', secondary: '#db2777' }, context(project, 'css'));
+    const badge = inserts(actions).find((a) => a.insert === '/css/badge.css')!;
+    const lastLine = project['css/badge.css'].trimEnd().split('\n').length;
+    assert.equal(badge.before, lastLine, 'before the layer\'s closing brace');
+    assert.equal('line' in badge && badge.line, '\n.badge--secondary {\n  --badge-bg: var(--color-secondary-subtle);\n  --badge-fg: var(--color-secondary-strong);\n}');
+    assert.match(lines(inserts(actions).filter((a) => a.insert === '/css/button.css'))[0], /^\n\.button--secondary \{/);
+    assert.ok(notes(actions).includes('/css/badge.css adds .badge--secondary for the palette\'s new color'));
+  });
+
+  it('leaves blocks alone that have every color, appends without layers, and web:cube keeps to the badge', () => {
+    const all = ['primary', 'secondary', 'neutral', 'success', 'warning', 'danger', 'info'];
+    const blockInserts = (actions: Action[]) => inserts(actions).filter((a) => /(button|badge)\.css$/.test(String(a.insert)));
+    assert.deepEqual(blockInserts(run('palette', { primary: '#0d9488', secondary: '#db2777' }, context(blocks(all), 'css'))), []);
+    const flat = { 'styles.css': `.badge {\n  color: red;\n}\n` };
+    const appended = run('palette', { primary: '#0d9488', secondary: '#db2777' }, context(flat)).flatMap((a) => ('append' in a ? [a] : []));
+    assert.deepEqual(appended.map((a) => a.append), ['/styles.css']);
+    assert.match(appended[0].text, /^\n\.badge--secondary \{/);
+    const cube = run('cube', { primary: '#0d9488', secondary: '#db2777', dir: 'css' }, context(blocks(['primary', 'neutral']), 'css'));
+    assert.deepEqual(blockInserts(cube).map((a) => a.insert), ['/css/badge.css']);
   });
 });
 

@@ -4,6 +4,7 @@ import { DISTANCE_RATIO, SHADES, colorAtLuminance, contrast, luminance, oklchToH
 import type { Oklch } from './color.ts';
 import { fail, rules } from './common.ts';
 import { importActions, usesTailwind } from './entry.ts';
+import { missingModifiers } from './modifiers.ts';
 
 export const FILE = 'palette.css';
 
@@ -414,6 +415,7 @@ const paletteGenerator: Generator = {
   actions: (answers, _helpers, ctx) => [
     { add: FILE, template: paletteCss(answers, Boolean(answers.tailwind) || usesTailwind(ctx)) },
     ...importActions(ctx, [FILE]),
+    ...missingModifiers(ctx, groupsFor(answers).map((g) => g.name)),
     ...brandNotes(answers),
     { note: `guaranteed: ${paletteGuarantee(answers)} – measured before writing` },
   ],
