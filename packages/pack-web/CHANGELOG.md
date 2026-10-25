@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.0](https://github.com/learosema/jen/compare/pack-web-v3.0.0...pack-web-v3.1.0) (2026-10-25)
+
+
+### Features
+
+* **pack-web:** web:roving hands the arrow keys to a native focusgroup ([c7a01cd](https://github.com/learosema/jen/commit/c7a01cda07a862afff5e5be2975f56ce978c4e2e))
+
 ## [3.0.0](https://github.com/learosema/jen/compare/pack-web-v2.1.0...pack-web-v3.0.0) (2026-10-25)
 
 
