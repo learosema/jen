@@ -5,6 +5,7 @@ import type { Oklch } from './color.ts';
 import { fail, rules } from './common.ts';
 import { importActions, usesTailwind } from './entry.ts';
 import { missingModifiers } from './modifiers.ts';
+import { recolor } from './recolor.ts';
 
 export const FILE = 'palette.css';
 
@@ -412,13 +413,19 @@ const paletteGenerator: Generator = {
   params: PALETTE_PARAMS,
   usage: paletteUsage(),
   examples: ['--primary=#5b5bd6', '--primary=#5b5bd6 --secondary=330 --contrast=aa'],
-  actions: (answers, _helpers, ctx) => [
-    { add: FILE, template: paletteCss(answers, Boolean(answers.tailwind) || usesTailwind(ctx)) },
-    ...importActions(ctx, [FILE]),
-    ...missingModifiers(ctx, groupsFor(answers).map((g) => g.name)),
-    ...brandNotes(answers),
-    { note: `guaranteed: ${paletteGuarantee(answers)} – measured before writing` },
-  ],
+  actions: (answers, _helpers, ctx) => {
+    const css = paletteCss(answers, Boolean(answers.tailwind) || usesTailwind(ctx));
+    // the palette as it is now, before this run writes the new one
+    const before = ctx.grep(/\.css$/, '--color-neutral-1:').map((f) => ctx.read(f) ?? '')[0] ?? null;
+    return [
+      { add: FILE, template: css },
+      ...importActions(ctx, [FILE]),
+      ...missingModifiers(ctx, groupsFor(answers).map((g) => g.name)),
+      ...recolor(ctx, before, css),
+      ...brandNotes(answers),
+      { note: `guaranteed: ${paletteGuarantee(answers)} – measured before writing` },
+    ];
+  },
 };
 
 export default paletteGenerator;

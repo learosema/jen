@@ -9,6 +9,7 @@ import { usesTailwind, wireEntry } from './entry.ts';
 import { FLUID_GUARANTEE, FLUID_PARAMS, fluidCss } from './fluid.ts';
 import { PALETTE_PARAMS, brandNotes, groupsFor, paletteCss, paletteGuarantee } from './palette.ts';
 import { missingModifiers } from './modifiers.ts';
+import { recolor } from './recolor.ts';
 import { INTO_PARAMS, bulkActions, newFiles, unlayer } from './single.ts';
 import type { Item } from './single.ts';
 import { allItems, tokensFrom } from './utilities.ts';
@@ -38,7 +39,8 @@ const cubeGenerator: Generator = {
     const button = palette ? buttonCss(groupsFor(answers).map((g) => g.name)) : null;
     const utilities = tailwind ? [] : allItems(tokensFrom(palette, fluid));
     // cube writes the buttons itself; a badge the project already has gets the palette's new colors
-    const modifiers = palette ? missingModifiers(ctx, groupsFor(answers).map((g) => g.name), ['button']) : [];
+    const before = ctx.grep(/\.css$/, '--color-neutral-1:').map((f) => ctx.read(f) ?? '')[0] ?? null;
+    const modifiers = palette ? [...missingModifiers(ctx, groupsFor(answers).map((g) => g.name), ['button']), ...recolor(ctx, before, palette)] : [];
     const guarantee = { note: `guaranteed: ${[...(palette ? [paletteGuarantee(answers)] : []), FLUID_GUARANTEE, 'no px in any file'].join('; ')}` };
     if (answers.into) {
       if (tailwind) fail('web:cube --into isn\'t for Tailwind projects – Tailwind needs its layers');

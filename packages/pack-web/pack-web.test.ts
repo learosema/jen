@@ -532,6 +532,35 @@ describe('a new palette color in existing blocks', () => {
   });
 });
 
+describe('a new palette in pages and the manifest', () => {
+  const modifies = (actions: Action[]) => actions.flatMap((a) => ('modify' in a ? [`${a.modify} ${a.replace}`] : []));
+  const old = paletteCss({ primary: '#0d9488', contrast: 'aaa' });
+  const project = (theme: string) => ({
+    'css/styles.css': '/* jen:imports */',
+    'css/palette.css': old,
+    'index.html': template(run('page', { name: 'index' }, context({ 'css/palette.css': old, 'css/styles.css': '/* jen:imports */' })), 'index.html'),
+    'manifest.webmanifest': `{\n  "theme_color": "${theme}",\n  "background_color": "#ffffff"\n}\n`,
+  });
+
+  it('web:palette moves theme-color and the manifest\'s colors from the old palette to the new one', () => {
+    const [light, dark] = [/--color-neutral-1: (#\w+);/, /--color-neutral-6: (#\w+);/].map((re) => re.exec(paletteCss({ primary: '#4f46e5', contrast: 'aaa' }))![1]);
+    const files = project(/--color-primary-\d: (#\w+);/.exec(old)![1]);
+    const primary = template(run('manifest', { name: 'Shop' }, context(files)), 'manifest.webmanifest');
+    const actions = run('palette', { primary: '#4f46e5' }, context({ ...files, 'manifest.webmanifest': primary }, 'css'));
+    const changed = modifies(actions);
+    assert.ok(changed.includes(`/index.html content="${light}" media="(prefers-color-scheme: light)"`), changed.join('\n'));
+    assert.ok(changed.includes(`/index.html content="${dark}" media="(prefers-color-scheme: dark)"`));
+    assert.ok(changed.some((c) => c.startsWith('/manifest.webmanifest "theme_color": "#')));
+    assert.ok(notes(actions).includes('theme-color and the manifest follow the new palette'));
+  });
+
+  it('leaves colors alone that aren\'t the old palette\'s, and does nothing on a first palette', () => {
+    const actions = run('palette', { primary: '#4f46e5' }, context(project('#123456'), 'css'));
+    assert.ok(!modifies(actions).some((c) => c.includes('manifest')), 'a theme_color set on purpose stays');
+    assert.deepEqual(modifies(run('palette', { primary: '#4f46e5' }, context({ 'index.html': '<meta name="theme-color" content="#f1fcfa" media="(prefers-color-scheme: light)">' }))), []);
+  });
+});
+
 describe('brand color notes', () => {
   it('say which shade the color is closest to, which roles use it, and what --contrast=aa changes', () => {
     assert.deepEqual(plainNotes(run('palette', { primary: '#0d9488' }, context({}))), [

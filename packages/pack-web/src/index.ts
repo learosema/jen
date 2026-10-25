@@ -1,5 +1,5 @@
 /** jen pack for web development – documented at https://learosema.github.io/jen/web.html */
-import type { AnyGenerator } from '@codejen/jen';
+import type { AnyGenerator, Group } from '@codejen/jen';
 import avatarsGenerator from './avatars.ts';
 import baseGenerator from './base.ts';
 import buttonGenerator from './button.ts';
@@ -64,3 +64,11 @@ const pack: Record<string, AnyGenerator> = {
 
 export default pack;
 export { recipes } from './recipes.ts';
+
+/** Kinds of generators, one line each in `jen web --list`. */
+export const groups: Group[] = [
+  { name: 'blocks', description: 'UI blocks on the palette tokens, one file each', generators: ['button', 'card', 'avatars', ...Object.keys(blockGenerators)] },
+  { name: 'compositions', description: 'layout compositions, one file each (web:compositions for several)', generators: Object.keys(compositionGenerators) },
+  { name: 'utilities', description: 'utility classes, one file each (web:utilities for all that fit)', generators: Object.keys(utilityGenerators) },
+  { name: 'keyboard', description: 'keyboard interaction scripts after the ARIA APG', generators: ['roving', 'menu', 'grid-navigation', 'hotkeys'] },
+];
