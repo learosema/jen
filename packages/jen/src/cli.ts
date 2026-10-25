@@ -461,7 +461,9 @@ async function list(entries: Entry[]): Promise<void> {
   if (recipes.length > 0) console.log('\nrecipes:');
   for (const { pack, recipe } of recipes) {
     console.log(`  ${recipe.name.padEnd(22)} ${`pack ${pack.name}`.padEnd(26)} ${recipe.description}`);
-    for (const call of recipeCalls(pack, recipe)) console.log(dim(`    ${call.jen}`));
+    for (const step of recipeCalls(recipe)) console.log(dim(`    ${step}`));
+    // the markup would make the list long
+    if (recipe.usage?.length) console.log(dim(`    how it fits together: jen --find ${shellValue(recipe.name)}`));
   }
 }
 
@@ -529,43 +531,66 @@ function formatGenerator(e: Entry, gen: AnyGenerator): string {
   return lines.join('\n');
 }
 
-/** A pack in `--list --json`: its recipes' steps as whole calls, their markup only in `--find` (it would repeat on every generator). */
-const packJson = ({ recipes, ...pack }: PackMeta) => ({
+/** JSON for programs: compact when piped, indented on a terminal. */
+const toJson = (value: unknown, stream: NodeJS.WriteStream = process.stdout): string => JSON.stringify(value, null, stream.isTTY ? 2 : undefined);
+
+/** A param in JSON: only what differs from an optional string param with an empty default. */
+function paramJson(spec: Params[string]): Partial<ParamInfo> {
+  const { type, required, default: value, ...rest } = paramInfo(spec);
+  return {
+    ...(type === 'boolean' && { type }),
+    ...(required && { required }),
+    ...(value !== undefined && value !== '' && value !== false && { default: value }),
+    ...rest,
+  };
+}
+
+/** A pack's details in JSON – in `--list --json` once, with its recipes (their markup only in `--find`). */
+const packJson = ({ recipes, ...pack }: PackMeta, withRecipes: boolean) => ({
   ...pack,
-  ...(recipes && { recipes: recipes.map((r) => ({ name: r.name, description: r.description, steps: recipeCalls(pack, r), ...(r.docs && { docs: r.docs }) })) }),
+  ...(withRecipes && recipes && { recipes: recipes.map((r) => ({ name: r.name, description: r.description, steps: recipeCalls(r), ...(r.docs && { docs: r.docs }) })) }),
 });
 
-/** One generator in `--list --json` (and `--help --json`). */
-const catalogEntry = (e: Entry, g: AnyGenerator, shadowed = false) => ({
+/** One generator in `--list --json` and `--find --json`: the details come with `<generator> --help --json`. */
+const listEntry = (e: Entry, g: AnyGenerator | null, shadowed = false) => ({
   name: qualified(e),
   source: e.source,
-  ...(e.pack && { pack: packJson(e.pack) }),
-  shadowed,
-  description: g.description ?? '',
-  params: Object.fromEntries(Object.entries(g.params ?? {}).map(([n, spec]) => [n, paramInfo(spec)])),
-  examples: exampleCalls(e, g),
-  usage: g.usage ?? [],
+  ...(g?.description && { description: g.description }),
+  ...(shadowed && { shadowed }),
 });
 
-/** `jen --list --json`: the catalog for programs – JSON only on stdout. */
+/** One generator in `--help --json`: everything `--help` shows. */
+const generatorJson = (e: Entry, g: AnyGenerator) => {
+  const params = Object.entries(g.params ?? {});
+  const examples = exampleCalls(e, g).map((x) => x.jen);
+  return {
+    name: qualified(e),
+    source: e.source,
+    ...(e.pack && { pack: packJson(e.pack, false) }),
+    ...(g.description && { description: g.description }),
+    ...(params.length > 0 && { params: Object.fromEntries(params.map(([n, spec]) => [n, paramJson(spec)])) }),
+    ...(examples.length > 0 && { examples }),
+    ...(g.usage?.length && { usage: g.usage }),
+  };
+};
+
+/** `jen --list --json`: the catalog for programs – JSON only on stdout. Each pack once, then its generators. */
 async function listJson(entries: Entry[]): Promise<void> {
-  const catalog = [];
+  const packs = new Map(entries.flatMap((e) => (e.pack ? [[e.pack.name, packJson(e.pack, true)] as const] : [])));
+  const generators = [];
   for (const { entry: e, shadowed } of withShadowing(entries)) {
-    catalog.push(
+    generators.push(
       await e.load().then(
-        (g) => catalogEntry(e, g, shadowed),
-        (err: Error) => ({ name: qualified(e), source: e.source, ...(e.pack && { pack: packJson(e.pack) }), shadowed, error: err.message }),
+        (g) => listEntry(e, g, shadowed),
+        (err: Error) => ({ ...listEntry(e, null, shadowed), error: err.message }),
       ),
     );
   }
-  console.log(JSON.stringify(catalog, null, 2));
+  console.log(toJson({ packs: [...packs.values()], generators }));
 }
 
-/** A recipe's steps as whole calls, like a generator's examples: with jen installed, and through npx. */
-const recipeCalls = (pack: PackMeta, r: Recipe) => {
-  const from = pack.name.startsWith(`${FIRST_PARTY_SCOPE}/pack-`) ? '' : ` --from ${pack.name}`;
-  return r.steps.map((step) => ({ jen: `jen ${step}`, npx: `${NPX}${from} ${step}` }));
-};
+/** A recipe's steps as whole calls, like a generator's examples. */
+const recipeCalls = (r: Recipe): string[] => r.steps.map((step) => `jen ${step}`);
 
 /** The recipes of the packs among `entries`, once each. */
 function recipesOf(entries: Entry[]): Array<{ pack: PackMeta; recipe: Recipe }> {
@@ -600,10 +625,19 @@ async function search(entries: Entry[], query: string, asJson: boolean, scoped: 
   if (asJson) {
     const results = hits.map(({ item: h, score }) =>
       h.kind === 'generator'
-        ? { kind: h.kind, score, ...catalogEntry(h.entry, h.gen) }
-        : { kind: h.kind, score, name: h.name, pack: h.pack.name, description: h.description, steps: recipeCalls(h.pack, h.recipe), usage: h.recipe.usage ?? [], ...(h.recipe.docs && { docs: h.recipe.docs }) },
+        ? { kind: h.kind, score, ...listEntry(h.entry, h.gen) }
+        : {
+            kind: h.kind,
+            score,
+            name: h.name,
+            pack: h.pack.name,
+            description: h.description,
+            steps: recipeCalls(h.recipe),
+            ...(h.recipe.usage?.length && { usage: h.recipe.usage }),
+            ...(h.recipe.docs && { docs: h.recipe.docs }),
+          },
     );
-    return void console.log(JSON.stringify({ query, results, ...(missing.length > 0 && { notSearched: missing.map((p) => `${FIRST_PARTY_SCOPE}/pack-${p}`) }) }, null, 2));
+    return void console.log(toJson({ query, results, ...(missing.length > 0 && { notSearched: missing.map((p) => `${FIRST_PARTY_SCOPE}/pack-${p}`) }) }));
   }
   if (hits.length === 0) console.log(`Nothing matches "${query}" – jen --list shows all.`);
   for (const { item: h } of hits) {
@@ -612,7 +646,8 @@ async function search(entries: Entry[], query: string, asJson: boolean, scoped: 
       continue;
     }
     console.log(`  ${`recipe: ${h.name}`.padEnd(22)} ${h.description} (${h.pack.name})`);
-    for (const call of recipeCalls(h.pack, h.recipe)) console.log(dim(`    ${call.jen}`));
+    for (const step of recipeCalls(h.recipe)) console.log(dim(`    ${step}`));
+    for (const line of h.recipe.usage ?? []) console.log(`    ${line}`);
     if (h.recipe.docs) console.log(dim(`    docs: ${h.recipe.docs}`));
   }
   if (missing.length > 0) {
@@ -770,7 +805,7 @@ export async function main(): Promise<void> {
     const entry = find(entries, query) ?? (await fetchFallback(entries, query, extra)) ?? notFound(entries, query);
     const gen = await entry.load();
     if ('json' in (gen.params ?? {})) json = false;
-    if (values.help) return void console.log(json ? JSON.stringify(catalogEntry(entry, gen), null, 2) : formatGenerator(entry, gen));
+    if (values.help) return void console.log(json ? toJson(generatorJson(entry, gen)) : formatGenerator(entry, gen));
     // --where was removed: fail rather than quietly write into the cwd, unless it's the generator's own param
     if ('w' in values || ('where' in values && !('where' in (gen.params ?? {})))) {
       fail('--where/-w was removed – cd into the directory and run jen there.');
@@ -783,8 +818,8 @@ export async function main(): Promise<void> {
       throw new JenError(`Missing: ${missing.map(([n]) => `--${n}`).join(', ')}`, 'missing_param', {
         generator: qualified(entry),
         missing: missing.map(([n]) => `--${n}`),
-        params: Object.fromEntries(Object.entries(gen.params ?? {}).map(([n, spec]) => [n, paramInfo(spec)])),
-        examples: exampleCalls(entry, gen),
+        params: Object.fromEntries(Object.entries(gen.params ?? {}).map(([n, spec]) => [n, paramJson(spec)])),
+        examples: exampleCalls(entry, gen).map((x) => x.jen),
       });
     }
     const notes: string[] = [];
@@ -818,7 +853,7 @@ export async function main(): Promise<void> {
         steps: planItems(steps).map(({ mark: _, ...item }) => item),
         ...done,
       };
-      return void console.log(JSON.stringify(result, null, 2));
+      return void console.log(toJson(result));
     }
     console.log();
     printPlan(steps);
@@ -831,7 +866,7 @@ export async function main(): Promise<void> {
   } catch (e) {
     if (!json) throw e;
     const error = e instanceof JenError ? { code: e.code, message: e.message, ...e.details } : { code: 'error', message: e instanceof Error ? e.message : String(e) };
-    console.error(JSON.stringify({ error }, null, 2));
+    console.error(toJson({ error }, process.stderr));
     process.exitCode = 1;
   } finally {
     for (const cleanup of extra.cleanups) cleanup();
