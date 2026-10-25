@@ -47,6 +47,7 @@ jen glsl:raymarch --name=Scene                     # starter: scene(), orbiting 
 jen glsl:raymarch --name=Scene --minimal           # just march, normal and diffuse light
 jen glsl:raymarch --name=Scene --materials         # sceneMaterial() also returns a material id per surface
 jen glsl:raymarch --name=Scene --lighting=pbr      # lambert (default), blinn, toon or pbr
+jen glsl:raymarch --name=Land --scene=terrain --water  # a flyover: noise terrain, water, sky, sun, fog
 jen glsl:sdf --dim=3 --shapes=box,torus --ops=smooth-union --into=shaders/scene.frag.glsl
 jen glsl:sdf --shapes=star --effects=fill,stroke,glow --into=shaders/logo.frag.glsl
 jen glsl:sdf --dim=3 --shapes=all --name=Shapes    # preview: every shape side by side
@@ -91,7 +92,7 @@ jen glsl:matrix --fns=rotate,look-at --into=shaders/mesh.vert.glsl
 
 ## How functions get into your shader
 
-GLSL has no `#include`, so functions ship as plain `.glsl` files under `glsl/`. With `--into=<shader>`, jen inserts the ones you pick – plus whatever they depend on – above a `// jen:functions` marker line. If your shader has none yet, the marker is added before its first function, so the inserted functions come before your own code that calls them (a raymarched `scene()`, say). Later runs add below what's already there. Anything already in the file is skipped, so running a generator twice, or two generators sharing a helper, never duplicates code. Without `--into`, each function is written as its own file under `lib/` where the files go (`--dir`) for setups with an include mechanism (vite-plugin-glsl, glslify, three.js, …).
+GLSL has no `#include`, so functions ship as plain `.glsl` files under `glsl/`. With `--into=<shader>` (a `.glsl` file, or the page `glsl:webgl --inline` made), jen inserts the ones you pick – plus whatever they depend on – above a `// jen:functions` marker line. If your shader has none yet, the marker is added before its first function, so the inserted functions come before your own code that calls them (a raymarched `scene()`, say). Later runs add below what's already there. Anything already in the file is skipped, so running a generator twice, or two generators sharing a helper, never duplicates code. Without `--into`, each function is written as its own file under `lib/` where the files go (`--dir`) for setups with an include mechanism (vite-plugin-glsl, glslify, three.js, …).
 
 Inserted code is matched by its exact text: if you edit an inserted function and run a generator needing it again, it gets inserted a second time.
 
@@ -107,7 +108,7 @@ The generators write into the current directory; `--dir=<path>` writes somewhere
 
 The pack's own code – starters and functions – is [MIT No Attribution](LICENSE) (MIT-0): do whatever you want with it, no notice required. (Not the Unlicense or CC0: German copyright law can't release code into the public domain, but it can grant every right unconditionally.)
 
-Functions by other authors are included only under the MIT license, which does require their notice: when jen inserts such a function, the author's full notice goes into your shader with it, once per shader. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for all authors and sources.
+Functions by other authors are included only under the MIT license, which does require their notice: when jen inserts such a function, the author's full notice goes into a `THIRD_PARTY_NOTICES.md` next to your shader, once per license. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for all authors and sources.
 
 ## License
 

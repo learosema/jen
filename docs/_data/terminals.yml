@@ -410,6 +410,25 @@ glsl_webgl:
   - "✓ 3 written"
   - "$ npx serve"
 
+glsl_into_page:
+  - "$ jen glsl:webgl --name=Land --inline"
+  - "glsl:webgl (pack @codejen/pack-glsl) – create a no-build WebGL2 playground"
+  - ""
+  - "  + index.html"
+  - "  + shader-canvas.js"
+  - ""
+  - "✓ 2 written"
+  - "$ jen glsl:noise --kind=fbm --into=index.html"
+  - "glsl:noise (pack @codejen/pack-glsl) – add GLSL noise, tileable"
+  - ""
+  - "  ~ index.html:26  + // psrdnoise · Stefan Gustavson and Ian McEwan · https://github.com/stegu/psrdnoise (+85 more)"
+  - "  ~ index.html:112  + // psrdnoise under jen's noise name; [-1, 1]; period: whole numbers, even along y (+10 more)"
+  - "  ~ index.html:123  + // about [-1, 1]; each octave doubles the period too, like feTurbulence's stitchTiles (+34 more)"
+  - "  + THIRD_PARTY_NOTICES.md"
+  - "  ~ THIRD_PARTY_NOTICES.md  + ## psrdnoise (appended)"
+  - ""
+  - "✓ 2 written"
+
 glsl_frag:
   - "$ jen glsl:frag --name=Plasma --dir=shaders"
   - "glsl:frag (pack @codejen/pack-glsl) – create a full-screen GLSL fragment shader starter"

@@ -39,9 +39,10 @@ const helpers: Helpers = {
  * Runs a generator the way jen does with `--dir=<answers.dir>` (`shaders` if not
  * given): path params arrive from the project root (`/…`), and the resulting paths
  * are placed – `/…` at the root, everything else in that folder. The GLSL
- * generators only ask the project whether a notices file exists: `existing`.
+ * generators only ask the project whether a notices file exists (`existing`), and
+ * read the file --into names (`files`, if given).
  */
-function run(generator: string, answers: Record<string, string | boolean>, existing: string[] = []): Action[] {
+function run(generator: string, answers: Record<string, string | boolean>, existing: string[] = [], files?: Map<string, string>): Action[] {
   const g = pack[generator];
   const params = g.params ?? {};
   const defaults = Object.fromEntries(
@@ -52,7 +53,7 @@ function run(generator: string, answers: Record<string, string | boolean>, exist
   const given = Object.fromEntries(Object.entries({ ...defaults, ...answers }).map(([k, v]) => [k, params[k]?.path && v ? `/${v}` : v]));
   const dir = 'dir' in params ? '.' : String(answers.dir ?? 'shaders');
   const place = (p: string | Find): string => (typeof p !== 'string' ? assert.fail('no find targets here') : p.startsWith('/') ? p.slice(1) : posix.join(dir, p));
-  const ctx = { destDir: dir, exists: (p: string) => existing.includes(p) } as never;
+  const ctx = { destDir: dir, exists: (p: string) => existing.includes(p), read: (p: string) => files?.get(p) ?? null } as never;
   return g.actions(given, helpers, ctx).map((a): Action => {
     if ('add' in a) return { ...a, add: place(a.add) };
     if ('append' in a) return { ...a, append: place(a.append) };
@@ -108,7 +109,7 @@ function assertCompiles(source: string, stage: 'vert' | 'frag', label: string) {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('chunks', () => {
-  const allIds = ['util', 'noise', 'fractal', 'sdf2d', 'sdf3d', 'sdfop', 'sdffx', 'raymarch', 'lighting', 'color', 'matrix', 'vertex'].flatMap(chunkIds);
+  const allIds = ['util', 'noise', 'fractal', 'sdf2d', 'sdf3d', 'sdfop', 'sdffx', 'raymarch', 'lighting', 'atmosphere', 'color', 'matrix', 'vertex'].flatMap(chunkIds);
 
   it('every chunk declares a license; third-party ones have an existing notice', () => {
     for (const id of allIds) {
@@ -357,7 +358,7 @@ describe('glsl:util', () => {
     for (const [generator, param] of [['util', 'fns'], ['matrix', 'fns'], ['noise', 'kind']]) {
       assert.equal(pack[generator].params?.[param].default, undefined, `glsl:${generator} --${param} is required`);
     }
-    for (const [generator, group] of [['sdf', ['shapes', 'ops', 'effects']], ['lighting', ['models', 'tonemap']]] as const) {
+    for (const [generator, group] of [['sdf', ['shapes', 'ops', 'effects']], ['lighting', ['models', 'tonemap', 'sky', 'fog']]] as const) {
       for (const param of group) {
         assert.match(pack[generator].params?.[param].description ?? '', new RegExp(`\\(pick at least one of ${group.map((p) => `--${p}`).join(', ')}\\)$`));
       }
@@ -405,6 +406,13 @@ describe('glsl:webgl', () => {
     assert.throws(() => run('webgl', { name: 'x', tag: 'canvas' }), /not a valid custom element name/);
   });
 
+  it('the element draws a still frame for a time attribute or #t= in the URL', () => {
+    const source = byPath(run('webgl', { name: 'x' })).get('shader-canvas.js')!;
+    assert.match(source, /observedAttributes = \[[^\]]*'time'\]/);
+    assert.match(source, /location\.hash/);
+    assert.match(source, /addEventListener\('hashchange'/);
+  });
+
   it('the element is a classic script without exports, defined once under TAG', () => {
     const source = byPath(run('webgl', { name: 'x' })).get('shader-canvas.js')!;
     assert.doesNotThrow(() => new Script(source), 'parses as a classic script');
@@ -419,6 +427,42 @@ describe('glsl:webgl', () => {
     const html = byPath(run('webgl', { name: 'x', inline: true })).get('index.html')!;
     const shader = /<script type="x-shader\/x-fragment">\n([\s\S]*?)\n\s*<\/script>/.exec(html)![1];
     assertCompiles(shader.split('\n').map((l) => l.replace(/^ {8}/, '')).join('\n'), 'frag', 'inline webgl shader');
+  });
+
+  it('--inline keeps the marker, so --into=index.html puts functions into the page\'s shader', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    const files = byPath(run('webgl', { name: 'x', inline: true }));
+    assert.match(files.get('index.html')!, /^ {8}\/\/ jen:functions – .*\n\n {8}void main\(/m);
+    applyActions(files, run('noise', { kind: 'fbm', into: 'index.html' }, [], files));
+    applyActions(files, run('raymarch', { parts: 'march,normal', into: 'index.html' }, [], files));
+    const html = files.get('index.html')!;
+    const shader = /<script type="x-shader\/x-fragment">\n([\s\S]*?)\n\s*<\/script>/.exec(html)![1];
+    assert.ok(shader.indexOf('float simplexFbm(') < shader.indexOf('float raymarch(') && shader.indexOf('float raymarch(') < shader.indexOf('// jen:functions'));
+    // the page's scene() comes later: a prototype is enough for the helpers
+    const source = shader.split('\n').map((l) => l.replace(/^ {8}/, '')).join('\n');
+    assertCompiles(`${source}\nfloat scene(vec3 p) { return length(p) - 1.0; }\n`, 'frag', 'page shader with fbm + raymarch helpers');
+  });
+
+  it('--into a page without the marker goes into its fragment shader script, before the first function', () => {
+    const page = '<script type="x-shader/x-vertex">\n  void main() {}\n</script>\n<script type="x-shader/x-fragment">\n  out vec4 c;\n  void main() { c = vec4(rot2(1.0)[0], 0.0, 1.0); }\n</script>\n';
+    const files = new Map([['p.html', page]]);
+    applyActions(files, run('util', { into: 'p.html', fns: 'rot2' }, [], files));
+    const out = files.get('p.html')!;
+    assert.ok(out.indexOf('x-shader/x-fragment') < out.indexOf('mat2 rot2(') && out.indexOf('mat2 rot2(') < out.indexOf('// jen:functions'));
+    assert.ok(out.indexOf('// jen:functions') < out.indexOf('void main() { c'));
+  });
+
+  it('--into says in words when there is nowhere to put the functions', () => {
+    for (const [file, text, why] of [
+      ['p.html', '<p>no shader</p>\n', /has no <script type="x-shader\/x-fragment"> with a function in it/],
+      ['s.glsl', 'out vec4 c;\n', /has no function to put them before/],
+    ] as const) {
+      const actions = run('util', { into: file, fns: 'rot2' }, [], new Map([[file, text]]));
+      assert.equal(actions.length, 1);
+      const [note] = actions;
+      assert.ok('note' in note && note.warning);
+      assert.match(note.note, why);
+      assert.match(note.note, /add a line "\/\/ jen:functions" where the functions should go/);
+    }
   });
 });
 
@@ -653,6 +697,35 @@ describe('glsl:raymarch', () => {
     assert.throws(() => run('raymarch', { into: 'x.glsl', materials: true }), /--materials: only for a new starter/);
   });
 
+  it('--scene=terrain: a heightfield flyover that compiles, with or without water, full or minimal, in every dialect', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    for (const version of VERSIONS) {
+      for (const water of [false, true]) {
+        for (const minimal of [false, true]) {
+          const files = applyActions(new Map(), run('raymarch', { name: 'Land', scene: 'terrain', water, minimal, version }));
+          assertCompiles(files.get('shaders/land.frag.glsl')!, 'frag', `terrain starter (${version}, water: ${water}, minimal: ${minimal})`);
+        }
+      }
+    }
+  });
+
+  it('--scene=terrain brings only the helpers it uses', () => {
+    const out = applyActions(new Map(), run('raymarch', { name: 'Land', scene: 'terrain', water: true })).get('shaders/land.frag.glsl')!;
+    for (const s of ['float terrain(vec2 xz)', 'float scene(vec3 p) { return 0.4 * (p.y - terrain(p.xz)); }', 'vec3 terrainColor(', 'float simplexRidged(', 'vec3 skyColor(', 'vec3 fogExp2(', 'float softShadow(', 'const float WATER']) {
+      assert.ok(out.includes(s), s);
+    }
+    for (const s of ['sdSphere', 'sdBox', 'sdRoundBox', 'sdTorus', 'sdPlane', 'opSmoothUnion', 'calcAO']) assert.ok(!out.includes(s), `no ${s}`);
+    const dry = applyActions(new Map(), run('raymarch', { name: 'Land', scene: 'terrain', minimal: true })).get('shaders/land.frag.glsl')!;
+    for (const s of ['WATER', 'softShadow', 'fogExp']) assert.ok(!dry.includes(s), `minimal, no water: no ${s}`);
+  });
+
+  it('--scene and --water fail where they mean nothing', () => {
+    assert.throws(() => run('raymarch', { name: 'x', scene: 'cave' }), /--scene: expected "shapes" or "terrain", got "cave"/);
+    assert.throws(() => run('raymarch', { name: 'x', water: true }), /--water: only with --scene=terrain/);
+    assert.throws(() => run('raymarch', { into: 'x.glsl', scene: 'terrain' }), /--scene and --water: only for a new starter/);
+    assert.throws(() => run('raymarch', { name: 'x', scene: 'terrain', materials: true }), /--scene=terrain: lit with lambert/);
+    assert.throws(() => run('raymarch', { name: 'x', scene: 'terrain', lighting: 'pbr' }), /--materials and --lighting are for the shapes scene/);
+  });
+
   it('--minimal leaves out shadows, AO and fog', () => {
     const full = applyActions(new Map(), run('raymarch', { name: 'x' })).get('shaders/x.frag.glsl')!;
     const minimal = applyActions(new Map(), run('raymarch', { name: 'x', minimal: true })).get('shaders/x.frag.glsl')!;
@@ -674,7 +747,7 @@ describe('glsl:raymarch', () => {
 
 describe('glsl:lighting', () => {
   it('validates, listing models and tonemaps', () => {
-    assert.throws(() => run('lighting', {}), /pick something – --models=blinn, lambert, pbr, toon; --tonemap=aces, reinhard, srgb/);
+    assert.throws(() => run('lighting', {}), /pick something – --models=blinn, lambert, pbr, toon; --tonemap=aces, reinhard, srgb \(each also takes "all"\); --sky, --fog/);
     assert.throws(() => run('lighting', { tonemap: 'filmic' }), /--tonemap: unknown "filmic"/);
     assert.throws(() => run('lighting', { models: 'phong' }), /--models: unknown "phong"/);
   });
@@ -693,9 +766,13 @@ describe('glsl:lighting', () => {
   it('every model and tonemap fits into one shader', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
     for (const version of VERSIONS) {
       const files = new Map([['s.glsl', `${header(version)}\n\nout vec4 fragColor;\n\nvoid main() {\n  fragColor = vec4(0.0);\n}\n`]]);
-      applyActions(files, run('lighting', { models: 'all', tonemap: 'all', into: 's.glsl' }));
+      applyActions(files, run('lighting', { models: 'all', tonemap: 'all', sky: true, fog: true, into: 's.glsl' }));
       assertCompiles(files.get('s.glsl')!, 'frag', `all lighting (${version})`);
     }
+  });
+
+  it('--sky and --fog alone are enough, and bring only their own functions', () => {
+    assert.deepEqual(adds(run('lighting', { sky: true, fog: true })).map((a) => a.add), ['shaders/lib/atmosphere-sky.glsl', 'shaders/lib/atmosphere-fog.glsl']);
   });
 });
 

@@ -11,7 +11,7 @@ const utilGenerator: Generator = {
   description: 'add GLSL helpers',
   params: {
     fns: { description: 'comma-separated helpers: consts (PI, TAU), rot2, remap, saturate, hash – or all' },
-    into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
+    into: { path: true, default: '', description: 'existing shader or --inline page to insert the functions into, before main() (default: one file each in lib/)' },
   },
   examples: ['--fns=rot2,remap --into=shaders/clouds.frag.glsl', '--fns=all'],
   actions: ({ fns, into }, _helpers, ctx) =>

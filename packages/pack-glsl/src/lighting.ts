@@ -6,6 +6,7 @@
  *                                     (pbr also brings pbrAmbient(), a sky/ground ambient light)
  *   --tonemap=aces,reinhard,srgb      tonemapAces(c), tonemapReinhard(c): HDR → [0, 1];
  *                                     linearToSrgb(c) / srgbToLinear(c) for display encoding
+ *   --sky, --fog                      skyColor(rd, sun); fogExp(), fogExp2(): fade to a color with distance
  *
  * Every model returns the light reflected towards the viewer for a white
  * light of intensity 1, so models are interchangeable. To see one in action:
@@ -20,24 +21,27 @@ const TONEMAP_NAMES: Record<string, string> = { aces: 'color/aces', reinhard: 'c
 const lightingGenerator: Generator = {
   description: 'add lighting and color output',
   params: {
-    models: { default: '', description: 'comma-separated shading models: lambert, blinn, toon, pbr – or all (pick at least one of --models, --tonemap)' },
-    tonemap: { default: '', description: 'comma-separated color output: aces, reinhard (HDR to [0, 1]), srgb (display encoding) – or all (pick at least one of --models, --tonemap)' },
-    into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
+    models: { default: '', description: 'comma-separated shading models: lambert, blinn, toon, pbr – or all (pick at least one of --models, --tonemap, --sky, --fog)' },
+    tonemap: { default: '', description: 'comma-separated color output: aces, reinhard (HDR to [0, 1]), srgb (display encoding) – or all (pick at least one of --models, --tonemap, --sky, --fog)' },
+    sky: { default: false, description: 'skyColor(rd, sun): a gradient with the sun\'s glow and disc (pick at least one of --models, --tonemap, --sky, --fog)' },
+    fog: { default: false, description: 'fogExp() and fogExp2(): fade to a color (the sky\'s) with distance (pick at least one of --models, --tonemap, --sky, --fog)' },
+    into: { path: true, default: '', description: 'existing shader or --inline page to insert the functions into, before main() (default: one file each in lib/)' },
   },
   usage: [
     'every model takes the normal n, the direction to the viewer v and to the light l (all normalized) and returns the light reflected for a white light of intensity 1 – multiply by your light\'s color and shadow, and sum over lights',
     'light in linear space; tonemapAces() or tonemapReinhard() map HDR to [0, 1], then linearToSrgb() encodes for display',
     'pbr() includes the 1/π of the diffuse term: a sun needs about intensity 3 to look as bright as with lambert()',
+    'color = fogExp2(color, skyColor(rd, sun), t, 0.02);  t the distance along the ray: far surfaces fade into the sky',
   ],
-  examples: ['--models=pbr --tonemap=aces,srgb --into=shaders/scene.frag.glsl'],
-  actions: ({ models, tonemap, into }, _helpers, ctx) => {
+  examples: ['--models=pbr --tonemap=aces,srgb --into=shaders/scene.frag.glsl', '--sky --fog --into=index.html'],
+  actions: ({ models, tonemap, sky, fog, into }, _helpers, ctx) => {
     const modelList = parseList(String(models));
     const tonemapList = parseList(String(tonemap));
     const modelNames = chunkIds('lighting')
       .map((id) => id.slice('lighting/'.length))
       .filter((m) => m !== 'pbr-ambient');
-    if (modelList.length + tonemapList.length === 0) {
-      fail(`glsl:lighting: pick something – --models=${modelNames.join(', ')}; --tonemap=${Object.keys(TONEMAP_NAMES).join(', ')} (each also takes "all")`);
+    if (modelList.length + tonemapList.length === 0 && !sky && !fog) {
+      fail(`glsl:lighting: pick something – --models=${modelNames.join(', ')}; --tonemap=${Object.keys(TONEMAP_NAMES).join(', ')} (each also takes "all"); --sky, --fog`);
     }
 
     const ids = modelList.length ? pickChunks('lighting', modelList, '--models', 'glsl:lighting') : [];
@@ -48,6 +52,8 @@ const lightingGenerator: Generator = {
       if (!id) fail(`glsl:lighting --tonemap: unknown "${name}" – valid: ${Object.keys(TONEMAP_NAMES).join(', ')} (or "all")`);
       ids.push(id);
     }
+    if (sky) ids.push('atmosphere/sky');
+    if (fog) ids.push('atmosphere/fog');
     return chunkActions(ids, { into: String(into), dir: '', ctx });
   },
 };

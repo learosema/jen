@@ -81,7 +81,7 @@ const sdfGenerator: Generator = {
     shapes: { default: '', description: 'comma-separated or all – 2D: circle, box, round-box, segment, polygon, star; 3D: sphere, box, round-box, torus, capsule, cylinder, plane (pick at least one of --shapes, --ops, --effects)' },
     ops: { default: '', description: 'comma-separated or all: union, subtract, intersect, smooth-union/-subtract/-intersect, round, onion, repeat, repeat-limited, extrude, revolve (pick at least one of --shapes, --ops, --effects)' },
     effects: { default: '', description: '2D only, comma-separated or all: fill, stroke, glow, shadow, inner-shadow (pick at least one of --shapes, --ops, --effects)' },
-    into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
+    into: { path: true, default: '', description: 'existing shader or --inline page to insert the functions into, before main() (default: one file each in lib/)' },
     name: { default: '', description: 'instead of --into: create a preview shader with this name, the shapes side by side' },
     version: { default: '300es', choices: VERSIONS, description: 'GLSL dialect: 300es is WebGL2, 330 and 410 desktop OpenGL' },
   },

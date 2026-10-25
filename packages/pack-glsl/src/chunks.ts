@@ -211,6 +211,34 @@ export const MARKER_LINE = `${INTO_MARKER} – jen glsl:* adds functions above t
 export const FIRST_FUNCTION =
   /^(?:(?:highp|mediump|lowp|precise)\s+)*(?:void|float|double|int|uint|bool|[biud]?vec[234]|d?mat[234](?:x[234])?|[A-Z]\w*)\s+\w+\s*\(/;
 
+/** The opening line of a page's fragment shader: `<script type="x-shader/x-fragment">`. */
+const FRAGMENT_SCRIPT = /<script\b[^>]*\btype=["']x-shader\/x-fragment["']/;
+
+/**
+ * What puts the marker into `into`, unless it has one: an insert before its first
+ * function – in an .html page, the first one in its fragment shader script. A
+ * warning instead if there's no function to put it before.
+ */
+function markerActions(into: string, ctx: Context): Action[] {
+  const text = ctx.read?.(into.startsWith('/') ? into.slice(1) : posix.join(ctx.destDir, into));
+  const page = /\.html?$/i.test(into);
+  if (text?.includes(INTO_MARKER)) return [];
+  // not there (yet): jen reports a missing file, or a starter added in the same run brings its marker
+  if (text == null) return [{ insert: into, before: FIRST_FUNCTION, line: MARKER_LINE }];
+  const lines = text.split('\n');
+  const start = page ? lines.findIndex((l) => FRAGMENT_SCRIPT.test(l)) + 1 : 0;
+  let at = -1;
+  if (!page || start > 0) {
+    for (let i = start; i < lines.length && at < 0; i++) {
+      if (page && /<\/script>/i.test(lines[i])) break;
+      if (FIRST_FUNCTION.test(page ? lines[i].trimStart() : lines[i])) at = i;
+    }
+  }
+  if (at >= 0) return [{ insert: into, before: at + 1, line: MARKER_LINE }];
+  const where = page ? 'no <script type="x-shader/x-fragment"> with a function in it' : 'no function to put them before';
+  return [{ note: `has ${where} – add a line "${INTO_MARKER}" where the functions should go, then run this again`, file: into, warning: true }];
+}
+
 /**
  * Actions that put `ids` (plus dependencies and license notices) into a
  * shader (`into`), or into one file each under `<dir>/lib/`.
@@ -220,7 +248,8 @@ export function chunkActions(ids: string[], { into, dir, ctx }: { into: string; 
   const licenses = [...new Set(chunks.flatMap(noticesFor))];
 
   if (into) {
-    const actions: Action[] = [{ insert: into, before: FIRST_FUNCTION, line: MARKER_LINE }];
+    const actions = markerActions(into, ctx);
+    if (actions.some((a) => 'note' in a)) return actions;
     for (const chunk of chunks) {
       // The trailing empty line keeps one blank line between chunks.
       actions.push({ insert: into, before: INTO_MARKER, line: `${chunk.code}\n` });

@@ -11,6 +11,7 @@
  * on the page.
  */
 import type { Action, Generator } from '@codejen/jen';
+import { MARKER_LINE } from './chunks.ts';
 import { fail, inFolder, readPackFile } from './common.ts';
 import { withHeader } from './dialect.ts';
 
@@ -60,6 +61,7 @@ const webglGenerator: Generator = {
     inline: { default: false, description: 'put the shader into the page, so it opens from disk without a web server' },
   },
   examples: ['--name=Clouds', '--name=Clouds --inline'],
+  usage: ['with --inline the page opens from disk, and glsl:* --into=index.html adds functions to its shader'],
   actions: ({ name, dir, shaderDir, tag, inline }, { kebab, pascal }) => {
     const t = String(tag);
     if (!/^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/.test(t)) {
@@ -71,9 +73,11 @@ const webglGenerator: Generator = {
     const title = pascal(String(name));
     const script = `${t}.js`;
     const frag = withHeader('300es', readPackFile('starters/frag.glsl'));
+    // the page's shader takes `glsl:* --into=index.html` too
+    const inlineFrag = frag.replace(/^void main\(/m, `${MARKER_LINE}\n\nvoid main(`);
 
     const element = inline
-      ? `    <${t}>\n      <script type="x-shader/x-fragment">\n${indent(frag, '        ')}\n      </script>\n    </${t}>`
+      ? `    <${t}>\n      <script type="x-shader/x-fragment">\n${indent(inlineFrag, '        ')}\n      </script>\n    </${t}>`
       : `    <!-- Fetching shaders needs a local web server, e.g. \`npx serve\` or \`python3 -m http.server\`. -->\n` +
         `    <!-- \`live\` recompiles whenever the file changes. -->\n` +
         `    <${t} src="${shaderFile}" live></${t}>`;

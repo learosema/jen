@@ -96,7 +96,9 @@ WebGL ↔ desktop.
 
 ### How they get into your shader {#into}
 
-`--into=<shader>` inserts the functions and their dependencies, once each; without it, one file each in `lib/`.
+`--into=<shader>` inserts the functions and their dependencies, once each – also into an `--inline` page; without it, one file each in `lib/`.
+
+{% include terminal.html id="glsl_into_page" %}
 
 ### `glsl:noise` {#glsl-noise}
 
@@ -149,6 +151,7 @@ Every noise tiles with its `period` overload.
 {% include shader.html src="raymarch-lambert.frag.glsl" caption="<code>--lighting=lambert</code>" %}
 {% include shader.html src="raymarch-toon.frag.glsl" caption="<code>--lighting=toon</code>" %}
 {% include shader.html src="raymarch-materials.frag.glsl" caption="<code>--lighting=pbr --materials</code>" %}
+{% include shader.html src="raymarch-terrain.frag.glsl" caption="<code>--scene=terrain --water</code>" %}
 </div>
 
 {% include usage.html generator="glsl:raymarch" %}

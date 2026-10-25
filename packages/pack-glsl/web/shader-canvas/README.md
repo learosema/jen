@@ -48,6 +48,7 @@ By default the element is a block with a 16:9 aspect ratio. Size it with CSS lik
 - **`texture0` … `texture3`**: Image URLs, bound to `uTexture0` … `uTexture3`. Textures repeat and are mipmapped; the image's bottom-left is UV `(0, 0)`.
 - **`live`**: Re-fetches `src` and `vert` every second and recompiles when they change, while the element is visible.
 - **`max-dpr`**: Caps the device pixel ratio, default `2`.
+- **`time`**: Draws one still frame at this `uTime`, in seconds, instead of animating. `#t=12.5` in the page's URL does the same for every element on the page, e.g. for repeatable screenshots.
 
 All attributes can change at runtime.
 
