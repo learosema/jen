@@ -104,9 +104,11 @@
     line-height: 1.2;
   }
 
-  /* Chromium keeps a select's line-height normal, so its height is set: the line, padding and two thin borders. */
+  /* Chromium keeps a select's line-height normal, so its height is set: the line, padding and two thin borders –
+     without padding above and below, which would clip the taller line; the text sits centered. */
   :where(select:not([multiple], [size])) {
     block-size: calc(1.2em + 1em + 0.125rem);
+    padding-block: 0;
   }
 
   :where(input, select, textarea):hover {
