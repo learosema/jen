@@ -727,8 +727,8 @@ describe('jen <generator> --help', () => {
       assert.match(r.stdout, /demo:hello\s+pack @codejen\/pack-demo\s+say hi/);
       assert.doesNotMatch(r.stdout, /mine|generator/);
     }
-    const json = JSON.parse(jen(['demo', '--list', '--json'], { cwd: dir }).stdout) as Array<{ name: string }>;
-    assert.deepEqual(json.map((g) => g.name), ['demo:hello']);
+    const json = JSON.parse(jen(['demo', '--list', '--json'], { cwd: dir }).stdout) as { generators: Array<{ name: string }> };
+    assert.deepEqual(json.generators.map((g) => g.name), ['demo:hello']);
     assert.match(jen(['project', '--list'], { cwd: dir }).stdout, /mine\s+project/);
   });
 
@@ -808,7 +808,7 @@ describe('jen <generator> --help', () => {
         '',
       ].join('\n'),
     );
-    const [box] = JSON.parse(jen(['--list', '--json'], { cwd: dir }).stdout) as Array<{ usage: string[] }>;
+    const box = JSON.parse(jen(['box', '--help', '--json'], { cwd: dir }).stdout) as { usage: string[] };
     assert.deepEqual(box.usage, ['<div class="box">…</div>', '--box-padding: 1rem  the padding']);
   });
 
@@ -840,35 +840,34 @@ describe('jen <generator> --help', () => {
 });
 
 describe('jen --list --json', () => {
-  it('lists every generator with typed params', () => {
-    const dir = fixture({ '.jen/class.mjs': DESCRIBED_GEN });
-    const r = jen(['--list', '--json'], { cwd: dir });
+  type Catalog = { packs: Array<Record<string, unknown>>; generators: Array<Record<string, unknown>> };
+  const catalogIn = (dir: string, userDir?: string): Catalog => {
+    const r = jen(['--list', '--json'], { cwd: dir, userDir });
     assert.equal(r.code, 0, r.stderr);
-    const catalog = JSON.parse(r.stdout);
-    const cls = catalog.find((g: { name: string }) => g.name === 'class');
-    assert.deepEqual(cls, {
+    assert.equal(r.stdout.trimEnd().split('\n').length, 1, 'compact when piped');
+    return JSON.parse(r.stdout) as Catalog;
+  };
+
+  it('lists every generator by name, source and description – its params with --help --json', () => {
+    const dir = fixture({ '.jen/class.mjs': DESCRIBED_GEN });
+    const { generators } = catalogIn(dir);
+    assert.deepEqual(generators.find((g) => g.name === 'class'), { name: 'class', source: 'project', description: 'create a C++ class (header + source)' });
+    assert.ok(generators.some((g) => g.name === 'generator' && g.source === 'built-in'));
+    assert.deepEqual(JSON.parse(jen(['class', '--help', '--json'], { cwd: dir }).stdout), {
       name: 'class',
       source: 'project',
-      shadowed: false,
       description: 'create a C++ class (header + source)',
+      // only what differs from an optional string with an empty default
       params: {
-        name: { type: 'string', required: true },
-        namespace: { type: 'string', required: false, default: '' },
-        dir: { type: 'string', required: false, default: 'src' },
-        members: { type: 'string', required: false, default: 'int a, int b' },
-        into: { type: 'string', required: false, default: '', path: true },
-        moveOnly: {
-          type: 'boolean',
-          required: false,
-          default: false,
-          description: 'RAII wrapper: copy deleted, move defaulted (Rule of Five)',
-        },
-        withTest: { type: 'boolean', required: false, default: false, description: 'add a doctest case' },
+        name: { required: true },
+        namespace: {},
+        dir: { default: 'src' },
+        members: { default: 'int a, int b' },
+        into: { path: true },
+        moveOnly: { type: 'boolean', description: 'RAII wrapper: copy deleted, move defaulted (Rule of Five)' },
+        withTest: { type: 'boolean', description: 'add a doctest case' },
       },
-      examples: [],
-      usage: [],
     });
-    assert.ok(catalog.some((g: { name: string; source: string }) => g.name === 'generator' && g.source === 'built-in'));
   });
 
   it('adds choices, examples and the pack from its package.json', () => {
@@ -886,42 +885,34 @@ describe('jen --list --json', () => {
         hello: { params: { mood: { default: 'calm', choices: ['calm', 'loud'] } }, examples: ['--mood=loud'], actions: () => [] },
       };`,
     });
-    const r = jen(['--list', '--json'], { cwd: dir });
-    assert.equal(r.code, 0, r.stderr);
-    assert.deepEqual(
-      JSON.parse(r.stdout).find((g: { name: string }) => g.name === 'demo:hello'),
-      {
-        name: 'demo:hello',
-        source: 'pack @codejen/pack-demo',
-        pack: { name: '@codejen/pack-demo', version: '1.2.3', description: 'demo pack', homepage: 'https://example.com/demo' },
-        shadowed: false,
-        description: '',
-        params: { mood: { type: 'string', required: false, default: 'calm', choices: ['calm', 'loud'] } },
-        examples: [{ jen: 'jen demo:hello --mood=loud', npx: 'npx --yes @codejen/jen demo:hello --mood=loud' }],
-        usage: [],
-      },
-    );
+    const PACK = { name: '@codejen/pack-demo', version: '1.2.3', description: 'demo pack', homepage: 'https://example.com/demo' };
+    const { packs, generators } = catalogIn(dir);
+    assert.deepEqual(packs, [PACK]);
+    assert.deepEqual(generators.find((g) => g.name === 'demo:hello'), { name: 'demo:hello', source: 'pack @codejen/pack-demo' });
+    assert.deepEqual(JSON.parse(jen(['demo:hello', '--help', '--json'], { cwd: dir }).stdout), {
+      name: 'demo:hello',
+      source: 'pack @codejen/pack-demo',
+      pack: PACK,
+      params: { mood: { default: 'calm', choices: ['calm', 'loud'] } },
+      examples: ['jen demo:hello --mood=loud'],
+    });
   });
 
   it('marks shadowed generators', () => {
     const userDir = fixture({ 'jen/class.mjs': `export const actions = () => [];` });
-    const r = jen(['--list', '--json'], { cwd: fixture({ '.jen/class.mjs': DESCRIBED_GEN }), userDir });
-    const classes = JSON.parse(r.stdout).filter((g: { name: string }) => g.name === 'class');
+    const classes = catalogIn(fixture({ '.jen/class.mjs': DESCRIBED_GEN }), userDir).generators.filter((g) => g.name === 'class');
     assert.deepEqual(
-      classes.map((g: { source: string; shadowed: boolean }) => [g.source, g.shadowed]),
+      classes.map((g) => [g.source, g.shadowed]),
       [
-        ['project', false],
+        ['project', undefined],
         ['user', true],
       ],
     );
   });
 
   it('reports broken generators with an error instead of aborting', () => {
-    const r = jen(['--list', '--json'], { cwd: fixture({ '.jen/broken.mjs': `export const foo = 1;` }) });
-    assert.equal(r.code, 0);
-    const broken = JSON.parse(r.stdout).find((g: { name: string }) => g.name === 'broken');
-    assert.match(broken.error, /does not export an actions\(\) function/);
-    assert.equal(broken.params, undefined);
+    const broken = catalogIn(fixture({ '.jen/broken.mjs': `export const foo = 1;` })).generators.find((g) => g.name === 'broken');
+    assert.match(String(broken?.error), /does not export an actions\(\) function/);
   });
 
   it('leaves --json to a generator that has a param of that name', () => {
@@ -1632,7 +1623,7 @@ describe('for programs', () => {
     const m = error(missing);
     assert.equal(m.code, 'missing_param');
     assert.deepEqual(m.missing, ['--name']);
-    assert.deepEqual((m.params as Record<string, unknown>).name, { type: 'string', required: true });
+    assert.deepEqual((m.params as Record<string, unknown>).name, { required: true });
 
     const flag = error(jen(['demo:card', '--tome=loud', '--json'], { cwd: dir }));
     assert.equal(flag.code, 'unknown_flag');
@@ -1677,7 +1668,11 @@ describe('for programs', () => {
     assert.match(r.stdout, /^ {2}demo:sidebar +a sidebar layout next to the content\n/);
     assert.match(r.stdout, /Not installed, so not searched: cpp, glsl, js, web, yeoman – jen <pack> --find "sidebar layout"/);
     const cards = jen(['demo', '--find', 'Cards'], { cwd: dir }).stdout;
-    assert.match(cards, /^ {2}demo:card +a card block for content\n {2}recipe: dashboard +a dashboard page with cards \(@codejen\/pack-demo\)\n {4}jen demo:card\n {4}jen demo:sidebar --name=x\n {4}docs: https:\/\/example\.com\/#dashboard\n$/);
+    assert.match(
+      cards,
+      /^ {2}demo:card +a card block for content\n {2}recipe: dashboard +a dashboard page with cards \(@codejen\/pack-demo\)\n {4}jen demo:card\n {4}jen demo:sidebar --name=x\n {4}<main>…<\/main>\n {4}docs: https:\/\/example\.com\/#dashboard\n$/,
+      'with its markup, as in --json',
+    );
     assert.match(jen(['--find', 'spaceship'], { cwd: dir }).stdout, /^Nothing matches "spaceship"/);
     assert.match(jen(['--find', ''], { cwd: dir }).stderr, /--find needs words/);
   });
@@ -1691,30 +1686,22 @@ describe('for programs', () => {
       name: 'dashboard',
       pack: '@codejen/pack-demo',
       description: 'a dashboard page with cards',
-      steps: [
-        { jen: 'jen demo:card', npx: 'npx --yes @codejen/jen demo:card' },
-        { jen: 'jen demo:sidebar --name=x', npx: 'npx --yes @codejen/jen demo:sidebar --name=x' },
-      ],
+      steps: ['jen demo:card', 'jen demo:sidebar --name=x'],
       usage: ['<main>…</main>'],
       docs: 'https://example.com/#dashboard',
     });
     assert.equal(found.results.length, 1);
+    const cards = parse(jen(['demo', '--find', 'card block', '--json'], { cwd: project() }).stdout) as { results: Array<Record<string, unknown>> };
+    assert.deepEqual(cards.results[0], { kind: 'generator', score: cards.results[0].score, name: 'demo:card', source: 'pack @codejen/pack-demo', description: 'a card block for content' });
   });
 
   it("lists a pack's recipes, in --list --json without their markup", () => {
     const dir = project();
-    assert.match(jen(['demo', '--list'], { cwd: dir }).stdout, /\nrecipes:\n {2}dashboard +pack @codejen\/pack-demo +a dashboard page with cards\n {4}jen demo:card\n/);
-    const [first] = JSON.parse(jen(['demo', '--list', '--json'], { cwd: dir }).stdout) as Array<{ pack: { recipes: unknown[] } }>;
-    assert.deepEqual(first.pack.recipes, [
-      {
-        name: 'dashboard',
-        description: 'a dashboard page with cards',
-        steps: [
-          { jen: 'jen demo:card', npx: 'npx --yes @codejen/jen demo:card' },
-          { jen: 'jen demo:sidebar --name=x', npx: 'npx --yes @codejen/jen demo:sidebar --name=x' },
-        ],
-        docs: 'https://example.com/#dashboard',
-      },
-    ]);
+    assert.match(
+      jen(['demo', '--list'], { cwd: dir }).stdout,
+      /\nrecipes:\n {2}dashboard +pack @codejen\/pack-demo +a dashboard page with cards\n {4}jen demo:card\n {4}jen demo:sidebar --name=x\n {4}how it fits together: jen --find dashboard\n/,
+    );
+    const { packs } = JSON.parse(jen(['demo', '--list', '--json'], { cwd: dir }).stdout) as { packs: Array<{ recipes: unknown[] }> };
+    assert.deepEqual(packs[0].recipes, [{ name: 'dashboard', description: 'a dashboard page with cards', steps: ['jen demo:card', 'jen demo:sidebar --name=x'], docs: 'https://example.com/#dashboard' }]);
   });
 });
