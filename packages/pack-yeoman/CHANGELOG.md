@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.2](https://github.com/learosema/jen/compare/pack-yeoman-v2.2.1...pack-yeoman-v2.2.2) (2026-10-25)
+
+
+### Bug Fixes
+
+* packs accept @codejen/jen 4 ([d6d39b5](https://github.com/learosema/jen/commit/d6d39b538021efda59c4656b6149ed0a5f895a9d))
+
 ## [2.2.1](https://github.com/learosema/jen/compare/pack-yeoman-v2.2.0...pack-yeoman-v2.2.1) (2026-10-22)
 
 

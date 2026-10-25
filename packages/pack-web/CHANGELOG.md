@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.1.0](https://github.com/learosema/jen/compare/pack-web-v2.0.1...pack-web-v2.1.0) (2026-10-25)
+
+
+### Features
+
+* **pack-web:** page layouts, rendered checks, script generators, friendlier blocks ([8027780](https://github.com/learosema/jen/commit/8027780864df0b8991bda25f79c6b78498065a15))
+
+
+### Bug Fixes
+
+* **pack-web:** calmer block defaults – subtle borders, slimmer controls ([f0e4f6b](https://github.com/learosema/jen/commit/f0e4f6b0b538fd015fd132e57857124063c12862))
+* **pack-web:** place palette roles between shades, only as far apart as their ratio needs ([5ef1fc8](https://github.com/learosema/jen/commit/5ef1fc855d8a4681ea91fafaf56918e47f634606))
+* **pack-web:** say why Chromium quits in web:check --render; allow its sandbox in CI ([67b6e2f](https://github.com/learosema/jen/commit/67b6e2f6179313dedc983189ae3b6aa7f413ddc5))
+* **pack-web:** web:check --render survives Chromium closing its pipe ([ed37db3](https://github.com/learosema/jen/commit/ed37db36004f008a516e520edaf9a77ff38244ed))
+* packs accept @codejen/jen 4 ([d6d39b5](https://github.com/learosema/jen/commit/d6d39b538021efda59c4656b6149ed0a5f895a9d))
+
 ## [2.0.1](https://github.com/learosema/jen/compare/pack-web-v2.0.0...pack-web-v2.0.1) (2026-10-22)
 
 

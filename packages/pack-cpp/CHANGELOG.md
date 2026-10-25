@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.3](https://github.com/learosema/jen/compare/pack-cpp-v1.4.2...pack-cpp-v1.4.3) (2026-10-25)
+
+
+### Bug Fixes
+
+* **pack-cpp:** param descriptions no longer repeat their choices ([a787fae](https://github.com/learosema/jen/commit/a787faed924af95e2cf6b641f6044d6b051c8148))
+* packs accept @codejen/jen 4 ([d6d39b5](https://github.com/learosema/jen/commit/d6d39b538021efda59c4656b6149ed0a5f895a9d))
+
 ## [1.4.2](https://github.com/learosema/jen/compare/pack-cpp-v1.4.1...pack-cpp-v1.4.2) (2026-10-22)
 
 
