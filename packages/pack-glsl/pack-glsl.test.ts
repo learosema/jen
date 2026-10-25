@@ -53,7 +53,7 @@ function run(generator: string, answers: Record<string, string | boolean>, exist
   const given = Object.fromEntries(Object.entries({ ...defaults, ...answers }).map(([k, v]) => [k, params[k]?.path && v ? `/${v}` : v]));
   const dir = 'dir' in params ? '.' : String(answers.dir ?? 'shaders');
   const place = (p: string | Find): string => (typeof p !== 'string' ? assert.fail('no find targets here') : p.startsWith('/') ? p.slice(1) : posix.join(dir, p));
-  const ctx = { destDir: dir, exists: (p: string) => existing.includes(p), read: (p: string) => files?.get(p) ?? null } as never;
+  const ctx = { destDir: dir, cwd: '.', exists: (p: string) => existing.includes(p), read: (p: string) => files?.get(p) ?? null } as never;
   return g.actions(given, helpers, ctx).map((a): Action => {
     if ('add' in a) return { ...a, add: place(a.add) };
     if ('append' in a) return { ...a, append: place(a.append) };
@@ -429,6 +429,18 @@ describe('glsl:webgl', () => {
     assertCompiles(shader.split('\n').map((l) => l.replace(/^ {8}/, '')).join('\n'), 'frag', 'inline webgl shader');
   });
 
+  it('--shader puts an existing shader into the page, its notices next to it', () => {
+    const files = applyActions(new Map(), run('raymarch', { name: 'Land', scene: 'terrain' }));
+    const page = byPath(run('webgl', { name: 'Land', inline: true, shader: 'shaders/land.frag.glsl' }, [], files));
+    assert.deepEqual([...page.keys()], ['index.html', 'shader-canvas.js', 'THIRD_PARTY_NOTICES.md']);
+    assert.ok(page.get('index.html')!.includes('        float terrain(vec2 xz) {'), 'the terrain, indented into the script');
+    assert.equal(page.get('THIRD_PARTY_NOTICES.md'), files.get('shaders/THIRD_PARTY_NOTICES.md'));
+    const served = byPath(run('webgl', { name: 'Land', shader: 'shaders/land.frag.glsl' }, [], files));
+    assert.deepEqual([...served.keys()], ['index.html', 'shader-canvas.js']);
+    assert.match(served.get('index.html')!, /<shader-canvas src="shaders\/land\.frag\.glsl" live>/);
+    assert.throws(() => run('webgl', { name: 'x', shader: 'nope.glsl' }, [], files), /--shader: can't read nope\.glsl/);
+  });
+
   it('--inline keeps the marker, so --into=index.html puts functions into the page\'s shader', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
     const files = byPath(run('webgl', { name: 'x', inline: true }));
     assert.match(files.get('index.html')!, /^ {8}\/\/ jen:functions – .*\n\n {8}void main\(/m);
@@ -716,6 +728,20 @@ describe('glsl:raymarch', () => {
     for (const s of ['sdSphere', 'sdBox', 'sdRoundBox', 'sdTorus', 'sdPlane', 'opSmoothUnion', 'calcAO']) assert.ok(!out.includes(s), `no ${s}`);
     const dry = applyActions(new Map(), run('raymarch', { name: 'Land', scene: 'terrain', minimal: true })).get('shaders/land.frag.glsl')!;
     for (const s of ['WATER', 'softShadow', 'fogExp']) assert.ok(!dry.includes(s), `minimal, no water: no ${s}`);
+  });
+
+  it('smoothstep edges rise in every starter: GLSL leaves edge0 >= edge1 undefined', () => {
+    const shaders = [
+      applyActions(new Map(), run('raymarch', { name: 'Land', scene: 'terrain', water: true })).get('shaders/land.frag.glsl')!,
+      applyActions(new Map(), run('raymarch', { name: 'x', lighting: 'toon' })).get('shaders/x.frag.glsl')!,
+      applyActions(new Map(), run('sdf', { shapes: 'all', effects: 'all', name: 'x' })).get('shaders/x.frag.glsl')!,
+    ];
+    const value = (e: string) => Number(e.replace(/^[A-Za-z]+ \+ /, ''));
+    for (const shader of shaders) {
+      for (const [, e0, e1] of shader.matchAll(/smoothstep\(((?:[A-Za-z]+ \+ )?-?[\d.]+), ((?:[A-Za-z]+ \+ )?-?[\d.]+),/g)) {
+        assert.ok(value(e0) < value(e1), `smoothstep(${e0}, ${e1}, …)`);
+      }
+    }
   });
 
   it('--scene and --water fail where they mean nothing', () => {

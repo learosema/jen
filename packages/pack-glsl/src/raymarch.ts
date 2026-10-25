@@ -17,6 +17,7 @@
  * contract: `scene()` returns sceneMaterial(p).x, and the material id is
  * looked up once per pixel at the hit point – the helpers stay the same.
  */
+import { posix } from 'node:path';
 import type { Action, Context, Generator } from '@codejen/jen';
 import { MARKER_LINE, chunkActions, pickChunks } from './chunks.ts';
 import { fail, parseList } from './common.ts';
@@ -165,7 +166,7 @@ const TERRAIN_CHUNKS = ['fractal/fbm2@simplex', 'fractal/ridged2@simplex', 'raym
 /** A heightfield flyover: terrain() from noise, the camera flying over it, materials by slope and height. */
 function terrainStarter(file: string, version: Version, ctx: Context, { water, minimal }: { water: boolean; minimal: boolean }): Action[] {
   const sand = water ? `
-  albedo = mix(albedo, vec3(0.4, 0.34, 0.22), smoothstep(WATER + 0.05, WATER + 0.01, p.y));  // sand at the shore` : '';
+  albedo = mix(albedo, vec3(0.4, 0.34, 0.22), 1.0 - smoothstep(WATER + 0.01, WATER + 0.05, p.y));  // sand at the shore` : '';
   const waterHit = water ? `
   // The water: a plane at y = WATER, in front of the terrain or where the ray misses it.
   float tw = rd.y < 0.0 ? (WATER - eye.y) / rd.y : -1.0;
@@ -205,7 +206,7 @@ vec3 terrainColor(vec3 p, vec3 n) {
   float slope = 1.0 - n.y;  // 0 flat, 1 vertical
   vec3 albedo = mix(vec3(0.07, 0.13, 0.03), vec3(0.16, 0.13, 0.11), smoothstep(0.12, 0.3, slope));${sand}
   float snowLine = 2.3 + 0.3 * simplexNoise(0.5 * p.xz);
-  return mix(albedo, vec3(0.8, 0.85, 0.9), smoothstep(snowLine, snowLine + 0.2, p.y) * smoothstep(0.55, 0.35, slope));
+  return mix(albedo, vec3(0.8, 0.85, 0.9), smoothstep(snowLine, snowLine + 0.2, p.y) * (1.0 - smoothstep(0.35, 0.55, slope)));
 }
 
 void main() {
@@ -262,7 +263,7 @@ const raymarchGenerator: Generator = {
     '--name=Land --scene=terrain --water',
     '--parts=march,normal --into=shaders/scene.frag.glsl',
   ],
-  actions: ({ name, scene, water, minimal, materials, lighting, parts, into, version }, { kebab }, ctx) => {
+  actions: ({ name, scene, water, minimal, materials, lighting, parts, into, version }, { kebab, pascal }, ctx) => {
     const model = String(lighting);
     if (!SCENES.includes(String(scene))) fail(`glsl:raymarch --scene: expected "shapes" or "terrain", got "${String(scene)}"`);
     const terrain = scene === 'terrain';
@@ -275,14 +276,17 @@ const raymarchGenerator: Generator = {
     if (name && into) fail('glsl:raymarch: use either --name (new starter) or --into (existing shader), not both');
     if (name) {
       const file = `${kebab(String(name))}.frag.glsl`;
-      if (terrain) return terrainStarter(file, parseVersion(version), ctx, { water: Boolean(water), minimal: Boolean(minimal) });
-      return raymarchStarter(file, parseVersion(version), ctx, {
-        scene: materials ? MATERIAL_SCENE : SCENE,
-        chunks: SCENE_CHUNKS,
-        minimal: Boolean(minimal),
-        materials: Boolean(materials),
-        lighting: model,
-      });
+      const starter = terrain
+        ? terrainStarter(file, parseVersion(version), ctx, { water: Boolean(water), minimal: Boolean(minimal) })
+        : raymarchStarter(file, parseVersion(version), ctx, {
+            scene: materials ? MATERIAL_SCENE : SCENE,
+            chunks: SCENE_CHUNKS,
+            minimal: Boolean(minimal),
+            materials: Boolean(materials),
+            lighting: model,
+          });
+      const shown = posix.relative(ctx.cwd ?? '.', posix.join(ctx.destDir, file));
+      return [...starter, { note: `a page for it that opens from disk: jen glsl:webgl --name=${pascal(String(name))} --inline --shader=${shown}` }];
     }
     if (materials) {
       fail(
