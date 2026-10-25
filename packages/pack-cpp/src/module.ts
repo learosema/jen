@@ -10,7 +10,7 @@ const moduleGenerator: Generator = {
   description: '(experimental) create a C++20 modules starter: .cppm in a FILE_SET CXX_MODULES, CMake >= 3.28, needs Ninja',
   params: {
     name: { description: 'project and target name' },
-    folderCase: { default: 'kebab', choices: ['kebab', 'pascal'], description: 'project folder name from --name: kebab (my-game) or pascal (MyGame)' },
+    folderCase: { default: 'kebab', choices: ['kebab', 'pascal'], description: 'project folder from --name: my-game or MyGame' },
     dir: { default: '', description: 'project folder instead of one named after --name; . for the current directory' },
   },
   examples: ['--name=MyMod'],

@@ -27,7 +27,7 @@ export const sdlStarterParams = {
   width: { default: '800', description: 'window width in pixels' },
   height: { default: '600', description: 'window height in pixels' },
   bundleId: { default: '', description: 'app identifier, e.g. com.example.my-game (default: com.example.<name>)' },
-  folderCase: { default: 'kebab', choices: ['kebab', 'pascal'], description: 'project folder name from --name: kebab (my-game) or pascal (MyGame)' },
+  folderCase: { default: 'kebab', choices: ['kebab', 'pascal'], description: 'project folder from --name: my-game or MyGame' },
   dir: { default: '', description: 'project folder instead of one named after --name; . for the current directory' },
   sdlTag: { default: SDL_TAG_DEFAULT, description: 'SDL3 git tag to fetch' },
 };
