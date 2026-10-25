@@ -4,18 +4,12 @@ import { paletteColors } from './button.ts';
 import { props } from './common.ts';
 import { importActions } from './entry.ts';
 import { intoPage, lineParam, lineParams } from './html.ts';
-import { BRAND, STATUS } from './palette.ts';
+import { BADGE_MODIFIERS, modifierCss } from './modifiers.ts';
 import { fill, template } from './templates.ts';
 
 /** One color modifier per color the palette has, besides primary (the default): `.badge--success` … */
-const badgeModifier = (name: string) => `.badge--${name} {
-  --badge-bg: var(--color-${name}-subtle);
-  --badge-fg: var(--color-${name}-strong);
-}`;
-
 export function badgeCss(colors: string[]): string {
-  const modifiers = [...BRAND.slice(1), ...Object.keys(STATUS)].filter((c) => colors.includes(c));
-  return fill(template('badge.css'), { 'color-modifiers': modifiers.length ? modifiers.map(badgeModifier).join('\n\n') : null });
+  return fill(template('badge.css'), { 'color-modifiers': modifierCss(BADGE_MODIFIERS, colors) });
 }
 
 export const NAV_MARKUP = template('nav.html').trimEnd();

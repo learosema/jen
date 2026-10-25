@@ -2,13 +2,10 @@
 import type { Context, Generator } from '@codejen/jen';
 import { fail, props } from './common.ts';
 import { importActions } from './entry.ts';
+import { BUTTON_MODIFIERS, modifierCss } from './modifiers.ts';
 import { fill, template } from './templates.ts';
-import { BRAND } from './palette.ts';
 
 export const FILE = 'button.css';
-
-/** Color modifiers: brand colors other than primary, and danger – in this order, if the palette has them. */
-const COLOR_MODIFIERS = [...BRAND.slice(1), 'danger'];
 
 /** Names of the colors defined in the project's palette, or a failure explaining how to make one, naming `generator`. */
 export function paletteColors(ctx: Context, generator: string): string[] {
@@ -18,15 +15,8 @@ export function paletteColors(ctx: Context, generator: string): string[] {
   return [...css.matchAll(/--color-([a-z]+)-1:/g)].map((m) => m[1]);
 }
 
-const colorModifier = (name: string) => `.button--${name} {
-  --button-bg: var(--color-${name});
-  --button-bg-hover: var(--color-${name}-strong);
-  --button-fg: var(--color-on-${name});
-}`;
-
 export function buttonCss(colors: string[]): string {
-  const modifiers = COLOR_MODIFIERS.filter((c) => colors.includes(c));
-  return fill(template('button.css'), { 'color-modifiers': modifiers.length ? modifiers.map(colorModifier).join('\n\n') : null });
+  return fill(template('button.css'), { 'color-modifiers': modifierCss(BUTTON_MODIFIERS, colors) });
 }
 
 const buttonGenerator: Generator = {
