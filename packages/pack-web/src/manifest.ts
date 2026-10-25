@@ -51,7 +51,7 @@ const manifestGenerator: Generator = {
   params: {
     name: { description: 'the app name the install prompt shows' },
     shortName: { default: '', description: 'name under the icon (default: the name, or its first word if it is longer than 12 characters)' },
-    display: { default: 'standalone', choices: DISPLAY, description: 'fullscreen, standalone, minimal-ui or browser' },
+    display: { default: 'standalone', choices: DISPLAY, description: 'how the installed app shows' },
     themeColor: { default: '', description: 'browser toolbar color: any CSS color or a hue (default: the palette\'s primary, else white)' },
     backgroundColor: { default: '', description: 'splash screen color: any CSS color or a hue (default: the palette\'s surface, else white)' },
     lang: { default: 'en', description: 'app language; also sets the text direction (rtl for Arabic, Hebrew, …)' },

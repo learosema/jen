@@ -51,7 +51,15 @@ export interface PageOptions {
   script: string | null;
   icons: string[];
   themeColors: [string, string] | null;
+  /** One of LAYOUTS: what the <body> holds. */
+  layout: string;
 }
+
+/** Page layouts (templates/layouts/): `none` is the bare <main> with its <h1>. */
+export const LAYOUTS = ['none', 'dashboard'];
+
+/** A layout's markup, its <body> included; `site` and `heading` are HTML. */
+export const layoutMarkup = (layout: string, site: string, heading: string): string => fill(template(`layouts/${layout}.html`), { site, heading }).trimEnd();
 
 export function pageHtml(file: string, o: PageOptions): string {
   const dir = posix.dirname(file);
@@ -62,10 +70,13 @@ export function pageHtml(file: string, o: PageOptions): string {
   const pageUrl = base ? `${base}/${file === 'index.html' ? '' : file}` : null;
   const image = o.image && base ? (/^https?:/.test(o.image) ? o.image : `${base}/${o.image.replace(/^\/+/, '')}`) : null;
   const icons = o.icons.map((icon) => ICONS.find(([name]) => name === posix.basename(icon))![1](relativeTo(dir, icon)));
+  // placeholder content, like the stats: there to be replaced
+  const body = layoutMarkup(o.layout, escape(o.site || 'Acme'), escape(o.title)).split('\n');
   return fill(template('page.html'), {
     lang: escape(o.lang),
     title,
-    heading: escape(o.title),
+    'body-attributes': /^<body(.*)>$/.exec(body[0])![1],
+    content: body.slice(1, -1).map((line) => line.slice(2)).join('\n'),
     description: o.description ? escape(o.description) : null,
     locale: /^[a-z]{2,3}-[A-Z]{2}$/.test(o.lang) ? o.lang.replace('-', '_') : null,
     stylesheet: o.stylesheet && relativeTo(dir, o.stylesheet),
@@ -92,16 +103,23 @@ const pageGenerator: Generator = {
     image: { default: '', description: 'image that link previews show' },
     imageAlt: { default: '', description: 'alt text for --image' },
     script: { path: true, default: '', description: 'a module script to load at the end of the body' },
+    layout: {
+      default: 'none',
+      choices: LAYOUTS,
+      description: 'what the body holds (dashboard: header, sidebar and stat cards to fill in)',
+    },
   },
   usage: [
-    '<main id="main"> starts with just the <h1>; a layout from compositions and blocks, each with its own --help:',
+    '<main id="main"> holds just the <h1>; --layout=dashboard writes a whole dashboard (its markup: jen --find dashboard)',
+    'a layout of your own, from compositions and blocks:',
+    'body:    <body class="flow"> puts space between the header and what follows  – jen web:flow --help',
     'header:  <header class="wrapper repel"><a href="/">…</a><nav>…</nav></header>  – jen web:repel --help',
-    'sidebar: <div class="wrapper sidebar"><aside>…</aside><main id="main">…</main></div>  – jen web:sidebar --help',
+    'sidebar: <div class="wrapper sidebar"><aside>…</aside><main id="main" class="flow">…</main></div>  – jen web:sidebar --help',
     'grid:    <div class="grid" style="--grid-min-item-size: 10rem"><article class="card">…</article> …</div>  – jen web:grid --help, jen web:card --help',
     'wrapper: class="wrapper" centers each part with room at the sides  – jen web:wrapper --help',
-    'jen web:cube writes all of these compositions; a whole dashboard, step by step: https://learosema.github.io/jen/web.html#dashboard',
+    'jen web:cube writes all of these compositions',
   ],
-  examples: ['--name=about', '--name=about --site="My Site" --lang=en-GB --url=https://example.com'],
+  examples: ['--name=about', '--name=about --site="My Site" --lang=en-GB --url=https://example.com', '--name=index --title=Dashboard --site=Acme --layout=dashboard'],
   actions: (answers, { kebab }, ctx) => {
     const name = kebab(String(answers.name));
     const file = posix.join(ctx.destDir, `${name}.html`);
@@ -118,12 +136,16 @@ const pageGenerator: Generator = {
       script: answers.script ? String(answers.script).replace(/^\//, '') : null,
       icons: iconsIn(ctx, ICONS.map(([icon]) => icon)),
       themeColors: surfaces(ctx),
+      layout: String(answers.layout),
     });
     const linked = [...(stylesheet ? [stylesheet] : []), ...iconFiles(ctx, ICONS.map(([icon]) => icon))].map((f) => posix.relative(ctx.cwd, f));
     return [
       { add: `${name}.html`, template: html },
       ...(linked.length ? [{ note: `links ${list(linked)}`, file: `${name}.html`, written: true }] : []),
       ...(stylesheet ? [] : [{ note: 'no stylesheet to link yet – run jen web:cube (or web:base) first, then make the page again with --force' }]),
+      ...(answers.layout === 'none'
+        ? []
+        : [{ note: `has placeholder content from the ${answers.layout} layout to replace – then jen web:check finds classes no stylesheet defines`, file: `${name}.html`, written: true as const }]),
     ];
   },
 };

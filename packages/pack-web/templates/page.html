@@ -29,10 +29,8 @@
     <meta name="theme-color" content="{{theme-light}}" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="{{theme-dark}}" media="(prefers-color-scheme: dark)">
   </head>
-  <body>
-    <main id="main">
-      <h1>{{heading}}</h1>
-    </main>
+  <body{{body-attributes}}>
+    {{content}}
     <script type="module" src="{{script}}"></script>
   </body>
 </html>

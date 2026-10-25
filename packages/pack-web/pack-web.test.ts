@@ -28,6 +28,7 @@ import { tmpdir } from 'node:os';
 import { extname, join } from 'node:path';
 import { hexColor, maskableSvg, paletteColor } from './src/manifest.ts';
 import { findConverter, iconSvg } from './src/png.ts';
+import { findChrome, where } from './src/render.ts';
 
 const words = (s: string): string[] => s.replace(/([a-z0-9])([A-Z])/g, '$1 $2').split(/[\s_\-./]+/).filter(Boolean);
 /** The one jen helper these generators use. */
@@ -63,7 +64,9 @@ function context(files: Record<string, string>, destDir = '.'): Context {
 function run(generator: string, answers: Answers, ctx: Context): Action[] {
   const g = pack[generator];
   const defaults = Object.fromEntries(Object.entries(g.params ?? {}).map(([k, p]) => [k, p.default]));
-  return g.actions({ ...defaults, ...answers }, helpers, ctx);
+  const actions = g.actions({ ...defaults, ...answers }, helpers, ctx);
+  assert.ok(Array.isArray(actions), `${generator} runs synchronously`);
+  return actions;
 }
 
 const added = (actions: Action[]) => actions.flatMap((a) => ('add' in a ? [a.add] : []));
@@ -465,6 +468,12 @@ describe('recipes', () => {
     }
   });
 
+  it('dashboard: the page step writes the layout, and its usage is the markup', () => {
+    const [dashboard] = recipes;
+    assert.equal(dashboard.steps.at(-1), 'web:page --name=index --title=Dashboard --site=Acme --layout=dashboard');
+    assert.deepEqual(dashboard.usage?.slice(1), DASHBOARD_MARKUP.split('\n'));
+  });
+
   it('dashboard: the docs show the same markup', () => {
     const docs = readFileSync(new URL('../../docs/web.md', import.meta.url), 'utf8');
     assert.ok(docs.includes(`\`\`\`html\n${DASHBOARD_MARKUP}\n\`\`\``));
@@ -525,20 +534,29 @@ describe('usage', () => {
 
   it('cube says what it writes, which blocks are separate, and the role tokens', () => {
     assert.match(pack.cube.description ?? '', /every composition and utility .* – blocks like web:card are separate$/);
+    assert.match(pack.cube.description ?? '', /button\.css with --primary, so no web:button then/);
     const usage = pack.cube.usage ?? [];
     const blocks = usage.find((l) => l.startsWith('blocks to add: '))!;
     for (const [, block] of blocks.matchAll(/web:([a-z-]+)/g)) assert.ok(pack[block], block);
     assert.match(blocks, /web:card, .*web:theme-toggle, web:nav, web:badge, web:stat, web:table, web:list, web:field$/);
     assert.ok(usage.some((l) => l.includes(COMPOSITIONS.map((n) => `.${n}`).join(', '))));
-    for (const line of pack.palette.usage ?? []) assert.ok(usage.includes(line), line);
+    assert.ok(usage.includes('with --primary, the palette\'s role tokens – which goes on which: jen web:palette --help'));
   });
 
   it('page shows a layout, with generators that exist', () => {
     const usage = pack.page.usage ?? [];
     const named = usage.flatMap((l) => [...l.matchAll(/jen web:([a-z-]+) --help/g)].map((m) => m[1]));
-    assert.deepEqual(named, ['repel', 'sidebar', 'grid', 'card', 'wrapper']);
+    assert.deepEqual(named, ['flow', 'repel', 'sidebar', 'grid', 'card', 'wrapper']);
     for (const name of named) assert.ok(pack[name], name);
-    assert.ok(usage.some((l) => l.includes('https://learosema.github.io/jen/web.html#dashboard')));
+    assert.ok(usage.some((l) => l.includes('jen web:cube')));
+  });
+
+  it('page spaces its parts out with .flow, as the dashboard does, and points to the whole markup', () => {
+    const usage = pack.page.usage ?? [];
+    assert.ok(usage.some((l) => l.startsWith('body:    <body class="flow">')));
+    assert.ok(usage.some((l) => l.includes('<main id="main" class="flow">')));
+    assert.ok(usage.some((l) => l.includes('--layout=dashboard') && l.includes('jen --find dashboard')));
+    assert.ok(DASHBOARD_MARKUP.startsWith('<body class="flow"') && DASHBOARD_MARKUP.includes('<main id="main" class="flow">'));
   });
 
   it('says where the sidebar and grid properties go', () => {
@@ -713,6 +731,8 @@ describe('web:cube', () => {
     assert.ok(added(actions).indexOf('button.css') < added(actions).indexOf('utilities/color-primary.css'));
     assert.match(template(actions, 'utilities/color-secondary.css'), /\.bg-secondary \{/);
     assert.match(template(actions, 'button.css'), /\.button--secondary \{/);
+    assert.ok(notes(actions).includes('button.css has the buttons – web:button isn\'t needed'));
+    assert.ok(!notes(run('cube', {}, context({}))).some((n) => n.includes('web:button')), 'no buttons without --primary');
   });
 
   it('wires into an existing entry point, leaving out what the project has', () => {
@@ -933,6 +953,20 @@ describe('web:page', () => {
   it('says what it linked', () => {
     assert.deepEqual(notes(run('page', { name: 'About' }, context(project, 'pages'))), ['about.html links ../css/styles.css and ../public/favicon.svg']);
     assert.deepEqual(notes(run('page', { name: 'index' }, context({ 'css/styles.css': '/* jen:imports */' }))), ['index.html links css/styles.css']);
+  });
+
+  it('writes a layout into the body: the dashboard with --site and --title, or just the <h1>', () => {
+    const files = { 'css/styles.css': '/* jen:imports */' };
+    const plain = template(run('page', { name: 'index' }, context(files)), 'index.html');
+    assert.match(plain, /\n {2}<body>\n {4}<main id="main">\n {6}<h1>Index<\/h1>\n {4}<\/main>\n {2}<\/body>/);
+    const actions = run('page', { name: 'index', title: 'Stats & more', site: 'Shop', layout: 'dashboard' }, context(files));
+    const html = template(actions, 'index.html');
+    assert.match(html, /\n {2}<body class="flow" style="padding-block: var\(--space-s-m\)">\n {4}<header class="wrapper repel">\n {6}<a href="\/"><b>Shop<\/b><\/a>/);
+    assert.match(html, /\n {6}<main id="main" class="flow">\n {8}<h1>Stats &amp; more<\/h1>/);
+    assert.match(html, /<title>Stats &amp; more – Shop<\/title>/);
+    assert.match(html, /<\/main>\n {4}<\/div>\n {2}<\/body>\n<\/html>/);
+    assert.ok(notes(actions).includes('index.html has placeholder content from the dashboard layout to replace – then jen web:check finds classes no stylesheet defines'));
+    assert.match(template(run('page', { name: 'index', layout: 'dashboard' }, context(files)), 'index.html'), /<b>Acme<\/b>/, 'a placeholder without --site');
   });
 
   it('says when there is no stylesheet to link', () => {
@@ -1319,6 +1353,64 @@ describe('web:sw in a browser', { skip: !CHROME && 'no Chromium found (set CHROM
 
     await go('Page.navigate', { url: `${origin}/elsewhere.html` });
     assert.equal(await evaluate('document.title'), 'Offline', 'any other page shows the offline page');
+  });
+});
+
+describe('web:check --render', () => {
+  const renderCheck = async (files: Record<string, string>, root = '/project') =>
+    (await pack.check.actions({ render: true }, helpers, { ...context(files), root })).flatMap((a) => ('note' in a ? [[a.warning && 'warning:', a.file, a.note].filter(Boolean).join(' ')] : []));
+
+  it('says in which schemes and widths a finding showed, nothing when in all', () => {
+    assert.equal(where(['light 390', 'light 1280', 'dark 390', 'dark 1280']), '');
+    assert.equal(where(['dark 390', 'dark 1280']), ' (dark mode)');
+    assert.equal(where(['light 390', 'dark 390']), ' (390 wide)');
+    assert.equal(where(['light 390', 'dark 1280']), ' (light, 390 wide; dark, 1280 wide)');
+  });
+
+  it('warns without Chromium – so --strict fails – and still runs the other checks', async (t) => {
+    const chrome = process.env.CHROME;
+    process.env.CHROME = '/nowhere/chromium';
+    t.after(() => (chrome === undefined ? delete process.env.CHROME : (process.env.CHROME = chrome)));
+    assert.equal(findChrome(), null);
+    assert.deepEqual(await renderCheck({ 'index.html': '<p class="nope">Hi</p>' }), [
+      'warning: /index.html uses .nope, which no stylesheet defines',
+      'warning: no Chromium found to render the pages – set CHROME to one, or install chromium or google-chrome; the other checks ran',
+      'checked 1 page and 0 stylesheets – 2 warnings (--strict exits with 1 then)',
+    ]);
+  });
+
+  it('finds boxes that touch, low contrast, sideways scrolling and console errors – and nothing on the dashboard', { skip: !CHROME && 'no Chromium found (set CHROME)', timeout: 60_000 }, async (t) => {
+    const dir = mkdtempSync(join(tmpdir(), 'jen-render-'));
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    const files: Record<string, string> = {};
+    for (const step of recipes[0].steps.slice(0, -1)) {
+      const [name, ...flags] = step.replace(/^web:/, '').split(' ');
+      const answers = Object.fromEntries(flags.filter((f) => !f.startsWith('--dir=')).map((f) => f.slice(2).split('=')));
+      for (const a of run(name, answers, context(files, 'css'))) if ('template' in a) files[posix.join('css', a.add)] = a.template;
+    }
+    files['css/styles.css'] = Object.keys(files).filter((f) => f !== 'css/styles.css').map((f) => `@import "./${f.slice(4)}";\n`).join('') + '/* jen:imports */\n';
+    const dashboard = template(run('page', { name: 'index', title: 'Dashboard', layout: 'dashboard' }, context(files)), 'index.html');
+    files['index.html'] = dashboard;
+    files['bad.html'] = dashboard
+      .replace(/<body class="flow"[^>]*>/, '<body>')
+      .replace('<main id="main" class="flow">', '<main id="main"><p style="color: #bbb">Pale</p><div style="inline-size: 60rem">Wide</div>')
+      .replace('</body>', '<script>missing()</script></body>');
+    for (const [file, text] of Object.entries(files)) {
+      mkdirSync(join(dir, posix.dirname(file)), { recursive: true });
+      writeFileSync(join(dir, file), text);
+    }
+    const found = await renderCheck(files, dir);
+    assert.deepEqual(
+      found.filter((n) => n.startsWith('warning: /index.html')),
+      [],
+      'the dashboard layout is fine',
+    );
+    const bad = found.filter((n) => n.startsWith('warning: /bad.html'));
+    assert.ok(bad.includes('warning: /bad.html header.wrapper.repel and div.wrapper.sidebar touch one above the other – class="flow" on body spaces them out'), bad.join('\n'));
+    assert.ok(bad.some((n) => /"Pale" \(p\) has a contrast of 1\.\d:1, needs 4\.5:1 \(WCAG AA\) \(light mode\)$/.test(n)), bad.join('\n'));
+    assert.ok(bad.includes('warning: /bad.html div is wider than the screen, so the page scrolls sideways'), bad.join('\n'));
+    assert.ok(bad.includes('warning: /bad.html console error: ReferenceError: missing is not defined'), bad.join('\n'));
+    assert.match(found.at(-1)!, /^checked 2 pages \(rendered in light and dark, 390 and 1280 wide\) and \d+ stylesheets – \d+ warnings/);
   });
 });
 

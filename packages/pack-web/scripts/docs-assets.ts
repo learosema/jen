@@ -74,7 +74,9 @@ function apply(actions: Action[]): void {
 function run(generator: string, answers: Record<string, string | boolean> = {}): void {
   const g = pack[generator];
   const defaults = Object.fromEntries(Object.entries(g.params ?? {}).map(([k, p]) => [k, p.default]));
-  apply(g.actions({ ...defaults, ...answers }, helpers, ctx));
+  const actions = g.actions({ ...defaults, ...answers }, helpers, ctx);
+  if (!Array.isArray(actions)) throw new Error(`docs-assets: ${generator} is async`);
+  apply(actions);
 }
 
 run('cube', COLORS);

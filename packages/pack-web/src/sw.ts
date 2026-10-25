@@ -1,7 +1,7 @@
 /** `web:sw`: a service worker with the caching strategies of Jake Archibald's Offline Cookbook (https://web.dev/articles/offline-cookbook). */
 import { posix } from 'node:path';
 import type { Action, Context, Generator } from '@codejen/jen';
-import { TYPES_PARAM, type Types, ext, importExt, stripTypes, typesFor } from '@codejen/jen';
+import { TYPES_PARAM, type Types, ext, importExt, stripTypes, typesFor } from '@codejen/jen/js';
 import { fail } from './common.ts';
 import { findEntry } from './entry.ts';
 import { ICONS, iconsIn, pageHtml, relativeTo, surfaces } from './page.ts';
@@ -65,7 +65,7 @@ const swGenerator: Generator = {
   description: 'create a service worker (network-first pages, cached assets, an offline page) and a module that registers it',
   params: {
     precache: { default: '', description: 'comma-separated files to cache on install, relative to sw.js (default: the pages and stylesheets)' },
-    strategy: { default: 'cache-first', choices: Object.keys(STRATEGIES), description: 'for assets: cache-first, or swr (stale-while-revalidate); pages stay network-first' },
+    strategy: { default: 'cache-first', choices: Object.keys(STRATEGIES), description: 'for assets (swr: stale-while-revalidate); pages stay network-first' },
     offline: { default: false, description: 'also write offline.html, shown for pages that aren\'t cached' },
     into: { path: true, default: '', description: 'a page (script tag) or module (import line) to load register-sw from – only adds to it' },
     ...TYPES_PARAM,
@@ -100,6 +100,7 @@ const swGenerator: Generator = {
           script: null,
           icons: iconsIn(ctx, ICONS.map(([icon]) => icon)),
           themeColors: surfaces(ctx),
+          layout: 'none',
         }),
       });
       precache.push(`./${OFFLINE}`);
