@@ -8,14 +8,14 @@
  */
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { Pack } from '@codejen/jen';
+import type { AnyGenerator } from '@codejen/jen';
 import cpp from '../packages/pack-cpp/src/index.ts';
 import glsl from '../packages/pack-glsl/src/index.ts';
 import js from '../packages/pack-js/src/index.ts';
 import web from '../packages/pack-web/src/index.ts';
 
 const docs = join(import.meta.dirname, '../docs');
-const packs: Record<string, Pack> = { cpp, glsl, js, web };
+const packs: Record<string, Record<string, AnyGenerator>> = { cpp, glsl, js, web };
 
 const data: Record<string, Array<{ name: string; required: boolean; default?: string; choices?: readonly string[]; description?: string }>> = {};
 const usage: Record<string, string[]> = {};
