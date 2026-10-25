@@ -311,7 +311,7 @@ Needs a palette.
 
 ### `web:page` {#web-page}
 
-`--layout=dashboard` writes [a dashboard](#dashboard).
+`--layout=dashboard` writes [a dashboard](#dashboard); `--like=index.html` makes the next page with its header, nav and sidebar.
 
 {% include terminal.html id="web_page" %}
 
@@ -476,6 +476,7 @@ jen web:cube --primary=#0d9488 --dir=css
 jen web:card --dir=css
 jen web:nav --dir=css
 jen web:stat --dir=css
+jen web:list --dir=css
 jen web:page --name=index --title=Dashboard --site=Acme --layout=dashboard
 ```
 
@@ -499,19 +500,30 @@ jen web:page --name=index --title=Dashboard --site=Acme --layout=dashboard
       </div>
     </aside>
     <main id="main" class="flow">
-      <h1>Dashboard</h1>
+      <div class="repel">
+        <h1>Dashboard</h1>
+        <button class="button" type="button">New report</button>
+      </div>
       <div class="grid" style="--grid-min-item-size: 10rem; --stat-value-size: var(--step-2)">
         <article class="card stat"><h2 class="stat__label">Visitors</h2><p class="stat__value">12,480</p><p class="stat__trend" data-trend="up">+4 %</p></article>
         <article class="card stat"><h2 class="stat__label">Sign-ups</h2><p class="stat__value">318</p><p class="stat__trend" data-trend="flat">±0 %</p></article>
         <article class="card stat"><h2 class="stat__label">Revenue</h2><p class="stat__value">€4,210</p><p class="stat__trend" data-trend="up">+12 %</p></article>
         <article class="card stat"><h2 class="stat__label">Churn</h2><p class="stat__value">1.2 %</p><p class="stat__trend" data-trend="down">−0.3 %</p></article>
       </div>
+      <section class="card" aria-labelledby="activity">
+        <h2 id="activity">Recent activity</h2>
+        <ul class="list list--divided" role="list">
+          <li>Ada signed up – 2 min ago</li>
+          <li>Invoice 1042 was paid – 1 h ago</li>
+          <li>The March report was exported – yesterday</li>
+        </ul>
+      </section>
     </main>
   </div>
 </body>
 ```
 
-{% include web-preview.html src="dashboard.html" title="A dashboard" height="22rem" dual=true %}
+{% include web-preview.html src="dashboard.html" title="A dashboard" height="32rem" dual=true %}
 
 ## Credits {#credits}
 
