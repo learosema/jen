@@ -7,8 +7,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
-    "dist",
-    "templates"
+    "dist"
   ],
   "repository": {
     "type": "git",
@@ -34,11 +33,7 @@
     "jen-pack",
     "typescript",
     "javascript",
-    "jsdoc",
-    "vite",
-    "esbuild",
-    "web-components",
-    "a11y"
+    "jsdoc"
   ],
   "author": "Lea Rosema",
   "license": "ISC",

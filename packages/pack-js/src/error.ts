@@ -1,8 +1,7 @@
 /** `js:error`: an `Error` subclass with its own name, extra fields, and `cause`. */
 import type { Generator } from '@codejen/jen';
-import { type Named, fail, formatType, parseNamed } from './common.ts';
-import { TYPES_PARAM, type Types, ext, pick, typesFor } from './style.ts';
-import { WITH_TEST_PARAMS, sample, testAction } from './testing.ts';
+import { ext, formatType, type Named, parseNamed, pick, sample, testAction, type Types, TYPES_PARAM, typesFor, WITH_TEST_PARAMS } from '@codejen/jen/js';
+import { fail } from './common.ts';
 
 export function errorSource(types: Types, cls: string, fields: Named[]): string {
   const options = `${cls}Options`;

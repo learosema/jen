@@ -1,3 +1,0 @@
-interface HTMLElementTagNameMap {
-  // jen:elements
-}

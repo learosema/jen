@@ -1,8 +1,7 @@
 /** `js:brand`: a branded type, so a `UserId` can't be passed where any string goes, with its guard and checked constructor. */
 import type { Generator } from '@codejen/jen';
+import { ext, pick, testAction, type Types, TYPES_PARAM, typesFor, WITH_TEST_PARAMS } from '@codejen/jen/js';
 import { fail } from './common.ts';
-import { TYPES_PARAM, type Types, ext, pick, typesFor } from './style.ts';
-import { WITH_TEST_PARAMS, testAction } from './testing.ts';
 
 const CHECKS: Record<string, string> = {
   string: "typeof value === 'string'",
@@ -47,7 +46,7 @@ const brandGenerator: Generator = {
   description: 'create a branded type with a type guard and a checked constructor',
   params: {
     name: { description: 'the type, any case: user-id and UserId both make UserId in user-id.ts' },
-    underlying: { default: 'string', choices: Object.keys(CHECKS), description: 'the branded type: string, number or bigint' },
+    underlying: { default: 'string', choices: Object.keys(CHECKS), description: 'the type under the brand' },
     ...WITH_TEST_PARAMS,
     ...TYPES_PARAM,
   },

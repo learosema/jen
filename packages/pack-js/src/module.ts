@@ -1,8 +1,7 @@
 /** `js:module`: a module exporting a function of the same name, to fill in. */
 import type { Generator } from '@codejen/jen';
+import { ext, pick, testAction, TYPES_PARAM, typesFor, WITH_TEST_PARAMS } from '@codejen/jen/js';
 import { fail } from './common.ts';
-import { TYPES_PARAM, ext, pick, typesFor } from './style.ts';
-import { WITH_TEST_PARAMS, testAction } from './testing.ts';
 
 const moduleGenerator: Generator = {
   description: 'create a module exporting a function of the same name',

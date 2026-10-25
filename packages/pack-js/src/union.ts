@@ -1,8 +1,7 @@
 /** `js:union`: a tagged union, and a `match` function whose `switch` is checked for exhaustiveness via `never`. */
 import type { Generator } from '@codejen/jen';
-import { type Named, fail, formatType, objectFields, parseNamed } from './common.ts';
-import { TYPES_PARAM, type Types, ext, pick, typesFor } from './style.ts';
-import { WITH_TEST_PARAMS, sample, testAction } from './testing.ts';
+import { ext, formatType, type Named, objectFields, parseNamed, pick, sample, testAction, type Types, TYPES_PARAM, typesFor, WITH_TEST_PARAMS } from '@codejen/jen/js';
+import { fail } from './common.ts';
 
 export interface Case {
   kind: string;

@@ -1,8 +1,7 @@
 /** `js:enum`: an `as const` object, the union type of its values, and a type guard – instead of TypeScript's `enum`, which isn't erasable. */
 import type { Generator } from '@codejen/jen';
-import { fail, parseNamed } from './common.ts';
-import { TYPES_PARAM, type Types, ext, pick, typesFor } from './style.ts';
-import { WITH_TEST_PARAMS, testAction } from './testing.ts';
+import { ext, parseNamed, pick, testAction, type Types, TYPES_PARAM, typesFor, WITH_TEST_PARAMS } from '@codejen/jen/js';
+import { fail } from './common.ts';
 
 export function enumSource(types: Types, name: string, entries: { key: string; value: string }[]): string {
   const body = entries.map((e) => `  ${e.key}: '${e.value}',`).join('\n');
