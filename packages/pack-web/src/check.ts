@@ -22,6 +22,7 @@ function generatorFor(cls: string): string | null {
   if (COMPOSITIONS.includes(block)) return `web:${block}`;
   if (['card', 'avatars', 'button', 'dialog', 'popover', 'theme-toggle', ...BLOCK_NAMES].includes(block)) return `web:${block}`;
   if (block === 'table-scroll') return 'web:table';
+  if (block === 'site-name') return 'web:nav';
   if (['reading-progress', 'reveal'].includes(block)) return 'web:scroll';
   if (['visually-hidden', 'pad-fluid', 'unbreakable'].includes(block)) return `web:${block}`;
   const color = /^(?:color|bg)-([a-z]+)/.exec(cls);

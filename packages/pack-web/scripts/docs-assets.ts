@@ -254,7 +254,7 @@ ${NAV_MARKUP.replaceAll('href="/', 'href="#')}
     'Stats',
     `<div class="grid" style="--grid-min-item-size: 10rem">
 ${[['Visitors', '12,480', 'up', '+4 % since last week'], ['Churn', '1.2 %', 'down', '−0.3 % since last week'], ['Sign-ups', '318', 'flat', 'same as last week']]
-  .map(([label, value, trend, text]) => `<article class="card stat"><p class="stat__label">${label}</p><p class="stat__value">${value}</p><p class="stat__trend" data-trend="${trend}">${text}</p></article>`)
+  .map(([label, value, trend, text]) => `<article class="card stat"><h2 class="stat__label">${label}</h2><p class="stat__value">${value}</p><p class="stat__trend" data-trend="${trend}">${text}</p></article>`)
   .join('\n')}
 </div>`,
   ),

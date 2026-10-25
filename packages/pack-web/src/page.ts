@@ -65,7 +65,7 @@ export const LAYOUTS = ['none', 'dashboard'];
  */
 export const PLACEHOLDERS: Record<string, Array<[what: string, snippet: string | null]>> = {
   dashboard: [
-    ['the site name', '<b>Acme</b>'],
+    ['the site name', '<a class="site-name" href="index.html">Acme</a>'],
     ['the nav links', null],
     ['the sidebar card', '<p>Last 30 days</p>'],
     ['the 4 stat cards', '<p class="stat__value">12,480</p>'],

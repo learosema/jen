@@ -30,6 +30,7 @@ const BLOCKS: Record<string, Block> = {
     usage: [
       '<nav class="nav" aria-label="Main"><ul role="list"><li><a href="/" aria-current="page">Home</a></li><li><a href="/about">About</a></li></ul></nav>',
       'data-direction="vertical" on .nav stacks the links, e.g. in a sidebar',
+      'the site\'s name beside it: <a class="site-name" href="index.html">Acme</a>',
       ...props('.nav', [['--nav-gap: 0.25em', 'the space between the links'], ['--nav-radius: 0.375em', 'the corners of a link\'s background']]),
     ],
     examples: ['--dir=css', '--into=index.html --line="<main"'],
@@ -48,7 +49,7 @@ const BLOCKS: Record<string, Block> = {
   stat: {
     description: 'create a .stat block: a metric with its label and a trend, the direction in words, not color alone',
     usage: [
-      '<article class="stat"><p class="stat__label">Visitors</p><p class="stat__value">12,480</p><p class="stat__trend" data-trend="up">+4 % since last week</p></article>',
+      '<article class="stat"><h2 class="stat__label">Visitors</h2><p class="stat__value">12,480</p><p class="stat__trend" data-trend="up">+4 % since last week</p></article>',
       'data-trend="up", "down" or "flat" colors the trend and adds an arrow; the text says which way',
       'in a .card: <article class="card stat">…</article>',
       ...props('.stat', [['--stat-value-size: var(--step-3, 2rem)', 'the value\'s size'], ['--stat-gap: 0.25em', 'the space between the lines']]),
