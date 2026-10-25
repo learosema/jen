@@ -493,8 +493,27 @@ export function planItems(steps: Step[]): Array<PlanItem & { mark: Step['mark'] 
   return items;
 }
 
+/** Files created one after another in the same folder: one line from this many on, the folder and the names. */
+const GROUP_FROM = 4;
+
 export function printPlan(steps: Step[]): void {
-  for (const s of planItems(steps)) {
+  const items = planItems(steps);
+  const folder = (i: number) => {
+    const s = items[i];
+    const slash = s?.mark === '+' && !s.note && !s.line && s.file ? s.file.lastIndexOf('/') : -1;
+    return slash > 0 ? s.file!.slice(0, slash + 1) : null;
+  };
+  for (let i = 0; i < items.length; i++) {
+    const s = items[i];
+    const dir = folder(i);
+    let end = i;
+    while (dir && folder(end + 1) === dir) end++;
+    if (dir && end - i + 1 >= GROUP_FROM) {
+      const names = items.slice(i, end + 1).map((f) => f.file!.slice(dir.length));
+      console.log(`  ${styleText(MARK_STYLE['+'], '+')} ${dir}${dim(` ${names.length} files: ${names.join(', ')}`)}`);
+      i = end;
+      continue;
+    }
     if (s.mark === 'info' || s.mark === 'warning') {
       const text = [s.file, s.note].filter(Boolean).join(' ');
       console.log(`  ${styleText(MARK_STYLE[s.mark], `${s.mark}:`)} ${s.mark === 'info' ? dim(text) : text}`);

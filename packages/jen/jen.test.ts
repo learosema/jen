@@ -432,6 +432,15 @@ describe('append', () => {
     assert.match(jen(['reset'], { cwd: dir }).stdout, /~ a\.css {2}\+ \*, \(appended\)/);
   });
 
+  it('puts four or more new files in one folder on one line, and every one of them in --json', () => {
+    const adds = (dir: string, names: string[]) => names.map((n) => `{ add: '${dir}${n}', template: '' }`).join(', ');
+    const dir = fixture({ '.jen/many.mjs': `export const actions = () => [${adds('css/parts/', ['a.css', 'b.css', 'c.css', 'd.css'])}, ${adds('css/', ['x.css', 'y.css'])}];` });
+    const out = jen(['many', '--dry-run'], { cwd: dir }).stdout;
+    assert.match(out, /\n {2}\+ css\/parts\/ 4 files: a\.css, b\.css, c\.css, d\.css\n {2}\+ css\/x\.css\n {2}\+ css\/y\.css\n/);
+    const { steps } = JSON.parse(jen(['many', '--dry-run', '--json'], { cwd: dir }).stdout) as { steps: unknown[] };
+    assert.equal(steps.length, 6);
+  });
+
   it('skips a missing file with a note, once', () => {
     const dir = fixture({ '.jen/flow.mjs': GEN.replace('];', "{ append: 'layout.css', text: 'x' },\n  ];") });
     const r = jen(['flow'], { cwd: dir });
@@ -1718,6 +1727,16 @@ describe('for programs', () => {
     );
     const { packs } = JSON.parse(jen(['demo', '--list', '--json'], { cwd: dir }).stdout) as { packs: Array<{ recipes: unknown[] }> };
     assert.deepEqual(packs[0].recipes, [{ name: 'dashboard', description: 'a dashboard page with cards', steps: ['jen demo:card', 'jen demo:sidebar --name=x'], docs: 'https://example.com/#dashboard' }]);
+  });
+
+  it('says where a generator the pack moved went', () => {
+    const dir = project();
+    const index = join(dir, 'node_modules/@codejen/pack-demo/index.mjs');
+    writeFileSync(index, `${read(dir, 'node_modules/@codejen/pack-demo/index.mjs')}\nexport const moved = { vite: 'web:vite' };`);
+    const r = jen(['demo:vite'], { cwd: dir });
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /Generator "demo:vite" moved – it's jen web:vite now\./);
+    assert.match(jen(['demo:crad'], { cwd: dir }).stderr, /did you mean demo:card\?/, 'other names still get suggestions');
   });
 
   it("puts a group's generators on one line in --list, and every one of them in --list --json", () => {
