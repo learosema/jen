@@ -107,6 +107,8 @@ interface PackMeta {
   recipes?: Recipe[];
   /** The pack module's `groups` export. */
   groups?: Group[];
+  /** The pack module's `moved` export: a generator's old name → where it is now, e.g. `vite` → `web:vite`. */
+  moved?: Record<string, string>;
 }
 
 const GEN_FILE = /\.(m?js|m?ts)$/;
@@ -264,14 +266,15 @@ async function packSource(name: string, bases = defaultBases(), extra: Extra = n
     console.warn(styleText('yellow', `Pack ${name} not found (install it locally or globally).`));
     return [];
   }
-  const mod = (await import(pathToFileURL(file).href)) as { default?: Pack | PackFactory; recipes?: Recipe[]; groups?: Group[] };
-  const { recipes, groups, ...named } = mod;
+  const mod = (await import(pathToFileURL(file).href)) as { default?: Pack | PackFactory; recipes?: Recipe[]; groups?: Group[]; moved?: Record<string, string> };
+  const { recipes, groups, moved, ...named } = mod;
   const exported = mod.default ?? (named as Pack);
   const pack = typeof exported === 'function' ? await exported(packEnv(extra)) : exported;
   const meta = {
     ...packMeta(name, file),
     ...(Array.isArray(recipes) && recipes.length > 0 && { recipes }),
     ...(Array.isArray(groups) && groups.length > 0 && { groups }),
+    ...(moved && typeof moved === 'object' && { moved }),
   };
   return Object.entries(pack).map(([gen, g]) => ({
     name: gen,
@@ -402,6 +405,9 @@ function notFound(entries: Entry[], query: string): never {
   const candidates = pack ? entries.filter((e) => under(e, pack)) : entries;
   const close = near(query.slice(colon + 1), candidates.map((e) => e.name)).map((n) => (pack ? `${pack}:${n}` : n));
   const meant = close.length ? `did you mean ${close.join(', ')}? ` : '';
+  // a generator the pack moved: say where it went, before anything else
+  const movedTo = pack ? candidates.map((e) => e.pack?.moved?.[query.slice(colon + 1)]).find(Boolean) : undefined;
+  if (movedTo) throw new JenError(`Generator "${query}" moved – it's jen ${movedTo} now.`, 'not_found', { query, didYouMean: [movedTo] });
   const lines = [`Generator "${query}" not found – ${meant}${pack ? `jen ${pack} --list shows them all.` : 'jen --list shows all.'}`];
   if (prefix) lines.push(`If "${prefix}" is a pack you haven't installed, try: jen --from ${FIRST_PARTY_SCOPE}/pack-${prefix} ${query}`);
   // jen 2 ran Yeoman generators by their short name itself
@@ -567,7 +573,7 @@ function paramJson(spec: Params[string]): Partial<ParamInfo> {
 
 /** A pack's details in JSON – in `--list --json` once, with its recipes (their markup only in `--find`). */
 // groups only shorten --list; the JSON lists every generator anyway
-const packJson = ({ recipes, groups: _groups, ...pack }: PackMeta, withRecipes: boolean) => ({
+const packJson = ({ recipes, groups: _groups, moved: _moved, ...pack }: PackMeta, withRecipes: boolean) => ({
   ...pack,
   ...(withRecipes && recipes && { recipes: recipes.map((r) => ({ name: r.name, description: r.description, steps: recipeCalls(r), ...(r.docs && { docs: r.docs }) })) }),
 });

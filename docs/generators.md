@@ -277,10 +277,11 @@ export const recipes = [
 ];
 ```
 
-And `groups`, one line each in `--list`:
+And `groups`, one line each in `--list`, and `moved`, for names that now live elsewhere:
 
 ```js
 export const groups = [{ name: "blocks", description: "UI blocks, one file each", generators: ["card", "nav", "stat"] }];
+export const moved = { vite: "web:vite" }; // jen js:vite: "moved – it's jen web:vite now"
 ```
 
 Or a function of `env` (`packages`, `resolve`, `fetch`):
