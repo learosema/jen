@@ -14,8 +14,8 @@
  * contract: `scene()` returns sceneMaterial(p).x, and the material id is
  * looked up once per pixel at the hit point – the helpers stay the same.
  */
-import type { Action, Generator } from '@codejen/jen';
-import { chunkActions, pickChunks } from './chunks.ts';
+import type { Action, Context, Generator } from '@codejen/jen';
+import { MARKER_LINE, chunkActions, pickChunks } from './chunks.ts';
 import { fail, parseList } from './common.ts';
 import { VERSIONS, parseVersion, withHeader } from './dialect.ts';
 import type { Version } from './dialect.ts';
@@ -115,19 +115,21 @@ export interface StarterOptions {
 }
 
 /** A raymarching starter. Shared with `glsl:sdf --dim=3 --name`, which fills the scene with the picked shapes. */
-export function raymarchStarter(file: string, version: Version, options: StarterOptions): Action[] {
+export function raymarchStarter(file: string, version: Version, ctx: Context, options: StarterOptions): Action[] {
   const { scene, chunks, minimal, materials = false, lighting = 'lambert', distance = 4 } = options;
   const parts = minimal ? ['march', 'normal', 'camera'] : ['march', 'normal', 'soft-shadow', 'ao', 'camera'];
   const color = lighting === 'pbr' ? ['lighting/pbr', 'lighting/pbr-ambient', 'color/aces', 'color/srgb'] : [`lighting/${lighting}`, 'color/srgb'];
   const output = lighting === 'pbr'
     ? '  // Exposure, then HDR → [0, 1] → sRGB for display.\n  fragColor = vec4(linearToSrgb(tonemapAces(color * 1.6)), 1.0);'
     : '  fragColor = vec4(linearToSrgb(color), 1.0);  // linear → sRGB for display';
+  // the marker goes above the scene's own comment, so the functions don't come between them
   const body = `uniform float uTime;        // seconds since start
 uniform vec2 uResolution;   // viewport size in pixels
 uniform vec2 uMouse;        // pointer position in pixels, origin bottom-left
 
 out vec4 fragColor;
 
+${MARKER_LINE}
 ${scene}
 
 void main() {
@@ -151,7 +153,7 @@ ${output}
 `;
   return [
     { add: file, template: withHeader(version, body) },
-    ...chunkActions([...chunks, ...parts.map((part) => `raymarch/${part}`), ...color], { into: file, dir: '' }),
+    ...chunkActions([...chunks, ...parts.map((part) => `raymarch/${part}`), ...color], { into: file, dir: '', ctx }),
   ];
 }
 
@@ -161,17 +163,22 @@ const raymarchGenerator: Generator = {
     name: { default: '', description: 'create a starter shader with this name: a small scene, orbiting camera, shadows, AO and fog' },
     minimal: { default: false, description: 'with --name: leave out soft shadows, ambient occlusion and fog' },
     materials: { default: false, description: 'with --name: a material id per surface, for different colors' },
-    lighting: { default: 'lambert', choices: LIGHTING_MODELS, description: 'with --name: lambert, blinn, toon or pbr (see glsl:lighting)' },
+    lighting: { default: 'lambert', choices: LIGHTING_MODELS, description: 'with --name: the shading model (see glsl:lighting)' },
     parts: { default: 'all', description: 'with --into, comma-separated: march, normal, soft-shadow, ao, camera – or all' },
     into: { path: true, default: '', description: 'existing shader to add the raymarching helpers to, for your own scene()' },
-    version: { default: '300es', choices: VERSIONS, description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
+    version: { default: '300es', choices: VERSIONS, description: 'GLSL dialect: 300es is WebGL2, 330 and 410 desktop OpenGL' },
   },
+  usage: [
+    'the helpers call your float scene(vec3 p): the distance from p to the nearest surface',
+    'vec3 rd = cameraMatrix(eye, target, 0.0) * normalize(vec3(uv, 1.5));  uv centered, y from -0.5 to 0.5; a larger focal length (1.5) zooms in',
+    'softShadow(ro, rd, tMin, tMax, k): start at a small tMin to leave the surface; k 8–32, larger is harder',
+  ],
   examples: [
     '--name=Scene',
     '--name=Scene --lighting=pbr --materials --dir=shaders',
     '--parts=march,normal --into=shaders/scene.frag.glsl',
   ],
-  actions: ({ name, minimal, materials, lighting, parts, into, version }, { kebab }) => {
+  actions: ({ name, minimal, materials, lighting, parts, into, version }, { kebab }, ctx) => {
     const model = String(lighting);
     if (!LIGHTING_MODELS.includes(model)) {
       fail(`glsl:raymarch --lighting: expected one of ${LIGHTING_MODELS.map((m) => `"${m}"`).join(', ')}, got "${model}"`);
@@ -179,7 +186,7 @@ const raymarchGenerator: Generator = {
     if (name && into) fail('glsl:raymarch: use either --name (new starter) or --into (existing shader), not both');
     if (name) {
       const file = `${kebab(String(name))}.frag.glsl`;
-      return raymarchStarter(file, parseVersion(version), {
+      return raymarchStarter(file, parseVersion(version), ctx, {
         scene: materials ? MATERIAL_SCENE : SCENE,
         chunks: SCENE_CHUNKS,
         minimal: Boolean(minimal),
@@ -194,7 +201,7 @@ const raymarchGenerator: Generator = {
       );
     }
     const ids = pickChunks('raymarch', parseList(String(parts)), '--parts', 'glsl:raymarch');
-    return chunkActions(ids, { into: String(into), dir: '' });
+    return chunkActions(ids, { into: String(into), dir: '', ctx });
   },
 };
 

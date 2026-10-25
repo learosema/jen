@@ -1,13 +1,7 @@
 // @requires fractal/fbm3
 // @base value
 // @license MIT-0
-// valueWarp (3D) · pack-glsl · MIT-0
-// Domain warping: fBm sampled at a position displaced by fBm, for marbled,
-// flowing, organic patterns. `strength` is how far the domain is pushed
-// (default 2.0). Range about [-1, 1]. The `period` overloads tile every
-// `period` units (positive whole numbers).
-// Works on any jen noise: `jen glsl:noise --kind=… --base=perlin|simplex|value|worley`
-// renames value* to the chosen base.
+// fBm at a position pushed by fBm; strength: how far (default 2.0); about [-1, 1]
 
 float valueWarp(vec3 p, int octaves, float strength) {
   vec3 q = vec3(valueFbm(p, octaves), valueFbm(p + vec3(7.3, 2.9, 5.1), octaves), valueFbm(p + vec3(1.7, 9.2, 3.4), octaves));

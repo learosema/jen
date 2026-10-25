@@ -1,46 +1,6 @@
-// @license inline
-// psrdnoise (c) 2021 Stefan Gustavson and Ian McEwan
-// Published under the MIT license.
-// https://github.com/stegu/psrdnoise/
-
-//
-// Periodic (tiling) 2-D simplex noise (hexagonal lattice gradient noise)
-// with rotating gradients and analytic derivatives.
-//
-// This is (yet) another variation on simplex noise. Unlike previous
-// implementations, the grid is axis-aligned and slightly stretched in
-// the y direction to permit rectangular tiling.
-// The noise pattern can be made to tile seamlessly to any integer period
-// in x and any even integer period in y. Odd periods may be specified
-// for y, but then the actual tiling period will be twice that number.
-//
-// The rotating gradients give the appearance of a swirling motion, and
-// can serve a similar purpose for animation as motion along z in 3-D
-// noise. The rotating gradients in conjunction with the analytic
-// derivatives allow for "flow noise" effects as presented by Ken
-// Perlin and Fabrice Neyret.
-//
-
-
-//
-// 2-D tiling simplex noise with rotating gradients and analytical derivative.
-// "vec2 x" is the point (x,y) to evaluate,
-// "vec2 period" is the desired periods along x and y, and
-// "float alpha" is the rotation (in radians) for the swirling gradients.
-// The "float" return value is the noise value, and
-// the "out vec2 gradient" argument returns the x,y partial derivatives.
-//
-// Setting either period to 0.0 or a negative value will skip the wrapping
-// along that dimension. Setting both periods to 0.0 makes the function
-// execute about 15% faster.
-//
-// Not using the return value for the gradient will make the compiler
-// eliminate the code for computing it. This speeds up the function
-// by 10-15%.
-//
-// The rotation by alpha uses one single addition. Unlike the 3-D version
-// of psrdnoise(), setting alpha == 0.0 gives no speedup.
-//
+// @license psrdnoise
+// psrdnoise · Stefan Gustavson and Ian McEwan · https://github.com/stegu/psrdnoise
+// x: the point; period: tiling along x and y, y even (0: none); alpha: gradient rotation; gradient: the derivatives
 float psrdnoise(vec2 x, vec2 period, float alpha, out vec2 gradient) {
 
 	// Transform to simplex space (axis-aligned hexagonal grid)

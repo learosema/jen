@@ -34,6 +34,9 @@ function apply(actions: Action[], files: Map<string, string>): void {
   for (const a of actions) {
     if ('template' in a) {
       if (!files.has(a.add)) files.set(a.add, a.template);
+    } else if ('append' in a) {
+      const text = files.get(a.append) ?? '';
+      if (!text.includes(a.text.trim())) files.set(a.append, `${text}${a.text}\n`);
     } else if ('insert' in a) {
       // the GLSL generators insert into a shader they name, with a plain line
       if (typeof a.insert !== 'string' || !('line' in a) || a.before === undefined) throw new Error('docs-assets: only plain inserts are supported');
@@ -53,7 +56,9 @@ function apply(actions: Action[], files: Map<string, string>): void {
 function run(files: Map<string, string>, generator: string, answers: Record<string, string | boolean>): void {
   const g = pack[generator];
   const defaults = Object.fromEntries(Object.entries(g.params ?? {}).map(([k, p]) => [k, p.default]));
-  apply(g.actions({ ...defaults, ...answers }, helpers, {} as never), files); // they don't look at the project
+  // they only ask whether a notices file exists; the previews' notices aren't published
+  const ctx = { destDir: '.', exists: (p: string) => files.has(p) } as never;
+  apply(g.actions({ ...defaults, ...answers }, helpers, ctx), files);
 }
 
 const files = new Map<string, string>();

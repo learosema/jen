@@ -1,7 +1,5 @@
 // @license MIT-0
-// sdStar · pack-glsl · MIT-0
-// Signed distance to a star with n points (n >= 3), outer radius r and inner
-// radius ri (0 < ri < r). One point faces +x; rotate p for other orientations.
+// n points (n >= 3), outer radius r, inner radius ri (0 < ri < r); a point faces +x
 float sdStar(vec2 p, float r, float ri, float n) {
   float sector = 6.28318530718 / n;
   // Fold p into half a sector: angle 0 is a tip, angle sector/2 an inner corner.

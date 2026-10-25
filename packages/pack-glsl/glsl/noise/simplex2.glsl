@@ -1,10 +1,6 @@
 // @requires noise/psrdnoise2
 // @license MIT-0
-// simplexNoise (2D) · pack-glsl · MIT-0
-// Simplex noise in [-1, 1]: psrdnoise by Stefan Gustavson and Ian McEwan
-// (see its header above) under the name all jen noises share. The `period`
-// overload tiles every `period` units: whole numbers, and even ones along y
-// (an odd y period tiles at twice its length).
+// psrdnoise under jen's noise name; [-1, 1]; period: whole numbers, even along y
 float simplexNoise(vec2 p) {
   vec2 gradient;
   return psrdnoise(p, vec2(0.0), 0.0, gradient);

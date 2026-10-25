@@ -1,12 +1,4 @@
-// <shader-canvas> · pack-glsl · MIT-0
-// A dependency-free WebGL2 element for prototyping GLSL shaders.
-//
-//   <script src="shader-canvas.js" defer></script>
-//   <shader-canvas src="shaders/clouds.frag.glsl" live></shader-canvas>
-//
-// Attributes, uniforms, events and examples:
-// https://github.com/learosema/jen/tree/main/packages/pack-glsl/web/shader-canvas
-//
+// <shader-canvas> · https://github.com/learosema/jen/tree/main/packages/pack-glsl/web/shader-canvas
 // A classic script (no exports, no globals) so it also loads from file://.
 
 (() => {

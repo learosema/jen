@@ -1,9 +1,6 @@
 // @license MIT-0
-// raymarch · pack-glsl · MIT-0
-// Sphere tracing: steps along the ray ro + t * rd by the distance scene()
-// returns, until it hits a surface (returns t) or passes tMax (returns -1.0).
-// Needs `float scene(vec3 p)` in your shader.
-// Your scene: the distance from p to the nearest surface, defined further down.
+// returns t at the surface, or -1.0 past tMax
+// yours, defined further down: the distance from p to the nearest surface
 float scene(vec3 p);
 
 float raymarch(vec3 ro, vec3 rd, float tMax) {

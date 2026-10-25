@@ -13,7 +13,7 @@ const portGenerator: Generator = {
   description: 'switch a shader between GLSL dialects by rewriting its header',
   params: {
     file: { path: true, description: 'the shader to convert' },
-    to: { choices: VERSIONS, description: 'target dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
+    to: { choices: VERSIONS, description: 'target dialect: 300es is WebGL2, 330 and 410 desktop OpenGL' },
   },
   examples: ['--file=shaders/clouds.frag.glsl --to=410'],
   actions: ({ file, to }) => {

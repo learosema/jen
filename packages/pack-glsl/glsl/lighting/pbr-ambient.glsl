@@ -1,10 +1,6 @@
 // @license MIT-0
-// pbrAmbient · pack-glsl · MIT-0
-// Cheap image-free ambient light for pbr(): a sky/ground hemisphere for
-// the diffuse part, the same gradient in the reflection direction for the
-// specular part, blurred towards the diffuse one with roughness. Multiply by
-// ambient occlusion if you have it.
-// Fresnel with roughness: Sébastien Lagarde (2011).
+// Fresnel with roughness after Sébastien Lagarde (2011)
+// sky/ground gradient for diffuse and specular; multiply by ambient occlusion if you have it
 vec3 pbrAmbient(vec3 n, vec3 v, vec3 albedo, float metallic, float roughness, vec3 sky, vec3 ground) {
   float nv = max(dot(n, v), 0.0);
   vec3 f0 = mix(vec3(0.04), albedo, metallic);

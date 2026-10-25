@@ -1,17 +1,6 @@
 // @license MIT-0
-// pbr · pack-glsl · MIT-0
-// Physically based shading (Cook-Torrance): GGX distribution, Smith-Schlick
-// geometry and Schlick Fresnel, metallic/roughness workflow. albedo is the
-// base color (linear), metallic 0 (dielectric) to 1 (metal), roughness 0
-// (mirror) to 1 (matte). Includes the 1/π of the diffuse term, so a sun
-// needs an intensity around 3 to look as bright as with lambert(). Tonemap
-// the result (see glsl:lighting --tonemap).
-//
-// All lighting functions take the normal n, the direction to the viewer v and
-// the direction to the light l (all normalized) and return the light reflected
-// towards the viewer for a white light of intensity 1 – multiply by your
-// light's color and shadow, and sum over lights.
-// Formulas: Brian Karis, "Real Shading in Unreal Engine 4" (SIGGRAPH 2013).
+// after Brian Karis, "Real Shading in Unreal Engine 4" (2013)
+// metallic 0–1, roughness 0 (mirror) to 1 (matte); includes the 1/π, so a sun needs about intensity 3
 vec3 pbr(vec3 n, vec3 v, vec3 l, vec3 albedo, float metallic, float roughness) {
   const float PI = 3.14159265359;
   vec3 h = normalize(v + l);

@@ -1,9 +1,6 @@
 // @license iquilezles
-// calcNormal · Inigo Quilez · MIT
-// Surface normal at p from four scene() samples on a tetrahedron, which is
-// cheaper than central differences (six samples).
-// Technique: Inigo Quilez, https://iquilezles.org/articles/normalsSDF/
-// Your scene: the distance from p to the nearest surface, defined further down.
+// calcNormal · Inigo Quilez · https://iquilezles.org/articles/normalsSDF/
+// yours, defined further down: the distance from p to the nearest surface
 float scene(vec3 p);
 
 vec3 calcNormal(vec3 p) {

@@ -1,8 +1,5 @@
 // @license MIT-0
-// rotateX, rotateY, rotateZ, rotateAxis · pack-glsl · MIT-0
-// 3D rotation matrices, angles in radians, counter-clockwise looking down
-// the axis towards the origin: v = rotateY(a) * v. rotateAxis turns around any
-// (normalized) axis.
+// radians, counter-clockwise looking down the axis; rotateAxis needs a normalized axis
 mat3 rotateX(float a) {
   float c = cos(a);
   float s = sin(a);

@@ -14,10 +14,11 @@ const utilGenerator: Generator = {
     into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
   },
   examples: ['--fns=rot2,remap --into=shaders/clouds.frag.glsl', '--fns=all'],
-  actions: ({ fns, into }) =>
+  actions: ({ fns, into }, _helpers, ctx) =>
     chunkActions(pickChunks('util', parseList(String(fns ?? '')), '--fns', 'glsl:util'), {
       into: String(into),
       dir: '',
+      ctx,
     }),
 };
 

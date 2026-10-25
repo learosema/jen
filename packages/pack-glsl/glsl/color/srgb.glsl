@@ -1,7 +1,5 @@
 // @license MIT-0
-// linearToSrgb · pack-glsl · MIT-0
-// Encodes linear color for display (the exact sRGB curve, not pow(c, 1/2.2)).
-// Lighting math happens in linear space; this is the last step.
+// the exact sRGB curve, not pow(c, 1/2.2)
 vec3 linearToSrgb(vec3 c) {
   c = clamp(c, 0.0, 1.0);
   vec3 low = c * 12.92;
