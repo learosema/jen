@@ -98,7 +98,7 @@ describe('yeoman generators', () => {
   it('lists one generator per Yeoman package, under its short name', () => {
     const r = jen(['--list'], project(WIDGET, ['generator-widget']));
     assert.equal(r.code, 0, r.stderr);
-    assert.match(r.stdout, /yeoman:widget\s+pack @codejen\/pack-yeoman\s+Yeoman generator-widget/);
+    assert.match(r.stdout, /^pack @codejen\/pack-yeoman\n(?: {2}.*\n)*? {2}yeoman:widget +Yeoman generator-widget$/m);
   });
 
   it('runs a real yeoman-generator class end to end, EJS via the real copyTpl included', () => {
@@ -228,14 +228,14 @@ describe('yeoman generators', () => {
 }`,
     );
     const dir = project(thing, ['@acme/generator-thing']);
-    assert.match(jen(['--list'], dir).stdout, /yeoman:thing\s+pack @codejen\/pack-yeoman/);
+    assert.match(jen(['--list'], dir).stdout, /^pack @codejen\/pack-yeoman\n(?: {2}.*\n)*? {2}yeoman:thing /m);
     assert.equal(jen(['yeoman:thing'], dir).code, 0);
     assert.equal(read(dir, 'thing.txt'), 'thing\n');
   });
 
   it('lists the generators it may fetch, even when they are not installed', () => {
     const r = jen(['--list'], project({}, []));
-    assert.match(r.stdout, /yeoman:code\s+pack @codejen\/pack-yeoman\s+Yeoman generator-code – fetched when run/);
+    assert.match(r.stdout, /^pack @codejen\/pack-yeoman\n(?: {2}.*\n)*? {2}yeoman:code +Yeoman generator-code – fetched when run$/m);
     assert.doesNotMatch(r.stdout, /yeoman:office/);
     assert.match(r.stdout, /yeoman:jhipster\s+.*fetched when run/);
   });
