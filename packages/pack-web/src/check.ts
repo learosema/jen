@@ -169,6 +169,19 @@ export function checkActions(ctx: Context, rendered: Action[] = [], how = ''): A
     }
   }
 
+  // ─── Palette tokens nothing defines ───────────────────────────────────────
+  // only --color-*, the palette's, and only without a fallback: var(--color-border, GrayText) works without one
+  const declared = new Set([...sheets, ...pages].flatMap((f) => [...(ctx.read(f) ?? '').matchAll(/(--color-[\w-]+)\s*:/g)].map((m) => m[1])));
+  if (declared.size > 0) {
+    for (const file of [...sheets, ...pages]) {
+      const missing = [...new Set([...(ctx.read(file) ?? '').matchAll(/var\(\s*(--color-[\w-]+)\s*\)/g)].map((m) => m[1]))].filter((v) => !declared.has(v));
+      if (missing.length === 0) continue;
+      const colors = [...new Set(missing.map((v) => /^--color-(?:on-)?([a-z]+)/.exec(v)![1]))].filter((c) => !declared.has(`--color-${c}`));
+      const hint = colors.length ? ` – the palette has no ${colors.join(', ')}: jen web:palette --${colors[0]}=<color> (with the flags it was made with) adds it` : '';
+      warn(file, `uses ${missing.join(', ')}, which no stylesheet defines${hint}`);
+    }
+  }
+
   // ─── Placeholder content a layout left ────────────────────────────────────
   for (const page of pages) {
     const html = ctx.read(page) ?? '';
@@ -242,7 +255,7 @@ async function renderedActions(ctx: Context): Promise<Action[]> {
 }
 
 const checkGenerator: AnyGenerator = {
-  description: 'check the pages and stylesheets: classes no stylesheet defines, stylesheets nothing loads, color pairs the palette didn\'t check – writes nothing',
+  description: 'check the pages and stylesheets: classes and palette tokens no stylesheet defines, stylesheets nothing loads, color pairs the palette didn\'t check – writes nothing',
   params: {
     render: {
       default: false,

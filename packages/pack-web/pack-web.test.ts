@@ -417,6 +417,18 @@ describe('web:check', () => {
     assert.deepEqual(check(base), ['checked 1 page and 3 stylesheets – nothing to fix']);
   });
 
+  it('warns about palette tokens no stylesheet defines, but not about ones with a fallback', () => {
+    const project = {
+      ...base,
+      'css/styles.css': base['css/styles.css'].replace('/* jen:imports */', '@import "./badge.css";\n/* jen:imports */'),
+      'css/badge.css': '.badge--secondary { --badge-bg: var(--color-secondary-subtle); color: var(--color-text-muted, GrayText); }',
+    };
+    assert.deepEqual(warnings(project), [
+      '/css/badge.css uses --color-secondary-subtle, which no stylesheet defines – the palette has no secondary: jen web:palette --secondary=<color> (with the flags it was made with) adds it',
+    ]);
+    assert.deepEqual(warnings({ ...project, 'css/palette.css': paletteCss({ primary: '#5b5bd6', secondary: '#db2777', contrast: 'aaa' }) }), []);
+  });
+
   it('warns about placeholder content a layout left, but not about the nav links a real site may share', () => {
     const page = run('page', { name: 'index', layout: 'dashboard' }, context(base)).flatMap((a) => ('template' in a ? [a.template] : []))[0];
     const left = (html: string) => warnings({ ...base, 'index.html': html }).filter((w) => w.includes('placeholder'));
@@ -552,6 +564,15 @@ describe('a new palette in pages and the manifest', () => {
     assert.ok(changed.includes(`/index.html content="${dark}" media="(prefers-color-scheme: dark)"`));
     assert.ok(changed.some((c) => c.startsWith('/manifest.webmanifest "theme_color": "#')));
     assert.ok(notes(actions).includes('theme-color and the manifest follow the new palette'));
+  });
+
+  it('warns when a new palette leaves out a color the old one was made with – web:palette and web:cube', () => {
+    const files = { 'css/styles.css': '/* jen:imports */', 'css/palette.css': paletteCss({ primary: '#0d9488', secondary: '#db2777', contrast: 'aaa' }) };
+    const warning = '/css/palette.css was made with --secondary=#db2777 – this run leaves --secondary out, so its colors go; add --secondary=#db2777 to keep them';
+    const warnings = (actions: Action[]) => actions.flatMap((a) => ('note' in a && a.warning ? [`${a.file} ${a.note}`] : []));
+    assert.deepEqual(warnings(run('palette', { primary: '#4f46e5' }, context(files, 'css'))), [warning]);
+    assert.ok(warnings(run('cube', { primary: '#4f46e5' }, context(files, 'css'))).includes(warning));
+    assert.deepEqual(warnings(run('palette', { primary: '#4f46e5', secondary: '#ff0066' }, context(files, 'css'))), [], 'a new value is a choice');
   });
 
   it('leaves colors alone that aren\'t the old palette\'s, and does nothing on a first palette', () => {
