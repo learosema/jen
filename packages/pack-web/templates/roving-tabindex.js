@@ -1,5 +1,6 @@
 // @ts-check
 // Roving tabindex after the ARIA Authoring Practices Guide by the W3C: https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/
+// Native focusgroup where the browser has it, detected by property after Jeremy Keith: https://adactio.com/journal/22445
 
 /** @typedef {'horizontal' | 'vertical' | 'both'} Orientation */
 
@@ -29,6 +30,12 @@ const ORIENTATION = {
   radiogroup: 'both',
 };
 
+// The focusgroup behaviors; any other role moves like a toolbar.
+const BEHAVIORS = ['toolbar', 'tablist', 'radiogroup', 'listbox', 'menu', 'menubar'];
+
+/** @type {Record<Orientation, string>} */
+const AXIS = { horizontal: 'inline', vertical: 'block', both: '' };
+
 // Roles whose selection follows focus, and the state their items carry.
 /** @type {Record<string, string>} */
 const SELECTED = {
@@ -48,6 +55,13 @@ export function rovingTabindex(root, options = {}) {
   const orientation = options.orientation ?? /** @type {Orientation | null} */ (root.getAttribute('aria-orientation')) ?? ORIENTATION[role] ?? 'both';
   const wrap = options.wrap ?? true;
   const state = SELECTED[role];
+  // the browser moves focus and keeps one tab stop itself; selection stays ours (Chrome reflects the attribute as focusGroup)
+  const native = 'focusGroup' in HTMLElement.prototype || 'focusgroup' in HTMLElement.prototype;
+  const added = native && !root.hasAttribute('focusgroup');
+  if (added) {
+    const behavior = BEHAVIORS.includes(role) ? role : 'toolbar';
+    root.setAttribute('focusgroup', [behavior, AXIS[orientation], wrap ? 'wrap' : 'nowrap'].filter(Boolean).join(' '));
+  }
   const controller = new AbortController();
   options.signal?.addEventListener('abort', () => controller.abort(), { once: true });
   const { signal } = controller;
@@ -57,10 +71,16 @@ export function rovingTabindex(root, options = {}) {
   /** @param {EventTarget | null} target */
   const itemOf = (target) => items().find((item) => item.contains(/** @type {Node} */ (target)));
 
-  /** @param {HTMLElement} current */
-  function select(current) {
+  /** @type {HTMLElement | undefined} */
+  let current;
+
+  /** @param {HTMLElement} next */
+  function select(next) {
+    current = next;
     for (const item of items()) {
-      item.tabIndex = item === current ? 0 : -1;
+      // focusgroup skips items with a negative tabindex; tabbing in lands on focusgroupstart
+      item.tabIndex = item === current || native ? 0 : -1;
+      if (native) item.toggleAttribute('focusgroupstart', item === current);
       if (state) item.setAttribute(state, String(item === current));
       const panel = role === 'tablist' ? document.getElementById(item.getAttribute('aria-controls') ?? '') : null;
       if (panel) panel.hidden = item !== current;
@@ -86,25 +106,27 @@ export function rovingTabindex(root, options = {}) {
     return null;
   }
 
-  root.addEventListener(
-    'keydown',
-    (event) => {
-      if (event.altKey || event.ctrlKey || event.metaKey) return;
-      const list = items();
-      const item = itemOf(event.target);
-      const next = item ? step(event.key, list.indexOf(item), list.length) : null;
-      if (next === null) return;
-      event.preventDefault();
-      list[next].focus();
-    },
-    { signal },
-  );
+  if (!native) {
+    root.addEventListener(
+      'keydown',
+      (event) => {
+        if (event.altKey || event.ctrlKey || event.metaKey) return;
+        const list = items();
+        const item = itemOf(event.target);
+        const next = item ? step(event.key, list.indexOf(item), list.length) : null;
+        if (next === null) return;
+        event.preventDefault();
+        list[next].focus();
+      },
+      { signal },
+    );
+  }
 
   root.addEventListener(
     'focusin',
     (event) => {
       const item = itemOf(event.target);
-      if (!item || item.tabIndex === 0) return;
+      if (!item || item === current) return;
       select(item);
       options.onChange?.(item);
     },
@@ -114,5 +136,8 @@ export function rovingTabindex(root, options = {}) {
   const list = items();
   const initial = (state && list.find((item) => item.getAttribute(state) === 'true')) || list.find((item) => item.getAttribute('tabindex') === '0') || list[0];
   if (initial) select(initial);
-  return () => controller.abort();
+  return () => {
+    controller.abort();
+    if (added) root.removeAttribute('focusgroup');
+  };
 }

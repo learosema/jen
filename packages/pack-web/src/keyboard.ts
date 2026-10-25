@@ -4,7 +4,7 @@ import { TYPES_PARAM, ext, typesFor } from '@codejen/jen/js';
 import { styled } from './styled.ts';
 
 export const KEYBOARD = {
-  roving: { file: 'roving-tabindex', description: 'roving tabindex for toolbars, tab lists, radio groups and listboxes (ARIA APG)' },
+  roving: { file: 'roving-tabindex', description: 'roving tabindex for toolbars, tab lists, radio groups and listboxes (ARIA APG) – the browser\'s focusgroup where it has one' },
   menu: { file: 'menu', description: 'menu and menubar keyboard interaction: arrows, Home/End, typeahead, Escape, popover-aware (ARIA APG)' },
   'grid-navigation': { file: 'grid-navigation', description: 'two-dimensional grid navigation with arrows, Home/End, Page Up/Down (ARIA APG)' },
   hotkeys: { file: 'hotkeys', description: 'a hotkeys registry: scoped bindings, modifiers, ignores typing, optional help overlay' },
