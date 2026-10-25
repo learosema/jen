@@ -10,6 +10,7 @@ import { describe, it } from 'node:test';
 import type { Action, Answers, Context, Helpers } from '@codejen/jen';
 import pack, { recipes } from './src/index.ts';
 import { DASHBOARD_MARKUP } from './src/recipes.ts';
+import { PLACEHOLDERS, layoutMarkup } from './src/page.ts';
 import { DISTANCE_RATIO, SHADES, contrast, hexToOklch, luminance, oklchToHex, parseColor, targetLuminance } from './src/color.ts';
 import { claimsFor, groupsFor, paletteCss, rolesFor, verify } from './src/palette.ts';
 import { buttonCss } from './src/button.ts';
@@ -405,6 +406,17 @@ describe('web:check', () => {
       '/css/badge.css uses --color-secondary-subtle, which no stylesheet defines – the palette has no secondary: jen web:palette --secondary=<color> (with the flags it was made with) adds it',
     ]);
     assert.deepEqual(warnings({ ...project, 'css/palette.css': paletteCss({ primary: '#5b5bd6', secondary: '#db2777', contrast: 'aaa' }) }), []);
+  });
+
+  it('knows each layout placeholder by markup the layout has, and its quoted text by what that markup shows', () => {
+    for (const [layout, entries] of Object.entries(PLACEHOLDERS)) {
+      const markup = layoutMarkup(layout, 'Acme', 'Dashboard');
+      for (const [what, snippet, text] of entries) {
+        if (!snippet) continue;
+        assert.ok(markup.includes(snippet), `${layout}: ${what}`);
+        assert.ok(text && snippet.includes(`>${text}<`), `${layout}: ${what} quotes what it shows`);
+      }
+    }
   });
 
   it('warns about placeholder content a layout left, but not about the nav links a real site may share', () => {

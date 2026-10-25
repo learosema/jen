@@ -61,15 +61,16 @@ export const LAYOUTS = ['none', 'dashboard'];
 
 /**
  * A layout's placeholder content, by element, for web:page's note; web:check looks for the snippets, which
- * real content won't have (none for the nav links: a real site may have just these).
+ * real content won't have (none for the nav links: a real site may have just these). The text is the part
+ * people see, quoted in both messages.
  */
-export const PLACEHOLDERS: Record<string, Array<[what: string, snippet: string | null]>> = {
+export const PLACEHOLDERS: Record<string, Array<[what: string, snippet: string | null, text?: string]>> = {
   dashboard: [
-    ['the site name', '<a class="site-name" href="index.html">Acme</a>'],
+    ['the site name', '<a class="site-name" href="index.html">Acme</a>', 'Acme'],
     ['the nav links', null],
-    ['the sidebar card', '<p>Last 30 days</p>'],
-    ['the 4 stat cards', '<p class="stat__value">12,480</p>'],
-    ['the activity list', '<li>Ada signed up – 2 min ago</li>'],
+    ['the sidebar card', '<p>Last 30 days</p>', 'Last 30 days'],
+    ['the 4 stat cards', '<p class="stat__value">12,480</p>', '12,480'],
+    ['the activity list', '<li>Ada signed up – 2 min ago</li>', 'Ada signed up – 2 min ago'],
   ],
 };
 
@@ -77,11 +78,11 @@ export const PLACEHOLDERS: Record<string, Array<[what: string, snippet: string |
 export const layoutMarkup = (layout: string, site: string, heading: string): string => fill(template(`layouts/${layout}.html`), { site, heading }).trimEnd();
 
 /** A placeholder with its text, so it's easy to find: `the sidebar card ("Last 30 days")`. */
-const quoted = (what: string, snippet: string | null): string => (snippet ? `${what} ("${snippet.replaceAll(/<[^>]*>/g, '')}")` : what);
+const quoted = (what: string, text?: string): string => (text ? `${what} ("${text}")` : what);
 
 /** What of `layout`'s placeholder content `html` still has, by the snippets. */
 export const placeholdersIn = (html: string, layout: string): string[] =>
-  (PLACEHOLDERS[layout] ?? []).flatMap(([what, snippet]) => (snippet && html.includes(snippet) ? [quoted(what, snippet)] : []));
+  (PLACEHOLDERS[layout] ?? []).flatMap(([what, snippet, text]) => (snippet && html.includes(snippet) ? [quoted(what, text)] : []));
 
 /**
  * `html`'s <body>, dedented to start at column 0, with <main> holding just the `heading` and
@@ -137,7 +138,7 @@ export function pageHtml(file: string, o: PageOptions): string {
 
 /** All of a layout's placeholder content – the site name only without --site. */
 const placeholders = (layout: string, site: boolean): string[] =>
-  (PLACEHOLDERS[layout] ?? []).flatMap(([what, snippet]) => (what !== 'the site name' ? [quoted(what, snippet)] : site ? [] : ['the site name (or use --site)']));
+  (PLACEHOLDERS[layout] ?? []).flatMap(([what, , text]) => (what !== 'the site name' ? [quoted(what, text)] : site ? [] : ['the site name (or use --site)']));
 
 const pageGenerator: Generator = {
   description: 'create an HTML page (after matuzo.at\'s boilerplate), linked to the stylesheet, palette and icons',
