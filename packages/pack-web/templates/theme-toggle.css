@@ -2,7 +2,6 @@
   .theme-toggle {
     display: inline-flex;
     gap: 0.25em;
-    margin: 0;
     padding: 0.25em;
     border: thin solid var(--color-border);
     border-radius: 100vmax;

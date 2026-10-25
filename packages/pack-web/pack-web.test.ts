@@ -1391,14 +1391,15 @@ describe('web:check --render', () => {
     const dir = mkdtempSync(join(tmpdir(), 'jen-render-'));
     t.after(() => rmSync(dir, { recursive: true, force: true }));
     const files: Record<string, string> = {};
-    for (const step of recipes[0].steps.slice(0, -1)) {
+    for (const step of [...recipes[0].steps.slice(0, -1), 'web:list --dir=css']) {
       const [name, ...flags] = step.replace(/^web:/, '').split(' ');
       const answers = Object.fromEntries(flags.filter((f) => !f.startsWith('--dir=')).map((f) => f.slice(2).split('=')));
       for (const a of run(name, answers, context(files, 'css'))) if ('template' in a) files[posix.join('css', a.add)] = a.template;
     }
     files['css/styles.css'] = Object.keys(files).filter((f) => f !== 'css/styles.css').map((f) => `@import "./${f.slice(4)}";\n`).join('') + '/* jen:imports */\n';
     const dashboard = template(run('page', { name: 'index', title: 'Dashboard', layout: 'dashboard' }, context(files)), 'index.html');
-    files['index.html'] = dashboard;
+    // a divided list's rows meet at their divider on purpose
+    files['index.html'] = dashboard.replace('</main>', '<ul class="list list--divided" role="list"><li>One</li><li>Two</li><li>Three</li></ul>\n</main>');
     files['bad.html'] = dashboard
       .replace(/<body class="flow"[^>]*>/, '<body>')
       .replace('<main id="main" class="flow">', '<main id="main"><p style="color: #bbb">Pale</p><div style="inline-size: 60rem">Wide</div>')
