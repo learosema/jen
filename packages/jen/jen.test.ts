@@ -126,11 +126,24 @@ describe('CLI', () => {
     assert.match(r.stderr, /"nope" not found/);
   });
 
-  it('hints at --from for an unknown pack prefix when fetching is off (JEN_NO_FETCH)', () => {
+  it('says an unknown pack prefix needs installing when fetching is off (JEN_NO_FETCH), without a --from hint', () => {
     const r = jen(['lua:function'], { cwd: fixture() });
     assert.equal(r.code, 1);
-    assert.match(r.stderr, /jen --from @codejen\/pack-lua lua:function/);
-    assert.doesNotMatch(r.stdout + r.stderr, /Fetching/);
+    assert.match(r.stderr, /"lua" isn't installed here, and fetching is off \(JEN_NO_FETCH\) – install @codejen\/pack-lua, or run jen inside your project/);
+    assert.doesNotMatch(r.stdout + r.stderr, /--from|Fetching/);
+  });
+
+  it('says when a pack is installed in node_modules but no package.json here lists it', () => {
+    const dir = fixture({
+      'package.json': JSON.stringify({ name: 'elsewhere' }),
+      'node_modules/@codejen/pack-lua/package.json': JSON.stringify({ name: '@codejen/pack-lua' }),
+    });
+    for (const args of [['lua:function'], ['lua', '--list']]) {
+      const r = jen(args, { cwd: dir });
+      assert.equal(r.code, 1);
+      assert.match(r.stderr, /"lua" is installed in \.\/node_modules\/@codejen\/pack-lua, but no package.json here lists it – run jen from your project folder/);
+      assert.doesNotMatch(r.stderr, /--from/);
+    }
   });
 
   it('gives no --from hint for unprefixed names or known sources', () => {
@@ -1294,6 +1307,13 @@ describe('--from', () => {
     const r = jen(['--from', 'git+https://example.com/x.git', 'x:y'], { cwd: fixture() });
     assert.equal(r.code, 1);
     assert.match(r.stderr, /isn't an npm package name/);
+  });
+
+  it('fails before npm when fetching is off (JEN_NO_FETCH)', () => {
+    const r = jen(['--from', '@codejen/pack-glsl', 'glsl:lighting', '--help'], { cwd: fixture() });
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /--from @codejen\/pack-glsl needs the npm registry, and JEN_NO_FETCH is set/);
+    assert.doesNotMatch(r.stdout + r.stderr, /Fetching/);
   });
 });
 

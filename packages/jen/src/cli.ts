@@ -342,6 +342,7 @@ function install(spec: string, extra: Extra): string {
 async function fetchFrom(spec: string, extra: Extra): Promise<Entry[]> {
   const [name] = splitPkgSpec(spec);
   if (!NPM_NAME.test(name)) fail(`"${name}" isn't an npm package name.`);
+  if (process.env.JEN_NO_FETCH) fail(`--from ${spec} needs the npm registry, and JEN_NO_FETCH is set`);
   const base = install(spec, extra);
   if (PACK_RE.test(name)) return packSource(name, [base], extra);
   extra.packages.push(name);
@@ -409,12 +410,33 @@ function notFound(entries: Entry[], query: string): never {
   const movedTo = pack ? candidates.map((e) => e.pack?.moved?.[query.slice(colon + 1)]).find(Boolean) : undefined;
   if (movedTo) throw new JenError(`Generator "${query}" moved – it's jen ${movedTo} now.`, 'not_found', { query, didYouMean: [movedTo] });
   const lines = [`Generator "${query}" not found – ${meant}${pack ? `jen ${pack} --list shows them all.` : 'jen --list shows all.'}`];
-  if (prefix) lines.push(`If "${prefix}" is a pack you haven't installed, try: jen --from ${FIRST_PARTY_SCOPE}/pack-${prefix} ${query}`);
+  if (prefix) lines.push(missingPack(prefix) ?? `If "${prefix}" is a pack you haven't installed, try: jen --from ${FIRST_PARTY_SCOPE}/pack-${prefix} ${query}`);
   // jen 2 ran Yeoman generators by their short name itself
   if (!query.includes(':') && discoverAll(/^(?:@[^/]+\/)?generator-/).some((n) => n.endsWith(`generator-${query}`))) {
     lines.push(`Yeoman generators run through ${FIRST_PARTY_SCOPE}/pack-yeoman now: jen yeoman:${query}`);
   }
   throw new JenError(lines.join('\n'), 'not_found', { query, didYouMean: close });
+}
+
+/** A pack for `prefix` in a node_modules here that no package.json lists (jen run from the wrong folder), as a relative path. */
+function unlistedPack(prefix: string): string | null {
+  for (const dir of new Set([process.cwd(), ROOT])) {
+    for (const name of [`${FIRST_PARTY_SCOPE}/pack-${prefix}`, `jen-pack-${prefix}`]) {
+      const path = join(dir, 'node_modules', name);
+      if (existsSync(join(path, 'package.json'))) return `./${relative(process.cwd(), path).split(sep).join('/')}`;
+    }
+  }
+  return null;
+}
+
+/** Why pack `prefix` isn't there, when jen can tell: installed but not listed, or not installed and fetching is off – never a --from hint then. */
+function missingPack(prefix: string): string | null {
+  const unlisted = unlistedPack(prefix);
+  if (unlisted) return `"${prefix}" is installed in ${unlisted}, but no package.json here lists it – run jen from your project folder`;
+  if (process.env.JEN_NO_FETCH) {
+    return `"${prefix}" isn't installed here, and fetching is off (JEN_NO_FETCH) – install ${FIRST_PARTY_SCOPE}/pack-${prefix}, or run jen inside your project`;
+  }
+  return null;
 }
 
 /**
@@ -431,7 +453,8 @@ async function fetchFallback(entries: Entry[], query: string, extra: Extra): Pro
 
 /** The entries of @codejen/pack-`prefix`, fetched for this run – none if fetching is off or there's no such pack. */
 async function fetchFirstParty(prefix: string, extra: Extra): Promise<Entry[]> {
-  if (process.env.JEN_NO_FETCH) return [];
+  // installed but unlisted: say so (missingPack) rather than run the published version
+  if (process.env.JEN_NO_FETCH || unlistedPack(prefix)) return [];
   try {
     return await fetchFrom(`${FIRST_PARTY_SCOPE}/pack-${prefix}`, extra);
   } catch {
@@ -814,13 +837,8 @@ export async function main(): Promise<void> {
     if (query && !query.includes(':') && (values.list || finding || !find(entries, query))) {
       const shown = await packEntries(entries, query, extra);
       if (shown) return void (await (finding ? search(shown, String(values.find), json, true) : listing(shown)));
-      if ((values.list || finding) && process.env.JEN_NO_FETCH && unknownPrefix(entries, query)) {
-        throw new JenError(
-          `"${query}" isn't installed here, and fetching is off (JEN_NO_FETCH) – install ${FIRST_PARTY_SCOPE}/pack-${query}, or run jen inside your project`,
-          'unknown_pack',
-          { pack: query },
-        );
-      }
+      const missing = (values.list || finding) && unknownPrefix(entries, query) ? missingPack(query) : null;
+      if (missing) throw new JenError(missing, 'unknown_pack', { pack: query });
       if (values.list || finding) throw new JenError(`"${query}" is no pack or source jen knows – jen --list shows all.`, 'unknown_pack', { pack: query });
     }
     if (finding) return void (await search(entries, String(values.find), json, false));
