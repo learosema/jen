@@ -811,18 +811,9 @@ web_theme_toggle:
   - ""
   - "✓ 3 written"
 
-web_import:
-  - "$ jen web:import --file=src/css/dashboard.css"
-  - "web:import (pack @codejen/pack-web) – import a stylesheet of your own into the entry point – created empty if it doesn't exist"
-  - ""
-  - "  + src/css/dashboard.css"
-  - "  ~ src/css/styles.css:6  + @import \"./dashboard.css\";"
-  - ""
-  - "✓ 2 written"
-
 web_check:
   - "$ jen web:check --strict"
-  - "web:check (pack @codejen/pack-web) – check the pages and stylesheets: classes no stylesheet defines, stylesheets nothing loads, color pairs the palette didn't check – writes nothing"
+  - "web:check (pack @codejen/pack-web) – check the pages and stylesheets: classes and palette tokens no stylesheet defines, stylesheets nothing loads, color pairs the palette didn't check – writes nothing"
   - ""
   - "  warning: index.html links css/missing.css, which doesn't exist"
   - "  warning: css/own.css isn't linked or imported anywhere – @import it in css/styles.css, or remove it"
@@ -837,7 +828,7 @@ web_check:
 
 web_check_render:
   - "$ jen web:check --render"
-  - "web:check (pack @codejen/pack-web) – check the pages and stylesheets: classes no stylesheet defines, stylesheets nothing loads, color pairs the palette didn't check – writes nothing"
+  - "web:check (pack @codejen/pack-web) – check the pages and stylesheets: classes and palette tokens no stylesheet defines, stylesheets nothing loads, color pairs the palette didn't check – writes nothing"
   - ""
   - "  warning: index.html header.wrapper.repel and div.wrapper.sidebar touch one above the other – class=\"flow\" on body spaces them out"
   - "  warning: index.html h1 and div.grid touch one above the other – class=\"flow\" on main#main spaces them out"

@@ -12,7 +12,6 @@ import dialogGenerator from './dialog.ts';
 import elementGenerator from './element.ts';
 import esbuildGenerator from './esbuild.ts';
 import fluidGenerator from './fluid.ts';
-import importGenerator from './import.ts';
 import { gridNavigationGenerator, hotkeysGenerator, menuGenerator, rovingGenerator } from './keyboard.ts';
 import manifestGenerator from './manifest.ts';
 import pageGenerator from './page.ts';
@@ -52,7 +51,6 @@ const pack: Record<string, AnyGenerator> = {
   transitions: transitionsGenerator,
   tailwind: tailwindGenerator,
   check: checkGenerator,
-  import: importGenerator,
   vite: viteGenerator,
   esbuild: esbuildGenerator,
   element: elementGenerator,
