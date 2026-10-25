@@ -77,19 +77,19 @@ void main() {
 const sdfGenerator: Generator = {
   description: 'add signed distance functions',
   params: {
-    dim: { default: '2', choices: ['2', '3'], description: '2 (shapes to draw) or 3 (solids to raymarch)' },
+    dim: { default: '2', choices: ['2', '3'], description: '2: shapes to draw, 3: solids to raymarch' },
     shapes: { default: '', description: 'comma-separated or all – 2D: circle, box, round-box, segment, polygon, star; 3D: sphere, box, round-box, torus, capsule, cylinder, plane (pick at least one of --shapes, --ops, --effects)' },
     ops: { default: '', description: 'comma-separated or all: union, subtract, intersect, smooth-union/-subtract/-intersect, round, onion, repeat, repeat-limited, extrude, revolve (pick at least one of --shapes, --ops, --effects)' },
     effects: { default: '', description: '2D only, comma-separated or all: fill, stroke, glow, shadow, inner-shadow (pick at least one of --shapes, --ops, --effects)' },
     into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
     name: { default: '', description: 'instead of --into: create a preview shader with this name, the shapes side by side' },
-    version: { default: '300es', choices: VERSIONS, description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
+    version: { default: '300es', choices: VERSIONS, description: 'GLSL dialect: 300es is WebGL2, 330 and 410 desktop OpenGL' },
   },
   examples: [
     '--dim=3 --shapes=sphere,torus --ops=smooth-union --into=shaders/scene.frag.glsl',
     '--shapes=circle,star --effects=glow --name=Shapes',
   ],
-  actions: ({ dim, shapes, ops, effects, into, name, version }, { kebab }) => {
+  actions: ({ dim, shapes, ops, effects, into, name, version }, { kebab }, ctx) => {
     const d = String(dim);
     if (d !== '2' && d !== '3') fail(`glsl:sdf --dim: expected "2" or "3", got "${d}"`);
     if (name && into) fail('glsl:sdf: use either --name (new preview shader) or --into (existing shader), not both');
@@ -113,7 +113,7 @@ const sdfGenerator: Generator = {
       ...pick('sdfop', opList, '--ops'),
       ...pick('sdffx', effectList, '--effects'),
     ];
-    if (!name) return chunkActions(ids, { into: String(into), dir: '' });
+    if (!name) return chunkActions(ids, { into: String(into), dir: '', ctx });
 
     const samples = d === '2' ? SAMPLES_2D : SAMPLES_3D;
     // In the order given; `all` in the documented order (the samples' keys).
@@ -132,10 +132,10 @@ ${row(shown, samples, 1.3, '0.0')}
   return min(d, sdPlane(p, vec3(0.0, 1.0, 0.0), 0.5));
 }`;
       const distance = Math.max(4, shown.length * 1.3 + 1.5);
-      return raymarchStarter(file, v, { scene, chunks: [...ids, 'sdf3d/plane'], minimal: false, distance });
+      return raymarchStarter(file, v, ctx, { scene, chunks: [...ids, 'sdf3d/plane'], minimal: false, distance });
     }
     const preview: Action = { add: file, template: withHeader(v, preview2d(picked)) };
-    return [preview, ...chunkActions([...ids, 'sdffx/fill', 'sdffx/stroke'], { into: file, dir: '' })];
+    return [preview, ...chunkActions([...ids, 'sdffx/fill', 'sdffx/stroke'], { into: file, dir: '', ctx })];
   },
 };
 

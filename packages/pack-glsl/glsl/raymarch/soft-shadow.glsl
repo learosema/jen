@@ -1,11 +1,7 @@
 // @license iquilezles
-// softShadow · Inigo Quilez · MIT
-// Soft shadow towards a light: marches from ro along rd (to the light) and
-// tracks how closely the ray passes geometry. 0 is full shadow, 1 fully lit;
-// larger k gives harder shadows (try 8–32). Start at a small tMin to leave
-// the surface.
-// Technique: Inigo Quilez, https://iquilezles.org/articles/rmshadows/
-// Your scene: the distance from p to the nearest surface, defined further down.
+// softShadow · Inigo Quilez · https://iquilezles.org/articles/rmshadows/
+// 0 shadow, 1 lit; larger k is harder (8–32); start at a small tMin
+// yours, defined further down: the distance from p to the nearest surface
 float scene(vec3 p);
 
 float softShadow(vec3 ro, vec3 rd, float tMin, float tMax, float k) {

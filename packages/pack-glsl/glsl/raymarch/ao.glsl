@@ -1,8 +1,6 @@
 // @license MIT-0
-// calcAO · pack-glsl · MIT-0
-// Ambient occlusion at p with normal n: samples scene() at growing distances
-// along the normal; nearby geometry darkens. 0 is fully occluded, 1 open.
-// Your scene: the distance from p to the nearest surface, defined further down.
+// 0 fully occluded, 1 open
+// yours, defined further down: the distance from p to the nearest surface
 float scene(vec3 p);
 
 float calcAO(vec3 p, vec3 n) {

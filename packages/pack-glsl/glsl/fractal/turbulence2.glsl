@@ -1,15 +1,7 @@
 // @requires noise/value2
 // @base value
 // @license MIT-0
-// valueTurbulence (2D) · pack-glsl · MIT-0
-// Turbulence: fBm of the noise's absolute value, like SVG feTurbulence's
-// type="turbulence" – billowy, with sharp creases. Range [0, 1].
-// `gain` scales each octave's amplitude (default 0.5; higher is rougher).
-// The `period` overloads tile every `period` units (positive whole numbers):
-// each octave doubles the period along with the frequency – the trick behind
-// feTurbulence's stitchTiles. That's why the frequency step is fixed at 2.
-// Works on any jen noise: `jen glsl:noise --kind=… --base=perlin|simplex|value|worley`
-// renames value* to the chosen base.
+// fBm of |noise|, like feTurbulence type="turbulence"; [0, 1]
 
 float valueTurbulence(vec2 p, int octaves, float gain) {
   float sum = 0.0;

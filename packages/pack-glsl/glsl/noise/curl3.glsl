@@ -1,10 +1,6 @@
 // @requires noise/psrdnoise3
 // @license MIT-0
-// curlNoise (3D) · pack-glsl · MIT-0
-// Divergence-free 3D flow (e.g. for particles): the curl of a vector field
-// made of three offset simplex noises (psrdnoise, see its header above).
-// `alpha` rotates the noise's gradients – animate it with time for swirling
-// motion. Not normalized. The `period` overload tiles like simplexNoise.
+// the curl of three offset simplex noises; animate alpha for swirls; not normalized
 vec3 curlNoise(vec3 p, vec3 period, float alpha) {
   vec3 gx;
   vec3 gy;

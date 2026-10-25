@@ -1,21 +1,7 @@
 // @requires noise/gustavson-common
 // @requires noise/gustavson-mod289-vec3
 // @license webgl-noise
-// GLSL textureless classic 3D noise "cnoise",
-// with an RSL-style periodic variant "pnoise".
-// Author:  Stefan Gustavson (stefan.gustavson@gmail.com)
-// Version: 2024-11-07
-//
-// Many thanks to Ian McEwan of Ashima Arts for the
-// ideas for permutation and gradient selection.
-//
-// Copyright (c) 2011 Stefan Gustavson. All rights reserved.
-// Distributed under the MIT license. See LICENSE file.
-// https://github.com/stegu/webgl-noise
-//
-
-// (pack-glsl: mod289/permute/taylorInvSqrt moved to noise/gustavson-common
-// so 2D and 3D noise can share them.)
+// cnoise, pnoise (3D) · Stefan Gustavson (webgl-noise) · https://github.com/stegu/webgl-noise
 
 vec3 fade(vec3 t) {
   return t*t*t*(t*(t*6.0-15.0)+10.0);

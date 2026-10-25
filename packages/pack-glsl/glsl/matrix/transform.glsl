@@ -1,8 +1,5 @@
 // @license MIT-0
-// translate, scale, transform · pack-glsl · MIT-0
-// 4×4 building blocks for model matrices: translate(offset), scale(factors)
-// and transform(m) to lift a mat3 (e.g. a rotation) into a mat4. Combine
-// right to left: translate(t) * transform(rotateY(a)) * scale(s).
+// combine right to left: translate(t) * transform(rotateY(a)) * scale(s)
 mat4 translate(vec3 t) {
   return mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, t, 1.0);
 }

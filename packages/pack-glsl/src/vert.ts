@@ -17,8 +17,8 @@ const vertGenerator: Generator = {
   description: 'create a GLSL vertex shader starter',
   params: {
     name: { description: 'file name: Clouds makes clouds.vert.glsl' },
-    kind: { default: 'quad', choices: KINDS, description: 'quad (full-screen, matches cpp:sdl3-opengl), triangle (full-screen, no vertex buffer) or mesh (3D model with normals for lighting)' },
-    version: { default: '300es', choices: VERSIONS, description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
+    kind: { default: 'quad', choices: KINDS, description: 'quad: full-screen, like cpp:sdl3-opengl; triangle: full-screen without a buffer; mesh: 3D with normals' },
+    version: { default: '300es', choices: VERSIONS, description: 'GLSL dialect: 300es is WebGL2, 330 and 410 desktop OpenGL' },
   },
   examples: ['--name=Quad', '--name=Mesh --kind=mesh --dir=shaders'],
   actions: ({ name, kind, version }, { kebab }) => {

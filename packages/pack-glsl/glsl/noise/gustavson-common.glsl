@@ -1,7 +1,5 @@
 // @license webgl-noise
-// Shared helpers of webgl-noise's classic noise (split out of classicnoise2D/3D.glsl
-// so 2D and 3D noise can live in one shader).
-// From webgl-noise classic noise: Copyright (c) 2011 Stefan Gustavson, MIT – https://github.com/stegu/webgl-noise
+// mod289, permute, taylorInvSqrt · Stefan Gustavson (webgl-noise) · https://github.com/stegu/webgl-noise
 
 vec4 mod289(vec4 x)
 {

@@ -1,11 +1,6 @@
 // @requires util/hash
 // @license MIT-0
-// worley (2D) · pack-glsl · MIT-0
-// Cellular (Worley) noise: one random feature point per lattice cell.
-// worley() returns the distances to the nearest and second-nearest point
-// (F1, F2); worleyNoise() is F1 mapped to about [-1, 1] like the other
-// noises. The `period` overloads tile every `period` units (positive whole
-// numbers).
+// worley(): distances to the nearest and second-nearest point; worleyNoise(): the first in about [-1, 1]
 vec2 worley(vec2 p, vec2 period) {
   vec2 i = floor(p);
   vec2 f = p - i;

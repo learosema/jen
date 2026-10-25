@@ -6,7 +6,8 @@
  *   // @requires util/consts      another chunk this one calls (repeatable)
  *   // @license MIT-0             the pack's own code: no notice to carry along
  *   // @license webgl-noise       third-party code: glsl/licenses/<id>.glsl holds
- *                                 the full notice its license requires
+ *                                 the full notice its license requires, which
+ *                                 goes into THIRD_PARTY_NOTICES.md next to the shader
  *   // @license inline            third-party code whose authors accept the
  *                                 chunk's own short header as the notice
  *   // @base value                written against valueNoise, but works on any
@@ -17,14 +18,15 @@
  * own attribution line, is emitted verbatim.
  *
  * With `--into=<file>`, every chunk and its dependencies are inserted in
- * dependency order above a `// jen:functions` marker line, each license
- * notice right before the first chunk needing one. jen's insert skips blocks
- * that are already present, so dependencies and notices land once per
- * shader – that's the stand-in for #include. Without `--into`, each chunk
- * becomes its own file under `<dir>/lib/`, carrying its notices, for hosts
- * with an include system.
+ * dependency order above a `// jen:functions` marker line, the notices of
+ * others' code in a file next to the shader. jen's
+ * insert and append skip blocks that are already present, so dependencies and
+ * notices land once – that's the stand-in for #include. Without `--into`, each
+ * chunk becomes its own file under `<dir>/lib/`, for hosts with an include
+ * system, the notices file next to them.
  */
-import type { Action } from '@codejen/jen';
+import { posix } from 'node:path';
+import type { Action, Context } from '@codejen/jen';
 import { fail, inFolder, listGlsl, readPackFile } from './common.ts';
 
 export interface Chunk {
@@ -132,6 +134,22 @@ export function licenseText(id: string): string {
   }
 }
 
+/** Where the full notices go, next to the shaders: MIT asks for them to ship with the code, not to sit in it. */
+export const NOTICES_FILE = 'THIRD_PARTY_NOTICES.md';
+const NOTICES_HEADER = '# Third-party notices\n\nCode by others that jen put into the shaders in this folder, with the notices its MIT license asks to keep.\n';
+
+/** Writes the notices for `licenses` into the notices file in `folder` (an action path), each once. */
+function noticeActions(licenses: string[], folder: string, ctx: Context): Action[] {
+  if (licenses.length === 0) return [];
+  const file = posix.join(folder, NOTICES_FILE);
+  const root = file.startsWith('/') ? file.slice(1) : posix.join(ctx.destDir, file);
+  const sections = licenses.map((id) => {
+    const text = licenseText(id).replace(/^\/\/ ?/gm, '');
+    return { append: file, text: `\n## ${id}\n\n\`\`\`\n${text}\n\`\`\`` };
+  });
+  return [...(ctx.exists(root) ? [] : [{ add: file, template: NOTICES_HEADER }]), ...sections];
+}
+
 /** Chunk ids in one area folder, e.g. `chunkIds('util')` → ['util/consts', …]. */
 export function chunkIds(area: string): string[] {
   return listGlsl(`glsl/${area}`).map((name) => `${area}/${name}`);
@@ -187,7 +205,7 @@ export function chunkFileName(id: string): string {
  * them, and put new ones above helpers they need.
  */
 export const INTO_MARKER = '// jen:functions';
-const MARKER_LINE = `${INTO_MARKER} – jen glsl:* adds functions above this line`;
+export const MARKER_LINE = `${INTO_MARKER} – jen glsl:* adds functions above this line`;
 
 /** A function definition (or prototype) starting at column 0: `float scene(`, `vec3 shade(`, `Material pick(`, `void main(`. */
 export const FIRST_FUNCTION =
@@ -197,32 +215,27 @@ export const FIRST_FUNCTION =
  * Actions that put `ids` (plus dependencies and license notices) into a
  * shader (`into`), or into one file each under `<dir>/lib/`.
  */
-export function chunkActions(ids: string[], { into, dir }: { into: string; dir: string }): Action[] {
+export function chunkActions(ids: string[], { into, dir, ctx }: { into: string; dir: string; ctx: Context }): Action[] {
   const chunks = resolveChunks(ids);
+  const licenses = [...new Set(chunks.flatMap(noticesFor))];
 
   if (into) {
     const actions: Action[] = [{ insert: into, before: FIRST_FUNCTION, line: MARKER_LINE }];
-    const noticed = new Set<string>();
     for (const chunk of chunks) {
-      for (const license of noticesFor(chunk)) {
-        if (noticed.has(license)) continue;
-        noticed.add(license);
-        actions.push({ insert: into, before: INTO_MARKER, line: `${licenseText(license)}\n` });
-      }
       // The trailing empty line keeps one blank line between chunks.
       actions.push({ insert: into, before: INTO_MARKER, line: `${chunk.code}\n` });
     }
-    return actions;
+    return [...actions, ...noticeActions(licenses, posix.dirname(into), ctx)];
   }
 
-  return chunks.map((chunk) => {
-    const notices = noticesFor(chunk).map((l) => `${licenseText(l)}\n\n`).join('');
+  const files: Action[] = chunks.map((chunk) => {
     const needs = chunk.requires.length
       ? `// Needs (include first): ${chunk.requires.map(chunkFileName).join(', ')}\n\n`
       : '';
     return {
       add: inFolder(dir, `lib/${chunkFileName(chunk.id)}`),
-      template: `${notices}${needs}${chunk.code}\n`,
+      template: `${needs}${chunk.code}\n`,
     };
   });
+  return [...files, ...noticeActions(licenses, inFolder(dir, 'lib'), ctx)];
 }

@@ -1,8 +1,6 @@
 // @license MIT-0
-// hash · pack-glsl · MIT-0
-// Hashes for integer lattice cells (whole-number coordinates, e.g. floor(p)),
-// results in [0, 1). Mixing function: lowbias32 by Chris Wellons (public
-// domain), https://github.com/skeeto/hash-prospector
+// lowbias32 by Chris Wellons · https://github.com/skeeto/hash-prospector
+// for integer lattice cells, e.g. floor(p); results in [0, 1)
 uint lowbias32(uint x) {
   x ^= x >> 16;
   x *= 0x7feb352du;

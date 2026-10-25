@@ -13,7 +13,7 @@
  *
  * (waves: mesh="plane" detail="128").
  */
-import type { Action, Generator } from '@codejen/jen';
+import type { Action, Context, Generator } from '@codejen/jen';
 import { chunkActions } from './chunks.ts';
 import { fail } from './common.ts';
 import { VERSIONS, parseVersion, withHeader } from './dialect.ts';
@@ -113,34 +113,39 @@ void main() {
 `;
 }
 
-function preview(base: string, kind: string, version: Version): Action[] {
+function preview(base: string, kind: string, version: Version, ctx: Context): Action[] {
   const vert = `${base}.vert.glsl`;
   const frag = `${base}.frag.glsl`;
   return [
     { add: vert, template: withHeader(version, vertexShader(kind)) },
-    ...chunkActions(KINDS[kind], { into: vert, dir: '' }),
+    ...chunkActions(KINDS[kind], { into: vert, dir: '', ctx }),
     { add: frag, template: withHeader(version, fragmentShader(kind)) },
-    ...chunkActions(['lighting/blinn', 'color/srgb'], { into: frag, dir: '' }),
+    ...chunkActions(['lighting/blinn', 'color/srgb'], { into: frag, dir: '', ctx }),
   ];
 }
 
 const displaceGenerator: Generator = {
   description: 'displace surfaces in the vertex shader with correct normals',
   params: {
-    kind: { default: 'noise', choices: Object.keys(KINDS), description: 'noise (3D simplex along the normal), wobble (sine) or waves (Gerstner waves on a flat surface)' },
+    kind: { default: 'noise', choices: Object.keys(KINDS), description: 'noise: 3D simplex along the normal; wobble: sine; waves: Gerstner, on a flat surface' },
     into: { path: true, default: '', description: 'existing vertex shader to insert the functions into (default: one file each in lib/)' },
     name: { default: '', description: 'instead of --into: create a preview vertex + fragment shader pair with this name' },
-    version: { default: '300es', choices: VERSIONS, description: 'GLSL dialect: 300es (WebGL2), 330 or 410 (desktop OpenGL core)' },
+    version: { default: '300es', choices: VERSIONS, description: 'GLSL dialect: 300es is WebGL2, 330 and 410 desktop OpenGL' },
   },
+  usage: [
+    'noise: displace(p, n) in the vertex shader before transforming, with vec3 p = aPosition; vec3 n = aNormal;',
+    'displace() calls your float displacement(vec3 p) (object space); the mesh needs enough vertices to show the detail',
+    'waves: start from vec3 tangent = vec3(1.0, 0.0, 0.0), binormal = vec3(0.0, 0.0, 1.0); add gerstnerWave()s; normal = normalize(cross(binormal, tangent))',
+  ],
   examples: ['--kind=noise --name=Blob --dir=shaders', '--kind=waves --into=shaders/water.vert.glsl'],
-  actions: ({ kind, into, name, version }, { kebab }) => {
+  actions: ({ kind, into, name, version }, { kebab }, ctx) => {
     const k = String(kind);
     if (!KINDS[k]) fail(`glsl:displace --kind: expected one of ${Object.keys(KINDS).map((x) => `"${x}"`).join(', ')}, got "${k}"`);
     if (name && into) fail('glsl:displace: use either --name (new preview pair) or --into (existing vertex shader), not both');
-    if (name) return preview(kebab(String(name)), k, parseVersion(version));
+    if (name) return preview(kebab(String(name)), k, parseVersion(version), ctx);
     // --into/files: just the building blocks; your displacement() decides the shape.
     const ids = k === 'waves' ? ['vertex/gerstner'] : ['vertex/displace'];
-    return chunkActions(ids, { into: String(into), dir: '' });
+    return chunkActions(ids, { into: String(into), dir: '', ctx });
   },
 };
 

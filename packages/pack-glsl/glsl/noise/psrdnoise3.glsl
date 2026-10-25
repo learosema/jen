@@ -1,44 +1,10 @@
-// @license inline
-// psrdnoise (c) 2021 Stefan Gustavson and Ian McEwan
-// Published under the MIT license.
-// https://github.com/stegu/psrdnoise/
-// (pack-glsl: permute() renamed to psrdPermute() so it can't clash with
-// webgl-noise's permute() in the same shader.)
+// @license psrdnoise
+// psrdnoise · Stefan Gustavson and Ian McEwan · https://github.com/stegu/psrdnoise
 
-//
-// Periodic (tiling) 3-D simplex noise (tetrahedral lattice gradient noise)
-// with rotating gradients and analytic derivatives.
-//
-// This is (yet) another variation on simplex noise. Unlike previous
-// implementations, the grid is axis-aligned to permit rectangular tiling.
-// The noise pattern can be made to tile seamlessly to any integer periods
-// up to 289 units in the x, y and z directions. Specifying a longer
-// period than 289 will result in errors in the noise field.
-//
-// This particular version of 3-D noise also implements animation by rotating
-// the generating gradient at each lattice point around a pseudo-random axis.
-// The rotating gradients give the appearance of a swirling motion, and
-// can serve a similar purpose for animation as motion along the fourth
-// dimension in 4-D noise. 
-//
-// The rotating gradients in conjunction with the built-in ability to
-// compute exact analytic derivatives allow for "flow noise" effects
-// as presented by Ken Perlin and Fabrice Neyret.
-//
-
-// Use Perlin's rotated grid instead of the new tiling grid?
-// Enabling this adds about 1% to the execution time and
-// requires all periods to be multiples of 3. Other
-// integer periods can be specified, but when not evenly
-// divisible by 3, the actual period will be 3 times longer.
-// Take care not to overstep the maximum allowed period (288).
+// Perlin's rotated grid: periods must be multiples of 3 (up to 288), about 1% slower
 //#define PERLINGRID
-
-// Enable faster gradient rotations?
-// Enabling this saves about 10% on execution time,
-// but the function will not run faster for alpha = 0.
+// faster gradient rotations (about 10%), but no speedup for alpha = 0
 //#define FASTROTATION
-
 
 // Permutation polynomial for the hash value
 vec4 psrdPermute(vec4 x) {
@@ -46,29 +12,7 @@ vec4 psrdPermute(vec4 x) {
      return mod(((xm*34.0)+10.0)*xm, 289.0);
 }
 
-//
-// 3-D tiling simplex noise with rotating gradients and first order
-// analytical derivatives.
-// "vec3 x" is the point (x,y,z) to evaluate
-// "vec3 period" is the desired periods along x,y,z, up to 289.
-// (If Perlin's grid is used, multiples of 3 up to 288 are allowed.)
-// "float alpha" is the rotation (in radians) for the swirling gradients.
-// The "float" return value is the noise value, and
-// the "out vec3 gradient" argument returns the x,y,z partial derivatives.
-//
-// The function executes 15-20% faster if alpha is constant == 0.0
-// across all fragments being executed in parallel.
-// (This speedup will not happen if FASTROTATION is enabled. Do not specify
-// FASTROTATION if you are not actually going to use the rotation.)
-//
-// Setting any period to 0.0 or a negative value will skip the periodic
-// wrap for that dimension. Setting all periods to 0.0 makes the function
-// execute 10-15% faster.
-//
-// Not using the return value for the gradient will make the compiler
-// eliminate the code for computing it. This speeds up the function by
-// around 10%.
-//
+// x: the point; period: tiling per axis, up to 289 (0: none); alpha: gradient rotation; gradient: the derivatives
 float psrdnoise(vec3 x, vec3 period, float alpha, out vec3 gradient)
 {
 

@@ -39,9 +39,9 @@ const helpers: Helpers = {
  * Runs a generator the way jen does with `--dir=<answers.dir>` (`shaders` if not
  * given): path params arrive from the project root (`/…`), and the resulting paths
  * are placed – `/…` at the root, everything else in that folder. The GLSL
- * generators never look at the project, so there is no Context to fake.
+ * generators only ask the project whether a notices file exists: `existing`.
  */
-function run(generator: string, answers: Record<string, string | boolean>): Action[] {
+function run(generator: string, answers: Record<string, string | boolean>, existing: string[] = []): Action[] {
   const g = pack[generator];
   const params = g.params ?? {};
   const defaults = Object.fromEntries(
@@ -52,8 +52,10 @@ function run(generator: string, answers: Record<string, string | boolean>): Acti
   const given = Object.fromEntries(Object.entries({ ...defaults, ...answers }).map(([k, v]) => [k, params[k]?.path && v ? `/${v}` : v]));
   const dir = 'dir' in params ? '.' : String(answers.dir ?? 'shaders');
   const place = (p: string | Find): string => (typeof p !== 'string' ? assert.fail('no find targets here') : p.startsWith('/') ? p.slice(1) : posix.join(dir, p));
-  return g.actions(given, helpers, {} as never).map((a): Action => {
+  const ctx = { destDir: dir, exists: (p: string) => existing.includes(p) } as never;
+  return g.actions(given, helpers, ctx).map((a): Action => {
     if ('add' in a) return { ...a, add: place(a.add) };
+    if ('append' in a) return { ...a, append: place(a.append) };
     if ('insert' in a) return { ...a, insert: place(a.insert) };
     if ('modify' in a) return { ...a, modify: place(a.modify) };
     return a;
@@ -65,6 +67,9 @@ function applyActions(files: Map<string, string>, actions: Action[]): Map<string
   for (const a of actions) {
     if ('template' in a) {
       if (!files.has(a.add)) files.set(a.add, a.template);
+    } else if ('append' in a) {
+      const text = files.get(a.append) ?? assert.fail(`missing ${a.append}`);
+      if (!text.includes(a.text.trim())) files.set(a.append, `${text}${a.text}\n`);
     } else if ('insert' in a) {
       if (typeof a.insert !== 'string' || !('line' in a) || a.before === undefined) assert.fail('only plain inserts here');
       const lines = (files.get(a.insert) ?? assert.fail(`missing ${a.insert}`)).split('\n');
@@ -124,9 +129,18 @@ describe('chunks', () => {
     }
   });
 
-  it('own (MIT-0) chunks name pack-glsl and MIT-0 in their attribution line', () => {
+  it('own (MIT-0) chunks don\'t mention the pack or its license – only whose ideas they use', () => {
     for (const id of allIds.filter((i) => loadChunk(i).licenses.includes(OWN_LICENSE))) {
-      assert.match(loadChunk(id).code.split('\n')[0], /^\/\/ .* · pack-glsl · MIT-0$/, id);
+      assert.doesNotMatch(loadChunk(id).code, /pack-glsl|MIT-0/, id);
+    }
+  });
+
+  it('keep their header short: a credit line, at most one more, and the note on a function of yours', () => {
+    for (const id of allIds) {
+      const lines = loadChunk(id).code.split('\n');
+      const header = lines.slice(0, lines.findIndex((l) => !l.startsWith('//')));
+      const own = header.filter((l) => !l.startsWith('// yours'));
+      assert.ok(own.length <= 2, `${id}: ${header.length} header lines`);
     }
   });
 
@@ -144,7 +158,7 @@ describe('chunks', () => {
     assert.ok(ids.length > 0);
     for (const id of ids) {
       const text = licenseText(id);
-      assert.match(text, /Copyright \(C\)/i, id);
+      assert.match(text, /^\/\/ Copyright\b/im, id);
       assert.match(text, /Permission is hereby granted, free of charge/, id);
       assert.match(text, /The above copyright notice and this permission notice shall be included/, id);
       assert.ok(text.split('\n').every((l) => l.startsWith('//')), `${id}: every line must be a // comment`);
@@ -160,9 +174,9 @@ describe('chunks', () => {
   });
 
   it('strips directives but keeps the attribution line', () => {
-    const chunk = loadChunk('util/rot2');
+    const chunk = loadChunk('sdf2d/round-box');
     assert.doesNotMatch(chunk.code, /@license|@requires/);
-    assert.match(chunk.code, /^\/\/ rot2 · pack-glsl · MIT-0\n/);
+    assert.match(chunk.code, /^\/\/ sdRoundBox \(2D\) · Inigo Quilez · https:\/\/iquilezles\.org\/articles\/distfunctions2d\/\n/);
   });
 
   it('rebases fractals onto another noise, renaming functions and swapping requirements', () => {
@@ -330,7 +344,7 @@ describe('glsl:util', () => {
   it('without --into, writes one file per chunk', () => {
     const files = adds(run('util', { fns: 'saturate', dir: 'web/shaders' }));
     assert.deepEqual(files.map((f) => f.add), ['web/shaders/lib/util-saturate.glsl']);
-    assert.match(files[0].template, /^\/\/ saturate · pack-glsl · MIT-0\n/);
+    assert.doesNotMatch(files[0].template, /pack-glsl|MIT-0/);
     assert.match(files[0].template, /vec3 saturate\(vec3 x\)/);
   });
 
@@ -397,7 +411,8 @@ describe('glsl:webgl', () => {
     assert.doesNotMatch(source, /^\s*(?:export|import)\s/m);
     assert.equal(source.match(/const TAG = /g)?.length, 1);
     assert.match(source, /customElements\.define\(TAG, ShaderCanvas\)/);
-    assert.match(source, /^\/\/ <shader-canvas> · pack-glsl · MIT-0$/m);
+    assert.match(source, /^\/\/ <shader-canvas> · https:\/\/github\.com\/learosema\/jen\/.*\n\/\/ [^\n]*\n\n/, 'a two-line header');
+    assert.doesNotMatch(source, /pack-glsl · MIT-0/);
   });
 
   it('the inline shader compiles', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
@@ -414,20 +429,33 @@ describe('glsl:noise', () => {
   const into = (files: Map<string, string>, answers: Record<string, string>) =>
     applyActions(files, run('noise', { into: 's.frag.glsl', ...answers }));
 
-  it('inserts the webgl-noise notice once and the shared helpers once for 2D + 3D Perlin', () => {
+  it('writes the webgl-noise notice once next to the shader, and the shared helpers once for 2D + 3D Perlin', () => {
     const files = into(into(emptyShader(), { kind: 'perlin' }), { kind: 'perlin', dim: '3' });
     const out = files.get('s.frag.glsl')!;
-    assert.equal(out.match(/Permission is hereby granted/g)?.length, 1);
+    assert.doesNotMatch(out, /Permission is hereby granted/, 'no license text in the shader');
+    assert.doesNotMatch(out, /THIRD_PARTY_NOTICES/, 'no pointer line either');
     assert.equal(out.match(/vec4 permute\(vec4 x\)/g)?.length, 1);
     assert.match(out, /float perlinNoise\(vec2 p\)/);
     assert.match(out, /float perlinNoise\(vec3 p, vec3 period\)/);
-    assert.ok(out.indexOf('Permission is hereby granted') < out.indexOf('vec4 mod289'), 'notice before the code it covers');
+    const notices = files.get('THIRD_PARTY_NOTICES.md')!;
+    assert.match(notices, /^# Third-party notices\n/);
+    assert.equal(notices.match(/^## webgl-noise$/gm)?.length, 1);
+    assert.equal(notices.match(/Permission is hereby granted/g)?.length, 1);
+    assert.doesNotMatch(notices, /^\/\//m, 'plain text, not GLSL comments');
   });
 
-  it('psrdnoise carries its short header instead of a full notice', () => {
-    const out = into(emptyShader(), { kind: 'simplex' }).get('s.frag.glsl')!;
-    assert.match(out, /\/\/ psrdnoise \(c\) 2021 Stefan Gustavson and Ian McEwan\n\/\/ Published under the MIT license.\n\/\/ https:\/\/github.com\/stegu\/psrdnoise\//);
-    assert.doesNotMatch(out, /Permission is hereby granted/);
+  it('adds to a notices file that is already there, instead of writing a new one', () => {
+    const actions = run('noise', { kind: 'perlin', into: 'shaders/s.frag.glsl' }, ['shaders/THIRD_PARTY_NOTICES.md']);
+    assert.ok(!actions.some((a) => 'add' in a), 'no add');
+    assert.ok(actions.some((a) => 'append' in a && a.append === 'shaders/THIRD_PARTY_NOTICES.md' && a.text.startsWith('\n## webgl-noise\n')));
+  });
+
+  it('credits psrdnoise in one line, its full notice next to the shader', () => {
+    const files = into(emptyShader(), { kind: 'simplex' });
+    const out = files.get('s.frag.glsl')!;
+    assert.match(out, /^\/\/ psrdnoise · Stefan Gustavson and Ian McEwan · https:\/\/github\.com\/stegu\/psrdnoise$/m);
+    assert.doesNotMatch(out, /MIT|Copyright|Permission is hereby granted/, 'no license words in the shader');
+    assert.match(files.get('THIRD_PARTY_NOTICES.md')!, /## psrdnoise\n\n```\npsrdnoise \(https:\/\/github\.com\/stegu\/psrdnoise\)\n\nCopyright 2021, Stefan Gustavson and Ian MacEwan/);
   });
 
   it('fractals default to simplex and follow --base', () => {
@@ -448,9 +476,11 @@ describe('glsl:noise', () => {
       'shaders/lib/noise-classic2.glsl',
       'shaders/lib/noise-perlin2.glsl',
       'shaders/lib/fractal-turbulence2-perlin.glsl',
+      'shaders/lib/THIRD_PARTY_NOTICES.md',
     ]);
-    assert.match(files.get('shaders/lib/noise-classic2.glsl')!, /^\/\/ webgl-noise .*\n\/\/\n\/\/ Copyright \(C\) 2011 by Ashima Arts/);
-    assert.doesNotMatch(files.get('shaders/lib/fractal-turbulence2-perlin.glsl')!, /Permission is hereby granted/);
+    assert.match(files.get('shaders/lib/noise-classic2.glsl')!, /^\/\/ Needs \(include first\): noise-gustavson-common\.glsl\n/);
+    assert.doesNotMatch(files.get('shaders/lib/noise-classic2.glsl')!, /Permission is hereby granted/);
+    assert.doesNotMatch(files.get('shaders/lib/fractal-turbulence2-perlin.glsl')!, /THIRD_PARTY_NOTICES/);
     assert.match(files.get('shaders/lib/fractal-turbulence2-perlin.glsl')!, /^\/\/ Needs \(include first\): noise-perlin2.glsl\n/);
   });
 
@@ -561,7 +591,7 @@ describe('glsl:sdf', () => {
   });
 
   it('pulls in dependencies: round-box needs box, stroke needs fill, smooth ops need smooth-union', () => {
-    const ids = adds(run('sdf', { shapes: 'round-box', ops: 'smooth-subtract', effects: 'stroke' })).map((a) => a.add);
+    const ids = adds(run('sdf', { shapes: 'round-box', ops: 'smooth-subtract', effects: 'stroke' })).map((a) => a.add).filter((f) => f.endsWith('.glsl'));
     assert.deepEqual(ids, [
       'shaders/lib/sdf2d-box.glsl',
       'shaders/lib/sdf2d-round-box.glsl',
@@ -606,10 +636,12 @@ describe('glsl:raymarch', () => {
   });
 
   it('--lighting=pbr tonemaps with ACES and carries the BakingLab notice once', () => {
-    const out = applyActions(new Map(), run('raymarch', { name: 'x', lighting: 'pbr', materials: true })).get('shaders/x.frag.glsl')!;
+    const files = applyActions(new Map(), run('raymarch', { name: 'x', lighting: 'pbr', materials: true }));
+    const out = files.get('shaders/x.frag.glsl')!;
     assert.match(out, /fragColor = vec4\(linearToSrgb\(tonemapAces\(color \* 1\.6\)\)/);
     assert.match(out, /float metallic = material > 1\.5 \? 1\.0 : 0\.0;/);
-    assert.equal(out.match(/Copyright \(c\) 2016 MJP/g)?.length, 1);
+    assert.doesNotMatch(out, /Copyright/);
+    assert.equal(files.get('shaders/THIRD_PARTY_NOTICES.md')!.match(/Copyright \(c\) 2016 MJP/g)?.length, 1);
     assert.throws(() => run('raymarch', { name: 'x', lighting: 'phong' }), /--lighting: expected one of "lambert", "blinn", "toon", "pbr", got "phong"/);
   });
 
@@ -632,7 +664,7 @@ describe('glsl:raymarch', () => {
 
   it('--parts picks helpers, which declare scene() as a prototype', () => {
     const files = adds(run('raymarch', { parts: 'soft-shadow' }));
-    assert.deepEqual(files.map((f) => f.add), ['shaders/lib/raymarch-soft-shadow.glsl']);
+    assert.deepEqual(files.map((f) => f.add), ['shaders/lib/raymarch-soft-shadow.glsl', 'shaders/lib/THIRD_PARTY_NOTICES.md']);
     assert.match(files[0].template, /^float scene\(vec3 p\);$/m);
     assert.doesNotMatch(files[0].template, /\bmap\(/);
     assert.throws(() => run('raymarch', { parts: 'shade' }), /--parts: unknown "shade" – valid: ao, camera, march, normal, soft-shadow/);
@@ -649,7 +681,13 @@ describe('glsl:lighting', () => {
 
   it('pbr brings its ambient light; tonemaps map to color chunks', () => {
     const files = adds(run('lighting', { models: 'pbr', tonemap: 'aces,srgb' })).map((a) => a.add);
-    assert.deepEqual(files, ['shaders/lib/lighting-pbr.glsl', 'shaders/lib/lighting-pbr-ambient.glsl', 'shaders/lib/color-aces.glsl', 'shaders/lib/color-srgb.glsl']);
+    assert.deepEqual(files, [
+      'shaders/lib/lighting-pbr.glsl',
+      'shaders/lib/lighting-pbr-ambient.glsl',
+      'shaders/lib/color-aces.glsl',
+      'shaders/lib/color-srgb.glsl',
+      'shaders/lib/THIRD_PARTY_NOTICES.md',
+    ]);
   });
 
   it('every model and tonemap fits into one shader', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
@@ -666,7 +704,7 @@ describe('glsl:displace', () => {
     for (const version of VERSIONS) {
       for (const kind of ['noise', 'wobble', 'waves']) {
         const files = applyActions(new Map(), run('displace', { kind, name: 'Blob', version }));
-        assert.deepEqual([...files.keys()], ['shaders/blob.vert.glsl', 'shaders/blob.frag.glsl']);
+        assert.deepEqual([...files.keys()].filter((f) => f.endsWith('.glsl')), ['shaders/blob.vert.glsl', 'shaders/blob.frag.glsl']);
         assertCompiles(files.get('shaders/blob.vert.glsl')!, 'vert', `displace ${kind} vertex (${version})`);
         assertCompiles(files.get('shaders/blob.frag.glsl')!, 'frag', `displace ${kind} fragment (${version})`);
       }

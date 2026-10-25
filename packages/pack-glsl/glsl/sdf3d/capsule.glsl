@@ -1,7 +1,5 @@
 // @license iquilezles
-// sdCapsule · Inigo Quilez · MIT
-// Capsule from a to b with radius r.
-// Formula: Inigo Quilez, https://iquilezles.org/articles/distfunctions/
+// sdCapsule · Inigo Quilez · https://iquilezles.org/articles/distfunctions/
 float sdCapsule(vec3 p, vec3 a, vec3 b, float r) {
   vec3 pa = p - a;
   vec3 ba = b - a;

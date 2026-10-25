@@ -1,10 +1,6 @@
 // @license bakinglab
-// tonemapAces: Stephen Hill's fit of the ACES filmic curve (RRT + ODT), via
-// BakingLab by MJP and David Neubelt, MIT – https://github.com/TheRealMJP/BakingLab
-// Ported from HLSL: the matrices keep BakingLab's row layout, so they're
-// applied as `color * M` (GLSL's mat3() takes columns).
-// Maps linear HDR color to [0, 1] with a filmic shoulder; encode with
-// linearToSrgb() afterwards.
+// tonemapAces · Stephen Hill's ACES fit via BakingLab by MJP and David Neubelt · https://github.com/TheRealMJP/BakingLab
+// ported from HLSL with its row layout, so applied as `color * M` (GLSL's mat3() takes columns)
 
 // sRGB => XYZ => D65_2_D60 => AP1 => RRT_SAT
 const mat3 ACESInputMat = mat3(

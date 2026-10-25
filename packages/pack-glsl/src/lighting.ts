@@ -24,8 +24,13 @@ const lightingGenerator: Generator = {
     tonemap: { default: '', description: 'comma-separated color output: aces, reinhard (HDR to [0, 1]), srgb (display encoding) – or all (pick at least one of --models, --tonemap)' },
     into: { path: true, default: '', description: 'existing shader to insert the functions into, before main() (default: one file each in lib/)' },
   },
+  usage: [
+    'every model takes the normal n, the direction to the viewer v and to the light l (all normalized) and returns the light reflected for a white light of intensity 1 – multiply by your light\'s color and shadow, and sum over lights',
+    'light in linear space; tonemapAces() or tonemapReinhard() map HDR to [0, 1], then linearToSrgb() encodes for display',
+    'pbr() includes the 1/π of the diffuse term: a sun needs about intensity 3 to look as bright as with lambert()',
+  ],
   examples: ['--models=pbr --tonemap=aces,srgb --into=shaders/scene.frag.glsl'],
-  actions: ({ models, tonemap, into }) => {
+  actions: ({ models, tonemap, into }, _helpers, ctx) => {
     const modelList = parseList(String(models));
     const tonemapList = parseList(String(tonemap));
     const modelNames = chunkIds('lighting')
@@ -43,7 +48,7 @@ const lightingGenerator: Generator = {
       if (!id) fail(`glsl:lighting --tonemap: unknown "${name}" – valid: ${Object.keys(TONEMAP_NAMES).join(', ')} (or "all")`);
       ids.push(id);
     }
-    return chunkActions(ids, { into: String(into), dir: '' });
+    return chunkActions(ids, { into: String(into), dir: '', ctx });
   },
 };
 

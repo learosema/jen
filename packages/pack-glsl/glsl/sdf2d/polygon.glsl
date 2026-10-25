@@ -1,7 +1,5 @@
 // @license MIT-0
-// sdPolygon · pack-glsl · MIT-0
-// Signed distance to a regular polygon with n sides (n >= 3) and circumradius r.
-// One edge faces +x; rotate p for other orientations.
+// n sides (n >= 3), circumradius r; one edge faces +x
 float sdPolygon(vec2 p, float r, float n) {
   float sector = 6.28318530718 / n;
   // Fold p into the sector around +x, mirrored to its upper half.

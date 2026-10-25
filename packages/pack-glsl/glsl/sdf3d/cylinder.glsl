@@ -1,7 +1,6 @@
 // @license iquilezles
-// sdCylinder · Inigo Quilez · MIT
-// Capped cylinder along y: radius r, half height h.
-// Formula: Inigo Quilez, https://iquilezles.org/articles/distfunctions/
+// sdCylinder · Inigo Quilez · https://iquilezles.org/articles/distfunctions/
+// along y: radius r, half height h
 float sdCylinder(vec3 p, float r, float h) {
   vec2 d = abs(vec2(length(p.xz), p.y)) - vec2(r, h);
   return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));

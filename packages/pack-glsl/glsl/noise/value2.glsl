@@ -1,9 +1,6 @@
 // @requires util/hash
 // @license MIT-0
-// valueNoise (2D) · pack-glsl · MIT-0
-// Random values on an integer lattice, smoothly (quintic) interpolated.
-// Range [-1, 1]. The `period` overload tiles every `period` units (positive
-// whole numbers); the plain one repeats only every 65536 units.
+// [-1, 1]; without a period it repeats every 65536 units
 float valueNoise(vec2 p, vec2 period) {
   vec2 i = floor(p);
   vec2 f = p - i;

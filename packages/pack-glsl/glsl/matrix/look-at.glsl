@@ -1,9 +1,5 @@
 // @license MIT-0
-// lookAt · pack-glsl · MIT-0
-// View matrix for a camera at eye looking at target, with `up` roughly
-// upwards (usually vec3(0.0, 1.0, 0.0)): world space → view space, camera
-// looking down -z. For raymarching, cameraMatrix() from glsl:raymarch is the
-// counterpart that turns rays the other way.
+// world → view space, camera looking down -z; up is usually vec3(0.0, 1.0, 0.0)
 mat4 lookAt(vec3 eye, vec3 target, vec3 up) {
   vec3 z = normalize(eye - target);
   vec3 x = normalize(cross(up, z));
