@@ -345,8 +345,10 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
     } else if ('insert' in a) {
       const lines = text.split('\n');
       const block = a.line.split('\n');
+      // a block may start with a blank line, to stand apart: name it by its first line with text
+      const label = block.find((l) => l.trim())?.trim() ?? '';
       if (containsBlock(lines, block)) {
-        steps.push({ mark: 'info', file, note: `already has ${block[0].trim()}${block.length > 1 ? ' …' : ''}` });
+        steps.push({ mark: 'info', file, note: `already has ${label}${block.length > 1 ? ' …' : ''}` });
         continue;
       }
       const after = a.after !== undefined;
@@ -378,7 +380,7 @@ export async function plan(actions: Placed[], force: boolean, extraRoots: string
       const rendered = reindentBlock(block, baseIndent, target);
       lines.splice(i, 0, ...rendered);
       changes.set(file, lines.join('\n'));
-      steps.push({ mark: '~', file, line: i + 1, note: `+ ${block[0].trim()}${block.length > 1 ? ` (+${block.length - 1} more)` : ''}` });
+      steps.push({ mark: '~', file, line: i + 1, note: `+ ${label}${block.length > 1 ? ` (+${block.length - 1} more)` : ''}` });
       // text a person typed (`--line="</nav>"`) may well be on more than one line: say which one was used
       if (typeof marker === 'string' && !after && hits.length > 1) {
         steps.push({ mark: 'info', file, note: `"${marker}" is on lines ${lineList(hits.map((n) => n + 1))} – used line ${anchor + 1}` });
