@@ -29,6 +29,9 @@ toc:
     links:
       - { title: "js:module", id: js-module }
       - { title: "js:test", id: js-test }
+  - title: Moved
+    links:
+      - { title: "To the web pack", id: moved }
 ---
 
 ## Install {#install}
@@ -102,3 +105,13 @@ From `tsconfig.json`, `jsconfig.json` or neither – or `--types=ts|jsdoc|none`.
 {% include terminal.html id="js_test" %}
 
 {% include params.html generator="js:test" %}
+
+## Moved to the web pack {#moved}
+
+- <span id="js-vite"></span>[`web:vite`](web.html#web-vite)
+- <span id="js-esbuild"></span>[`web:esbuild`](web.html#web-esbuild)
+- <span id="js-element"></span>[`web:element`](web.html#web-element)
+- <span id="js-roving"></span>[`web:roving`](web.html#web-roving)
+- <span id="js-menu"></span>[`web:menu`](web.html#web-menu)
+- <span id="js-grid"></span>[`web:grid-navigation`](web.html#web-grid-navigation)
+- <span id="js-hotkeys"></span>[`web:hotkeys`](web.html#web-hotkeys)
