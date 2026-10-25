@@ -86,7 +86,7 @@ const libGenerator: Generator = {
   description: 'create a library starter: include/<name>/, BUILD_INTERFACE/INSTALL_INTERFACE, export header, install + package config',
   params: {
     name: { description: 'project and target name; headers go in include/<name>/' },
-    folderCase: { default: 'kebab', choices: ['kebab', 'pascal'], description: 'project folder name from --name: kebab (my-game) or pascal (MyGame)' },
+    folderCase: { default: 'kebab', choices: ['kebab', 'pascal'], description: 'project folder from --name: my-game or MyGame' },
     dir: { default: '', description: 'project folder instead of one named after --name; . for the current directory' },
   },
   examples: ['--name=MyLib'],

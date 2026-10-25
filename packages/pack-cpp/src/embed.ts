@@ -15,7 +15,7 @@ const embedGenerator: Generator = {
     file: { description: 'the binary file to embed, relative to the project root' },
     name: { description: 'C++ variable name for the byte array' },
     target: { default: '', description: 'CMake target that gets the array (default: <project>-core)' },
-    method: { default: 'cmake', choices: ['cmake'], description: 'how to embed: only cmake so far (#embed isn\'t portable yet)' },
+    method: { default: 'cmake', choices: ['cmake'], description: 'how to embed (#embed isn\'t portable yet)' },
   },
   examples: ['--file=assets/tiles.png --name=tilesPng'],
   actions: ({ file, name, target, method }, { camel }) => {

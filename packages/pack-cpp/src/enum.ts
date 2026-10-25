@@ -13,7 +13,7 @@ const enumGenerator: Generator = {
     name: { description: 'the enum, any case: game-state and GameState both make GameState in GameState.h' },
     values: { description: 'comma-separated enumerators, e.g. "idle, running, paused"' },
     namespace: { default: '', description: 'C++ namespace to wrap it in, nested ones as engine::physics; empty means the global namespace' },
-    std: { default: '23', choices: ['20', '23'], description: 'C++ standard: 23, or 20 (std::abort instead of std::unreachable)' },
+    std: { default: '23', choices: ['20', '23'], description: 'C++ standard (20: std::abort instead of std::unreachable)' },
     withTest: { default: false, description: 'add a doctest case (needs cpp:doctest)' },
   },
   examples: ['--name=GameState --values="menu, playing, paused"', '--name=GameState --values="menu, playing, paused" --std=20 --withTest'],

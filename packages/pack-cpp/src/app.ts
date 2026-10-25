@@ -45,7 +45,7 @@ const appGenerator: Generator = {
   description: 'create a console app starter without SDL (<name>-core library + thin executable, main wraps argv in a span)',
   params: {
     name: { description: 'project and target name' },
-    folderCase: { default: 'kebab', choices: ['kebab', 'pascal'], description: 'project folder name from --name: kebab (my-game) or pascal (MyGame)' },
+    folderCase: { default: 'kebab', choices: ['kebab', 'pascal'], description: 'project folder from --name: my-game or MyGame' },
     dir: { default: '', description: 'project folder instead of one named after --name; . for the current directory' },
   },
   examples: ['--name=MyTool', '--name=MyTool --folderCase=pascal'],
