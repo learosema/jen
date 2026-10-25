@@ -59,7 +59,7 @@ function flatList(out: string): string {
   return out
     .split('\n')
     .map((line) => {
-      if (line === 'recipes:') return (source = '', line)[1];
+      if (line.startsWith('recipes')) return (source = '', line)[1];
       if (/^\S/.test(line)) return (source = line, '')[1];
       const m = /^ {2}(\S+) +(.*)$/.exec(line);
       return m && source ? `${m[1]} ${source} ${m[2]}` : line;
@@ -1714,7 +1714,7 @@ describe('for programs', () => {
     const dir = project();
     assert.match(
       jen(['demo', '--list'], { cwd: dir }).stdout,
-      /\nrecipes:\n {2}dashboard +a dashboard page with cards – how it fits together: jen --find dashboard\n {4}jen demo:card\n {4}jen demo:sidebar --name=x\n/,
+      /^recipes – start here, each one a whole thing in a few commands:\n {2}dashboard +a dashboard page with cards – how it fits together: jen --find dashboard\n {4}jen demo:card\n {4}jen demo:sidebar --name=x\n\npack @codejen\/pack-demo\n/,
     );
     const { packs } = JSON.parse(jen(['demo', '--list', '--json'], { cwd: dir }).stdout) as { packs: Array<{ recipes: unknown[] }> };
     assert.deepEqual(packs[0].recipes, [{ name: 'dashboard', description: 'a dashboard page with cards', steps: ['jen demo:card', 'jen demo:sidebar --name=x'], docs: 'https://example.com/#dashboard' }]);

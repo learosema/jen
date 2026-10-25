@@ -449,6 +449,15 @@ function withShadowing(entries: Entry[]): Array<{ entry: Entry; shadowed: boolea
 }
 
 async function list(entries: Entry[]): Promise<void> {
+  // recipes first: they're where to start, the generators are their parts
+  const recipes = recipesOf(entries);
+  if (recipes.length > 0) console.log('recipes – start here, each one a whole thing in a few commands:');
+  for (const { recipe } of recipes) {
+    // the markup would make the list long
+    const markup = recipe.usage?.length ? ` – how it fits together: jen --find ${shellValue(recipe.name)}` : '';
+    console.log(`  ${recipe.name.padEnd(22)} ${recipe.description}${markup}`);
+    for (const step of recipeCalls(recipe)) console.log(dim(`    ${step}`));
+  }
   let source = '';
   for (const { entry: e, shadowed } of withShadowing(entries)) {
     const description = await e.load().then(
@@ -456,17 +465,9 @@ async function list(entries: Entry[]): Promise<void> {
       (err: Error) => styleText('red', err.message),
     );
     // a heading per source, instead of repeating it on every line
-    if (e.source !== source) console.log(`${source ? '\n' : ''}${(source = e.source)}`);
+    if (e.source !== source) console.log(`${source || recipes.length ? '\n' : ''}${(source = e.source)}`);
     const line = `  ${qualified(e).padEnd(22)} ${description}`;
     console.log(shadowed ? dim(`${line} (shadowed)`) : line);
-  }
-  const recipes = recipesOf(entries);
-  if (recipes.length > 0) console.log('\nrecipes:');
-  for (const { recipe } of recipes) {
-    // the markup would make the list long
-    const markup = recipe.usage?.length ? ` – how it fits together: jen --find ${shellValue(recipe.name)}` : '';
-    console.log(`  ${recipe.name.padEnd(22)} ${recipe.description}${markup}`);
-    for (const step of recipeCalls(recipe)) console.log(dim(`    ${step}`));
   }
 }
 
@@ -727,6 +728,8 @@ function rejectUnknown(generator: string, own: Params, given: Record<string, unk
 const HELP = `jen – the code jen(erator)
 
   jen [generator] [--param=value …] [options]     e.g. jen cpp:class --name=Foo
+
+  start with: jen --find "<what you build>"       e.g. jen --find dashboard – a recipe, or the generators for it
 
   --list, -l        all generators, or one pack's: jen web --list
   --find "<words>"  search generators and recipes, or one pack's: jen web --find "dark mode"
