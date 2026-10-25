@@ -1,0 +1,3 @@
+interface HTMLElementTagNameMap {
+  // jen:elements
+}

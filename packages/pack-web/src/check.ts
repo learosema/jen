@@ -1,10 +1,11 @@
 /** `web:check`: what a person or model can't easily see in a project's pages and stylesheets. Writes nothing. */
 import { posix } from 'node:path';
-import type { Action, Context, Generator } from '@codejen/jen';
+import type { Action, AnyGenerator, Context } from '@codejen/jen';
 import { BLOCK_NAMES } from './blocks.ts';
 import { NAMES as COMPOSITIONS } from './compositions.ts';
 import { findEntry, usesTailwind } from './entry.ts';
 import { claimsFor, rolesFor } from './palette.ts';
+import { SCHEMES, WIDTHS, findChrome, renderPages, where } from './render.ts';
 import { tokensFrom } from './utilities.ts';
 
 const HTML = /\.html?$/;
@@ -98,7 +99,8 @@ const LINK = /<link\b[^>]*>/gi;
 const CLASS_ATTR = /\bclass\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
 const STYLE = /<style\b[^>]*>([\s\S]*?)<\/style>/gi;
 
-export function checkActions(ctx: Context): Action[] {
+/** The static checks; `rendered` are --render's findings, `how` says how the pages were rendered. */
+export function checkActions(ctx: Context, rendered: Action[] = [], how = ''): Action[] {
   const pages = ctx.grep(HTML);
   const sheets = ctx.grep(CSS);
   const scripts = ctx.grep(SCRIPT);
@@ -193,16 +195,52 @@ export function checkActions(ctx: Context): Action[] {
     }
   }
 
+  warnings.push(...rendered);
   const count = warnings.length;
-  const summary = `checked ${pages.length} page${pages.length === 1 ? '' : 's'} and ${sheets.length} stylesheet${sheets.length === 1 ? '' : 's'}`;
+  const summary = `checked ${pages.length} page${pages.length === 1 ? '' : 's'}${how} and ${sheets.length} stylesheet${sheets.length === 1 ? '' : 's'}`;
   return [...warnings, ...notes, { note: count ? `${summary} – ${count} warning${count === 1 ? '' : 's'} (--strict exits with 1 then)` : `${summary} – nothing to fix` }];
 }
 
-const checkGenerator: Generator = {
+/** Texts below AA per page, before the rest is only counted. */
+const MAX_CONTRAST = 8;
+
+/** `--render`: the static checks, plus what each page shows in Chromium. */
+async function renderedActions(ctx: Context): Promise<Action[]> {
+  const pages = ctx.grep(HTML);
+  const chrome = findChrome();
+  if (pages.length === 0) return checkActions(ctx);
+  if (!chrome) {
+    const note = 'no Chromium found to render the pages – set CHROME to one, or install chromium or google-chrome; the other checks ran';
+    return checkActions(ctx, [{ note, warning: true }]);
+  }
+  let findings;
+  try {
+    findings = await renderPages(chrome, ctx.root, pages);
+  } catch (e) {
+    return checkActions(ctx, [{ note: `Chromium (${chrome}) didn't render the pages: ${(e as Error).message}`, warning: true }]);
+  }
+  const rendered: Action[] = [];
+  for (const page of pages) {
+    const mine = findings.filter((f) => f.page === page);
+    const contrast = mine.filter((f) => f.message.includes('(WCAG AA)'));
+    for (const f of [...mine.filter((f) => !contrast.includes(f)), ...contrast.slice(0, MAX_CONTRAST)]) {
+      rendered.push({ note: `${f.message}${where(f.runs)}`, file: `/${page}`, warning: true });
+    }
+    if (contrast.length > MAX_CONTRAST) rendered.push({ note: `and ${contrast.length - MAX_CONTRAST} more texts below WCAG AA contrast`, file: `/${page}`, warning: true });
+  }
+  return checkActions(ctx, rendered, ` (rendered in ${SCHEMES.join(' and ')}, ${WIDTHS.join(' and ')} wide)`);
+}
+
+const checkGenerator: AnyGenerator = {
   description: 'check the pages and stylesheets: classes no stylesheet defines, stylesheets nothing loads, color pairs the palette didn\'t check – writes nothing',
-  params: {},
-  examples: ['', '--strict'],
-  actions: (_answers, _helpers, ctx) => checkActions(ctx),
+  params: {
+    render: {
+      default: false,
+      description: 'also open each page in headless Chromium ($CHROME or an installed one, never downloaded), light and dark, 390 and 1280 wide: text contrast (WCAG AA), sideways scrolling, console errors, boxes that touch',
+    },
+  },
+  examples: ['', '--render', '--render --strict'],
+  actions: (answers, _helpers, ctx) => (answers.render ? renderedActions(ctx) : checkActions(ctx)),
 };
 
 export default checkGenerator;

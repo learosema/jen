@@ -1,6 +1,6 @@
 <body class="flow" style="padding-block: var(--space-s-m)">
   <header class="wrapper repel">
-    <a href="/"><b>Acme</b></a>
+    <a href="/"><b>{{site}}</b></a>
     <nav class="nav" aria-label="Main">
       <ul role="list">
         <li><a href="/" aria-current="page">Overview</a></li>
@@ -17,7 +17,7 @@
       </div>
     </aside>
     <main id="main" class="flow">
-      <h1>Dashboard</h1>
+      <h1>{{heading}}</h1>
       <div class="grid" style="--grid-min-item-size: 10rem; --stat-value-size: var(--step-2)">
         <article class="card stat"><h2 class="stat__label">Visitors</h2><p class="stat__value">12,480</p><p class="stat__trend" data-trend="up">+4 %</p></article>
         <article class="card stat"><h2 class="stat__label">Sign-ups</h2><p class="stat__value">318</p><p class="stat__trend" data-trend="flat">±0 %</p></article>

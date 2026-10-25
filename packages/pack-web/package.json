@@ -27,7 +27,7 @@
     "prebuild": "npm run build --prefix ../jen",
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
     "typecheck": "tsc",
-    "test": "node --test pack-web.test.ts",
+    "test": "node --test pack-web.test.ts js.test.ts",
     "prepublishOnly": "npm test && npm run typecheck && npm run build"
   },
   "keywords": [
@@ -35,7 +35,11 @@
     "css",
     "design-tokens",
     "wcag",
-    "cube-css"
+    "cube-css",
+    "vite",
+    "esbuild",
+    "web-components",
+    "a11y"
   ],
   "author": "Lea Rosema",
   "license": "ISC",

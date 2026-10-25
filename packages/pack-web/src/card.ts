@@ -20,6 +20,8 @@ const cardGenerator: Generator = {
       ['--card-gap: var(--space-xs, 0.75rem)', 'the space between the children'],
       ['--card-radius: 0.75rem', 'the corners'],
       ['--card-media-ratio: 16 / 9', 'the aspect ratio of images and videos'],
+      ['--card-shadow: none', 'a flat card, without the soft shadow'],
+      ['--card-heading-size: var(--step-1, 1.25rem)', 'its h2, h3 and h4'],
     ]),
   ],
   actions: (_answers, _helpers, ctx) => {

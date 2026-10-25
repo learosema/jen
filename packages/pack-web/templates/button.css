@@ -6,6 +6,7 @@
     --button-fg-hover: var(--button-fg);
     /* Transparent, but forced-colors mode (Windows High Contrast) draws it. */
     --button-border: transparent;
+    --button-shadow: 0 0.0625rem 0.125rem oklch(0% 0 0 / 0.15), inset 0 0.0625rem 0 oklch(100% 0 0 / 0.12);
 
     display: inline-flex;
     align-items: center;
@@ -16,6 +17,7 @@
     border-radius: 0.5em;
     background: var(--button-bg);
     color: var(--button-fg);
+    box-shadow: var(--button-shadow);
     font: inherit;
     font-weight: 600;
     line-height: 1.2;
@@ -48,6 +50,7 @@
     --button-fg: var(--color-text-muted);
     --button-fg-hover: var(--color-text-muted);
     --button-border: var(--color-border);
+    --button-shadow: none;
 
     cursor: not-allowed;
     translate: none;
@@ -63,6 +66,7 @@
 
   /* Primary text on the page; on the tinted hover background it turns -strong to keep its contrast. */
   .button--outline {
+    --button-shadow: none;
     --button-bg: transparent;
     --button-bg-hover: var(--color-primary-subtle);
     --button-fg: var(--color-primary);
@@ -71,6 +75,7 @@
   }
 
   .button--ghost {
+    --button-shadow: none;
     --button-bg: transparent;
     --button-bg-hover: var(--color-primary-subtle);
     --button-fg: var(--color-primary);

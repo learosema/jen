@@ -21,16 +21,27 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* -strong lies further from both surfaces than the base color, so it keeps the palette's level on either. */
+  .stat__trend {
+    justify-self: start;
+    padding: 0.125em 0.625em;
+    border-radius: 100vmax;
+    font-size: var(--step--1, 0.875rem);
+    font-weight: 600;
+  }
+
+  /* -strong on -subtle: pairs the palette checks */
   .stat__trend[data-trend="up"] {
+    background: var(--color-success-subtle);
     color: var(--color-success-strong);
   }
 
   .stat__trend[data-trend="down"] {
+    background: var(--color-danger-subtle);
     color: var(--color-danger-strong);
   }
 
   .stat__trend[data-trend="flat"] {
+    background: var(--color-surface-2);
     color: var(--color-text-muted);
   }
 
