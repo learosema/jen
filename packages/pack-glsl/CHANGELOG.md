@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.5.0](https://github.com/learosema/jen/compare/pack-glsl-v2.4.0...pack-glsl-v2.5.0) (2026-10-25)
+
+
+### Features
+
+* **pack-glsl:** --into on --inline pages, a terrain starter, sky and fog, still frames ([8f65997](https://github.com/learosema/jen/commit/8f6599782bc131a7bf5359739b509ab7e0c7a83a))
+
+
+### Bug Fixes
+
+* **pack-glsl:** glsl:webgl --shader puts a starter into the page; rising smoothstep edges ([8d12836](https://github.com/learosema/jen/commit/8d12836b057c563741b258370c23f22a0eda5ba3))
+
 ## [2.4.0](https://github.com/learosema/jen/compare/pack-glsl-v2.3.2...pack-glsl-v2.4.0) (2026-10-25)
 
 
