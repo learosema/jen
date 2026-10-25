@@ -9,6 +9,17 @@
   },
   "main": "./dist/jen.js",
   "types": "./dist/jen.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/jen.d.ts",
+      "default": "./dist/jen.js"
+    },
+    "./js": {
+      "types": "./dist/js.d.ts",
+      "default": "./dist/js.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "dist"
   ],
@@ -24,7 +35,7 @@
     "node": ">=24"
   },
   "scripts": {
-    "build": "rm -rf dist && esbuild src/jen.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist/jen.js && tsc -p tsconfig.build.json && chmod +x dist/jen.js",
+    "build": "rm -rf dist && esbuild src/jen.ts src/js.ts --bundle --platform=node --format=esm --target=node24 --outdir=dist && tsc -p tsconfig.build.json && chmod +x dist/jen.js",
     "typecheck": "tsc",
     "test": "node --test jen.test.ts",
     "prepublishOnly": "npm test && npm run typecheck && npm run build"

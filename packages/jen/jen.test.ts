@@ -53,6 +53,20 @@ function jen(args: string[], { cwd, userDir, home }: RunOptions) {
 
 const read = (dir: string, path: string): string => readFileSync(join(dir, path), 'utf8');
 
+/** `--list` text with each generator's source heading put back on its line – `name source description` – to match against. */
+function flatList(out: string): string {
+  let source = '';
+  return out
+    .split('\n')
+    .map((line) => {
+      if (line === 'recipes:') return (source = '', line)[1];
+      if (/^\S/.test(line)) return (source = line, '')[1];
+      const m = /^ {2}(\S+) +(.*)$/.exec(line);
+      return m && source ? `${m[1]} ${source} ${m[2]}` : line;
+    })
+    .join('\n');
+}
+
 // ─── Fixtures ───────────────────────────────────────────────────────────────
 
 const CLASS_GEN = `
@@ -677,7 +691,7 @@ export default {
 `;
 
 describe('jen <generator> --help', () => {
-  const DIR_LINE = '  --dir=<folder>  where the files go (default: where you run jen)';
+  const DIR_LINE = '  --dir=<folder>  where the files go';
 
   it('shows the generator and its params, plain like the CLI', () => {
     const dir = fixture({ '.jen/class.mjs': DESCRIBED_GEN });
@@ -691,7 +705,7 @@ describe('jen <generator> --help', () => {
         '  --namespace=""',
         '  --dir=src',
         '  --members="int a, int b"',
-        '  --into=""  (a path from where you run jen)',
+        '  --into=""  (path)',
         '  --moveOnly  RAII wrapper: copy deleted, move defaulted (Rule of Five)',
         '  --withTest  add a doctest case',
         '',
@@ -724,12 +738,12 @@ describe('jen <generator> --help', () => {
     for (const args of [['demo', '--list'], ['demo']]) {
       const r = jen(args, { cwd: dir });
       assert.equal(r.code, 0, r.stderr);
-      assert.match(r.stdout, /demo:hello\s+pack @codejen\/pack-demo\s+say hi/);
+      assert.match(flatList(r.stdout), /demo:hello\s+pack @codejen\/pack-demo\s+say hi/);
       assert.doesNotMatch(r.stdout, /mine|generator/);
     }
     const json = JSON.parse(jen(['demo', '--list', '--json'], { cwd: dir }).stdout) as { generators: Array<{ name: string }> };
     assert.deepEqual(json.generators.map((g) => g.name), ['demo:hello']);
-    assert.match(jen(['project', '--list'], { cwd: dir }).stdout, /mine\s+project/);
+    assert.match(flatList(jen(['project', '--list'], { cwd: dir }).stdout), /mine\s+project/);
   });
 
   it('fails for an unknown pack when fetching is off', () => {
@@ -760,7 +774,7 @@ describe('jen <generator> --help', () => {
     assert.match(r.stderr, /"lua:function" not found/);
   });
 
-  it('shows choices, default first, and the examples with and without jen installed', () => {
+  it('shows choices, default first, and the examples', () => {
     const dir = fixture({
       '.jen/enum.mjs': `export default {
         params: { name: {}, std: { default: '23', choices: ['20', '23'] }, kind: { choices: ['a', 'b c'] } },
@@ -780,7 +794,6 @@ describe('jen <generator> --help', () => {
         'examples:',
         '  jen enum --name=State --kind=a',
         '  jen enum --name=State --kind="b c" --std=20',
-        '  npx --yes @codejen/jen enum --name=State --kind=a  (without installing jen)',
         '',
       ].join('\n'),
     );
@@ -798,8 +811,8 @@ describe('jen <generator> --help', () => {
       jen(['box', '--help'], { cwd: dir }).stdout,
       [
         'box',
-        '  --into=""  a stylesheet to add it to (a path from where you run jen)',
-        '  --out=""  (a path from where you run jen)',
+        '  --into=""  a stylesheet to add it to (path)',
+        '  --out=""  (path)',
         DIR_LINE,
         '',
         'usage:',
@@ -826,7 +839,7 @@ describe('jen <generator> --help', () => {
         '',
         'examples:',
         '  jen demo:hello --loud',
-        '  npx --yes @codejen/jen --from jen-pack-demo demo:hello --loud  (without installing jen)',
+        '  without jen installed: npx --yes @codejen/jen --from jen-pack-demo demo:hello …',
         '',
         'docs: https://example.com/demo',
         '',
@@ -835,7 +848,9 @@ describe('jen <generator> --help', () => {
   });
 
   it('still shows the general help without a generator', () => {
-    assert.match(jen(['--help'], { cwd: fixture() }).stdout, /--list,\s+-l/);
+    const help = jen(['--help'], { cwd: fixture() }).stdout;
+    assert.match(help, /--list, -l/);
+    assert.match(help, /Without jen installed: npx --yes @codejen\/jen …/, 'once here, instead of under every generator\'s examples');
   });
 });
 
@@ -1083,8 +1098,8 @@ describe('search path', () => {
     const dir = cppProject();
 
     const list = jen(['--list'], { cwd: dir, userDir });
-    assert.match(list.stdout, /class\s+project\s+C\+\+ class/);
-    assert.match(list.stdout, /class\s+user\s+from user \(shadowed\)/);
+    assert.match(flatList(list.stdout), /class\s+project\s+C\+\+ class/);
+    assert.match(flatList(list.stdout), /class\s+user\s+from user \(shadowed\)/);
 
     jen(['user:class'], { cwd: dir, userDir });
     assert.equal(read(dir, 'user.txt'), 'u');
@@ -1131,7 +1146,7 @@ describe('packs', () => {
       'package.json': JSON.stringify({ devDependencies: { '@codejen/pack-cpp': '^1.0.0' } }),
     });
     const list = jen(['--list'], { cwd: dir });
-    assert.match(list.stdout, /cpp:class\s+pack @codejen\/pack-cpp\s+from the pack \(shadowed\)/);
+    assert.match(flatList(list.stdout), /cpp:class\s+pack @codejen\/pack-cpp\s+from the pack \(shadowed\)/);
     assert.match(list.stdout, /cpp:example/);
 
     jen(['cpp:class'], { cwd: dir });
@@ -1170,7 +1185,7 @@ describe('packs', () => {
       'package.json': JSON.stringify({ dependencies: { 'jen-pack-brainfuck': '^1.0.0' } }),
     });
     const list = jen(['--list'], { cwd: dir });
-    assert.match(list.stdout, /brainfuck:hello\s+pack jen-pack-brainfuck/);
+    assert.match(flatList(list.stdout), /brainfuck:hello\s+pack jen-pack-brainfuck/);
   });
 
   it('warns about missing packs and continues', () => {
@@ -1180,7 +1195,7 @@ describe('packs', () => {
     const r = jen(['--list'], { cwd: dir });
     assert.equal(r.code, 0);
     assert.match(r.stderr, /Pack @nobody\/pack-missing not found/);
-    assert.match(r.stdout, /class\s+project/);
+    assert.match(flatList(r.stdout), /class\s+project/);
   });
 
   it('reports a broken package.json', () => {
@@ -1216,7 +1231,7 @@ describe('pack factories', () => {
   it('lists the generators a factory builds from the installed packages', () => {
     const r = jen(['--list'], { cwd: fixture(FACTORY) });
     assert.equal(r.code, 0, r.stderr);
-    assert.match(r.stdout, /things:one\s+pack jen-pack-things\s+thing at thing-one\/index\.js/);
+    assert.match(flatList(r.stdout), /things:one\s+pack jen-pack-things\s+thing at thing-one\/index\.js/);
   });
 
   it('awaits async actions and hands over every flag and positional in ctx.args', () => {
@@ -1292,7 +1307,7 @@ describe('Built-in "generator"', () => {
     const dir = fixture();
     jen(['generator', '--name=mine', '--location=user'], { cwd: dir, userDir });
     assert.ok(existsSync(join(userDir, 'jen/mine.mjs')));
-    assert.match(jen(['--list'], { cwd: dir, userDir }).stdout, /mine\s+user/);
+    assert.match(flatList(jen(['--list'], { cwd: dir, userDir }).stdout), /mine\s+user/);
   });
 });
 
@@ -1699,7 +1714,7 @@ describe('for programs', () => {
     const dir = project();
     assert.match(
       jen(['demo', '--list'], { cwd: dir }).stdout,
-      /\nrecipes:\n {2}dashboard +pack @codejen\/pack-demo +a dashboard page with cards\n {4}jen demo:card\n {4}jen demo:sidebar --name=x\n {4}how it fits together: jen --find dashboard\n/,
+      /\nrecipes:\n {2}dashboard +a dashboard page with cards – how it fits together: jen --find dashboard\n {4}jen demo:card\n {4}jen demo:sidebar --name=x\n/,
     );
     const { packs } = JSON.parse(jen(['demo', '--list', '--json'], { cwd: dir }).stdout) as { packs: Array<{ recipes: unknown[] }> };
     assert.deepEqual(packs[0].recipes, [{ name: 'dashboard', description: 'a dashboard page with cards', steps: ['jen demo:card', 'jen demo:sidebar --name=x'], docs: 'https://example.com/#dashboard' }]);
