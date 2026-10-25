@@ -38,10 +38,10 @@
   "author": "Lea Rosema",
   "license": "ISC",
   "peerDependencies": {
-    "@codejen/jen": "^3.2.0"
+    "@codejen/jen": "^3.2.0 || ^4.0.0"
   },
   "devDependencies": {
-    "@codejen/jen": "^3.2.0",
+    "@codejen/jen": "^3.2.0 || ^4.0.0",
     "@types/node": "^26.6.3",
     "typescript": "^6.0.3"
   }
