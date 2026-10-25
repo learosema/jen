@@ -2,6 +2,19 @@
 
 > Renamed from `@lea.rosema/jen` to `@codejen/jen` and republished as 1.0.0. The history below (up to 1.1.0) is `@lea.rosema/jen`'s; `@lea.rosema/jen` is deprecated in favor of this package.
 
+## [4.0.0](https://github.com/learosema/jen/compare/jen-v3.2.0...jen-v4.0.0) (2026-10-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* **main:** TYPES_PARAM, detectTypes, ext, importExt, pick, source, stripTypes, typesFor and the Types type are no longer exported from @codejen/jen – import them from @codejen/jen/js. The package now has an exports map, so deep imports other than /js and /package.json fail.
+* **main:** leaner structural information in the list/find/help comments
+
+### Features
+
+* **main:** reduce verbosity and noise ([2d0215f](https://github.com/learosema/jen/commit/2d0215f790f063d0bc93af6042035c72eb46f5fa))
+* **main:** shorter --help and --list text, JS codegen helpers under @codejen/jen/js ([2d2c749](https://github.com/learosema/jen/commit/2d2c7493f10d699003fca071d031efde661df20d))
+
 ## [3.2.0](https://github.com/learosema/jen/compare/jen-v3.1.0...jen-v3.2.0) (2026-10-22)
 
 

@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0](https://github.com/learosema/jen/compare/pack-js-v1.5.2...pack-js-v2.0.0) (2026-10-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* **pack-js:** js:vite, js:esbuild, js:element, js:roving, js:menu, js:grid and js:hotkeys moved to pack-web as web:vite, web:esbuild, web:element, web:roving, web:menu, web:grid-navigation and
+
+### Features
+
+* **pack-js:** TypeScript and JavaScript patterns only ([19c0a4b](https://github.com/learosema/jen/commit/19c0a4b3c076d7dd20d2787620248220232d6d97))
+
+
+### Bug Fixes
+
+* packs accept @codejen/jen 4 ([d6d39b5](https://github.com/learosema/jen/commit/d6d39b538021efda59c4656b6149ed0a5f895a9d))
+
 ## [1.5.2](https://github.com/learosema/jen/compare/pack-js-v1.5.1...pack-js-v1.5.2) (2026-10-22)
 
 

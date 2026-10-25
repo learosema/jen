@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.4.0](https://github.com/learosema/jen/compare/pack-glsl-v2.3.2...pack-glsl-v2.4.0) (2026-10-25)
+
+
+### Features
+
+* **pack-glsl:** one-line credits, notices next to the shader ([9702a64](https://github.com/learosema/jen/commit/9702a64451241dc4418c000457fc17ea2296a6b0))
+
+
+### Bug Fixes
+
+* packs accept @codejen/jen 4 ([d6d39b5](https://github.com/learosema/jen/commit/d6d39b538021efda59c4656b6149ed0a5f895a9d))
+
 ## [2.3.2](https://github.com/learosema/jen/compare/pack-glsl-v2.3.1...pack-glsl-v2.3.2) (2026-10-22)
 
 
