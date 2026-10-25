@@ -134,7 +134,7 @@ Six shades per color: 2 apart is 3:1, 3 apart AA, 4 apart AAA – across colors 
 
 ### Role tokens and dark mode {#roles}
 
-`light-dark()` roles, every text pair AAA in both modes. `data-theme="light"` or `"dark"` on `<html>` forces a mode.
+`light-dark()` roles, every text pair AAA in both modes – placed between shades, no darker than that needs. `data-theme="light"` or `"dark"` on `<html>` forces a mode.
 
 {% include web-preview.html src="roles.html" title="Role tokens" height="27rem" dual=true %}
 

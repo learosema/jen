@@ -25,6 +25,12 @@ const STEP = 1.76;
 /** Target luminance of shade n (1 = lightest … 6 = darkest); shade 1 sits just below white. */
 export const targetLuminance = (n: number): number => 1 / STEP ** (n - 1) - 0.05;
 
+/**
+ * How far apart (in shades, fractions allowed) two colors need to be for `ratio`, with a little
+ * headroom for rounding to 8-bit hex: 7:1 is 3.49 apart, not the 4 whole shades (9.6:1) it would round to.
+ */
+export const span = (ratio: number): number => Math.log(ratio) / Math.log(STEP) + 0.05;
+
 /** Contrast every distance between shades guarantees (at least). */
 export const DISTANCE_RATIO: Record<number, number> = { 2: 3, 3: 4.5, 4: 7 };
 

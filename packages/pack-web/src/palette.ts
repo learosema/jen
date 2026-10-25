@@ -1,6 +1,6 @@
 /** `web:palette`: a contrast-checked palette; shade distances after Reasonable Colors by Matthew Howell (https://www.reasonable.work/colors/). */
 import type { Action, Answers, Generator, Params } from '@codejen/jen';
-import { DISTANCE_RATIO, SHADES, colorAtLuminance, contrast, luminance, oklchToHex, parseColor, targetLuminance } from './color.ts';
+import { DISTANCE_RATIO, SHADES, colorAtLuminance, contrast, luminance, oklchToHex, parseColor, span, targetLuminance } from './color.ts';
 import type { Oklch } from './color.ts';
 import { fail, rules } from './common.ts';
 import { importActions, usesTailwind } from './entry.ts';
@@ -43,7 +43,7 @@ interface Role {
 export interface Group {
   name: string;
   shades: string[];
-  /** Colors between shades, by position (TINT). */
+  /** Colors between shades, by position (BETWEEN). */
   tints: Record<number, string>;
 }
 
@@ -58,7 +58,7 @@ export function groupFor(name: string, { c, h }: Oklch, chroma: (n: number) => n
   return {
     name,
     shades: Array.from({ length: SHADES }, (_, i) => at(i + 1)),
-    tints: Object.fromEntries(Object.values(TINT).map((n) => [n, at(n)])),
+    tints: Object.fromEntries(BETWEEN.map((n) => [n, at(n)])),
   };
 }
 
@@ -81,30 +81,43 @@ export function groupsFor(answers: Answers): Group[] {
   return groups;
 }
 
+/**
+ * Each role sits just as far from what it's measured against as its ratio needs (span()), often between
+ * shades: on whole shades, 7:1 would land on 9.6:1 and make buttons and borders needlessly dark.
+ */
 export function rolesFor(groups: Pick<Group, 'name'>[], level: Level): Role[] {
-  const d = level === 'aaa' ? 1 : 0;
+  const text = span(LEVEL_RATIO[level]);
+  const large = span(LARGE_RATIO[level]);
+  const ui = span(3);
   const roles: Role[] = [
     { name: 'surface', group: 'neutral', light: 1, dark: 6 },
     { name: 'surface-2', group: 'neutral', ...TINT },
     { name: 'text', group: 'neutral', light: 6, dark: 1 },
-    { name: 'text-muted', group: 'neutral', light: 5, dark: 2 },
-    { name: 'border', group: 'neutral', light: 4, dark: 3 },
+    // measured against surface-2, the tint farther in
+    { name: 'text-muted', group: 'neutral', light: TINT.light + text, dark: TINT.dark - text },
+    { name: 'border', group: 'neutral', light: TINT.light + ui, dark: TINT.dark - ui },
     // decorative dividers: WCAG 1.4.11 asks 3:1 only of borders that carry meaning, so claimsFor() has no pair for it
     { name: 'border-subtle', group: 'neutral', light: 2, dark: 5 },
   ];
   for (const { name } of groups) {
     if (name === 'neutral') continue;
     roles.push(
-      { name, group: name, light: 4 + d, dark: 3 - d },
-      { name: `${name}-strong`, group: name, light: 5 + d, dark: 2 - d },
-      { name: `${name}-large`, group: name, light: 3 + d, dark: 4 - d },
+      { name, group: name, light: 1 + text, dark: 6 - text },
+      // half a shade on: a visible hover, and far enough from -subtle for text on it
+      { name: `${name}-strong`, group: name, light: 1.5 + text, dark: 5.5 - text },
+      { name: `${name}-large`, group: name, light: 1 + large, dark: 6 - large },
       { name: `${name}-subtle`, group: name, ...TINT },
       { name: `on-${name}`, group: name, light: 1, dark: 6 },
     );
   }
-  roles.push({ name: 'focus', group: 'primary', light: 4 + d, dark: 3 - d });
+  roles.push({ name: 'focus', group: 'primary', light: 1 + text, dark: 6 - text });
   return roles;
 }
+
+/** Every place between shades a role can sit, at either level: the colors groupFor() makes besides the shades. */
+const BETWEEN = [
+  ...new Set((['aa', 'aaa'] as const).flatMap((level) => rolesFor([{ name: 'x' }], level).flatMap((r) => [r.light, r.dark]))),
+].filter((n) => !Number.isInteger(n));
 
 /** A pair of roles the palette promises to keep apart: text (`ratio` = the level) or UI (3:1). */
 interface Claim {
@@ -186,6 +199,9 @@ export function paletteUsage(): string[] {
   ];
 }
 
+/** Where a role sits, in shade names: `-5`, or `between -4 and -5`. */
+const shadeAt = (n: number): string => (Number.isInteger(n) ? `-${n}` : `between -${Math.floor(n)} and -${Math.ceil(n)}`);
+
 /** A bare hue (`264`, `264deg`) has no lightness of its own to compare. */
 const isHue = (spec: string): boolean => /^\s*-?[\d.]+(deg)?\s*$/.test(spec);
 
@@ -205,7 +221,7 @@ export function brandNotes(answers: Answers): Action[] {
     const distance = (n: number) => Math.abs(Math.log((y + 0.05) / (targetLuminance(n) + 0.05)));
     const closest = Array.from({ length: SHADES }, (_, i) => i + 1).reduce((a, b) => (distance(b) < distance(a) ? b : a));
     const main = roles.find((r) => r.name === name)!;
-    if (main.light === closest) continue;
+    if (Math.round(main.light) === closest) continue;
     const users = roles
       .filter((r) => r.group === name && r.name !== 'focus')
       .flatMap((r) => [...(r.light === closest ? [`--color-${r.name} in light mode`] : []), ...(r.dark === closest ? [`--color-${r.name} in dark mode`] : [])]);
@@ -214,7 +230,7 @@ export function brandNotes(answers: Answers): Action[] {
     notes.push({
       note:
         `${given} is closest to --color-${name}-${closest}${users.length ? ` (${users.join(', ')})` : ''}; ` +
-        `buttons and links use the ${main.light > closest ? 'darker' : 'lighter'} -${main.light} in light mode${closer ? `, -${aa} with --contrast=aa` : ''}`,
+        `buttons and links use a ${main.light > closest ? 'darker' : 'lighter'} color ${shadeAt(main.light)} in light mode${closer ? `, ${shadeAt(aa)} with --contrast=aa` : ''}`,
     });
   }
   return notes;
@@ -380,7 +396,7 @@ export const PALETTE_PARAMS: Params = {
   warning: { default: '', description: 'overrides the built-in warning color' },
   danger: { default: '', description: 'overrides the built-in danger color' },
   info: { default: '', description: 'overrides the built-in info color' },
-  contrast: { default: 'aaa', choices: ['aaa', 'aa'], description: 'WCAG level of the role tokens (aa: shades 3 apart)' },
+  contrast: { default: 'aaa', choices: ['aaa', 'aa'], description: 'WCAG level of the role tokens: 7:1 for text, or 4.5:1 with aa' },
   tailwind: { default: false, description: 'write Tailwind\'s @theme instead – on by itself in a Tailwind project' },
 };
 
