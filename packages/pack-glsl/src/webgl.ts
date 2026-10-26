@@ -60,14 +60,15 @@ const webglGenerator: Generator = {
     shaderDir: { default: 'shaders', description: 'folder for the shader inside it' },
     tag: { default: 'shader-canvas', description: 'custom element name, if shader-canvas clashes with something on the page' },
     inline: { default: false, description: 'put the shader into the page, so it opens from disk without a web server' },
+    texture: { default: '', description: 'texture0 for the shader (uTexture0): an image next to the page, or test-pattern' },
     shader: { path: true, default: '', description: 'an existing fragment shader for the page instead of the starter, e.g. from glsl:raymarch --name' },
   },
-  examples: ['--name=Clouds', '--name=Clouds --inline', '--name=Land --inline --shader=shaders/land.frag.glsl'],
+  examples: ['--name=Clouds', '--name=Clouds --inline', '--name=Land --inline --shader=shaders/land.frag.glsl', '--name=Retro --inline --shader=retro.frag.glsl --texture=photo.jpg'],
   usage: [
     'with --inline the page opens from disk, and glsl:* --into=index.html adds functions to its shader',
     '<shader-canvas time="12.5"> or #t=12.5 in the URL draws one still frame, e.g. for screenshots',
   ],
-  actions: ({ name, dir, shaderDir, tag, inline, shader }, { kebab, pascal }, ctx) => {
+  actions: ({ name, dir, shaderDir, tag, inline, shader, texture }, { kebab, pascal }, ctx) => {
     const t = String(tag);
     if (!/^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/.test(t)) {
       fail(`glsl:webgl --tag: "${t}" is not a valid custom element name (lowercase, with a hyphen, e.g. "shader-canvas")`);
@@ -86,11 +87,13 @@ const webglGenerator: Generator = {
     // the page's shader takes `glsl:* --into=index.html` too
     const inlineFrag = frag.includes(INTO_MARKER) ? frag : frag.replace(/^void main\(/m, `${MARKER_LINE}\n\nvoid main(`);
 
+    // the attribute value goes into HTML: escape what could end it
+    const attrs = texture ? ` texture0="${String(texture).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')}"` : '';
     const element = inline
-      ? `    <${t}>\n      <script type="x-shader/x-fragment">\n${indent(inlineFrag, '        ')}\n      </script>\n    </${t}>`
+      ? `    <${t}${attrs}>\n      <script type="x-shader/x-fragment">\n${indent(inlineFrag, '        ')}\n      </script>\n    </${t}>`
       : `    <!-- Fetching shaders needs a local web server, e.g. \`npx serve\` or \`python3 -m http.server\`. -->\n` +
         `    <!-- \`live\` recompiles whenever the file changes. -->\n` +
-        `    <${t} src="${shaderFile}" live></${t}>`;
+        `    <${t} src="${shaderFile}"${attrs} live></${t}>`;
 
     const actions: Action[] = [
       { add: at('index.html'), template: page(title, t, script, element) },

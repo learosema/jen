@@ -10,7 +10,7 @@
     name: "@codejen/pack-glsl",
     langs: [GLSL],
     url: "/glsl.html",
-    text: "Noise, SDFs, raymarching, lighting.",
+    text: "Noise, SDFs, raymarching, lighting, filters.",
   }
 - {
     name: "@codejen/pack-web",

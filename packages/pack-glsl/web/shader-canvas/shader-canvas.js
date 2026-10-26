@@ -69,6 +69,52 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
 
   // ─── Meshes ─────────────────────────────────────────────────────────────────
 
+  /** texture0="test-pattern": color bars, a gray ramp, a grid, a circle and fine stripes, to try filters on. */
+  function testPattern() {
+    const size = 512;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    const g = canvas.getContext('2d');
+    g.fillStyle = '#202024';
+    g.fillRect(0, 0, size, size);
+    const bars = ['#bfbfbf', '#bfbf00', '#00bfbf', '#00bf00', '#bf00bf', '#bf0000', '#0000bf'];
+    bars.forEach((c, i) => {
+      g.fillStyle = c;
+      g.fillRect((i * size) / 7, 0, size / 7 + 1, 0.45 * size);
+    });
+    for (let i = 0; i < 16; i++) {
+      const v = Math.round((255 * i) / 15);
+      g.fillStyle = `rgb(${v} ${v} ${v})`;
+      g.fillRect((i * size) / 16, 0.45 * size, size / 16 + 1, 0.2 * size);
+    }
+    for (let x = 0; x < size / 2; x += 4) {
+      g.fillStyle = '#fff';
+      g.fillRect(x, 0.8 * size, 2, 0.2 * size);
+    }
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        g.fillStyle = (x + y) % 2 ? '#fff' : '#000';
+        g.fillRect(size / 2 + x * 32, 0.8 * size + y * 13, 32, 13);
+      }
+    }
+    g.strokeStyle = 'rgb(255 255 255 / 0.35)';
+    g.lineWidth = 1;
+    for (let p = 32; p < size; p += 32) {
+      g.beginPath();
+      g.moveTo(p + 0.5, 0);
+      g.lineTo(p + 0.5, size);
+      g.moveTo(0, p + 0.5);
+      g.lineTo(size, p + 0.5);
+      g.stroke();
+    }
+    g.strokeStyle = '#fff';
+    g.lineWidth = 4;
+    g.beginPath();
+    g.arc(size / 2, 0.45 * size, 0.3 * size, 0, 2 * Math.PI);
+    g.stroke();
+    return canvas;
+  }
+
   function quadMesh() {
     return { attribs: [{ size: 2, data: [-1, -1, 1, -1, -1, 1, 1, 1] }], indices: [0, 1, 2, 2, 1, 3] };
   }
@@ -276,23 +322,30 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
 
       const url = this.getAttribute(`texture${unit}`);
       if (!url) return;
+      if (url === 'test-pattern') {
+        this.#upload(unit, texture, testPattern());
+        return;
+      }
       const image = new Image();
       image.crossOrigin = 'anonymous';
-      image.onload = () => {
-        if (this.#textures[unit] !== texture || !this.#gl) return;
-        gl.activeTexture(gl.TEXTURE0 + unit);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-        gl.generateMipmap(gl.TEXTURE_2D);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-        this.#schedule();
-      };
+      image.onload = () => this.#upload(unit, texture, image);
       image.onerror = () => this.#showError(`Could not load texture${unit}: ${url}`);
       image.src = new URL(url, document.baseURI).href;
+    }
+
+    #upload(unit, texture, source) {
+      const gl = this.#gl;
+      if (this.#textures[unit] !== texture || !gl) return;
+      gl.activeTexture(gl.TEXTURE0 + unit);
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+      this.#schedule();
     }
 
     // ─── Sources ────────────────────────────────────────────────────────────

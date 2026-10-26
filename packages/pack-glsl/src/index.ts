@@ -18,9 +18,11 @@
  *   jen glsl:lighting --models=pbr --tonemap=aces,srgb --into=shaders/scene.frag.glsl
  *   jen glsl:displace --kind=noise --name=Blob   vertex displacement with normals (preview .vert + .frag)
  *   jen glsl:matrix --fns=rotate,look-at --into=shaders/mesh.vert.glsl
+ *   jen glsl:filter --kinds=crt --name=Retro   image filters on texture0 (or their functions --into a shader)
  */
 import type { Pack } from '@codejen/jen';
 import displaceGenerator from './displace.ts';
+import filterGenerator from './filter.ts';
 import fragGenerator from './frag.ts';
 import lightingGenerator from './lighting.ts';
 import matrixGenerator from './matrix.ts';
@@ -43,6 +45,7 @@ const pack: Pack = {
   raymarch: raymarchGenerator,
   lighting: lightingGenerator,
   displace: displaceGenerator,
+  filter: filterGenerator,
   matrix: matrixGenerator,
 };
 

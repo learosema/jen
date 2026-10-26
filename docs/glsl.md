@@ -2,11 +2,11 @@
 layout: doc
 permalink: /glsl.html
 title: jen — glsl pack recipes
-description: "Every jen command in @codejen/pack-glsl: shader starters, a WebGL playground, noise, signed distance fields, raymarching, lighting and vertex displacement – with live previews."
+description: "Every jen command in @codejen/pack-glsl: shader starters, a WebGL playground, noise, signed distance fields, raymarching, lighting, image filters and vertex displacement – with live previews."
 eyebrow: "@codejen/pack-glsl"
 mega: shaders
 lede: Every generator, with the command, the output it prints, and the shader it makes – running live.
-sub: GLSL for WebGL2 and OpenGL. MIT-0 and MIT.
+sub: GLSL for WebGL2 and OpenGL. MIT-0, MIT and public domain.
 cta: { text: "Three ways to install ↓", url: "#install" }
 toc:
   - title: Install
@@ -30,6 +30,7 @@ toc:
       - { title: "glsl:sdf", id: glsl-sdf }
       - { title: "glsl:raymarch", id: glsl-raymarch }
       - { title: "glsl:lighting", id: glsl-lighting }
+      - { title: "glsl:filter", id: glsl-filter }
       - { title: "glsl:displace", id: glsl-displace }
       - { title: "glsl:matrix", id: glsl-matrix }
       - { title: "glsl:util", id: glsl-util }
@@ -58,7 +59,7 @@ Into the current folder, or `--dir`.
 
 ## Starters {#starters}
 
-WebGL2 by default, `--version=410` for desktop. Uniforms: `uTime`, `uResolution`, `uMouse`.
+WebGL2 by default, `--version=410` for desktop. Uniforms: `uTime`, `uResolution`, `uMouse`, and `uTexture0`–`uTexture3` from `texture0="photo.jpg"` (or `"test-pattern"`).
 
 ### `glsl:webgl` {#glsl-webgl}
 
@@ -167,6 +168,21 @@ Every noise tiles with its `period` overload.
 
 {% include params.html generator="glsl:lighting" %}
 
+### `glsl:filter` {#glsl-filter}
+
+{% include terminal.html id="glsl_filter" %}
+
+<div class="auto-grid shaders">
+{% include shader.html src="filter-crt.frag.glsl" texture="test-pattern" caption="<code>--kinds=crt,vignette</code>" %}
+{% include shader.html src="filter-sobel.frag.glsl" texture="test-pattern" caption="<code>--kinds=sobel</code>" %}
+{% include shader.html src="filter-kuwahara.frag.glsl" texture="test-pattern" caption="<code>--kinds=kuwahara</code>" %}
+{% include shader.html src="filter-pixelate.frag.glsl" texture="test-pattern" caption="<code>--kinds=pixelate,dither</code>" %}
+</div>
+
+{% include usage.html generator="glsl:filter" %}
+
+{% include params.html generator="glsl:filter" %}
+
 ### `glsl:displace` {#glsl-displace}
 
 Drag the previews to turn them.
@@ -204,7 +220,8 @@ Keep the `THIRD_PARTY_NOTICES.md` jen writes next to your shaders.
 - **[psrdnoise](https://github.com/stegu/psrdnoise)** by Stefan Gustavson and Ian McEwan, MIT: tiling simplex noise and its gradients, behind `simplexNoise` and `curlNoise`.
 - **[BakingLab](https://github.com/TheRealMJP/BakingLab)** by MJP and David Neubelt, MIT: Stephen Hill's ACES fit, `tonemapAces`.
 - **[hash-prospector](https://github.com/skeeto/hash-prospector)** by Chris Wellons, public domain: the `lowbias32` hash constants.
+- **[CRT shader](https://github.com/libretro/glsl-shaders/blob/master/crt/shaders/crt-lottes.glsl)** by Timothy Lottes, public domain: `crt()` – curvature, scanlines, shadow mask.
 - **[Inigo Quilez's articles](https://iquilezles.org/articles/)**, MIT: the [distance functions](https://iquilezles.org/articles/distfunctions/), [2D distance functions](https://iquilezles.org/articles/distfunctions2d/), [ray intersectors](https://iquilezles.org/articles/intersectors/), [smooth minimum](https://iquilezles.org/articles/smin/), [normals](https://iquilezles.org/articles/normalsSDF/) and [soft shadows](https://iquilezles.org/articles/rmshadows/).
-- **Formulas** from Brian Karis's "Real Shading in Unreal Engine 4"; Duff et al.'s orthonormal basis (JCGT 2017); Mark Finch's Gerstner waves (GPU Gems); Kay and Kajiya's slab method for ray–box hits (SIGGRAPH 1986).
+- **Methods**, written for the pack after: John C. Hart's sphere tracing (1996); Alex Evans's ambient occlusion (2006); Quilez's [domain warping](https://iquilezles.org/articles/warp/); Ken Perlin's turbulence (1985); F. Kenton Musgrave's ridged multifractal (1994); Steven Worley's cellular noise (1996); Bridson, Hourihan and Nordenstam's curl noise (2007); James F. Blinn's highlights (1977); Brian Karis's "Real Shading in Unreal Engine 4" (2013); Sébastien Lagarde's rough Fresnel (2011); Reinhard et al.'s tone mapping (2002); Duff et al.'s orthonormal basis (2017); Mark Finch's Gerstner waves (2004); Kay and Kajiya's slab method (1986); Sobel and Feldman's edge detection (1968); Bryce Bayer's ordered dithering (1973); the Kuwahara filter (1976).
 
 <script src="{{ '/glsl/shader-canvas.js' | relative_url }}" defer></script>
