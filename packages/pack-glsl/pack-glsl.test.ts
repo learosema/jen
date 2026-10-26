@@ -109,7 +109,7 @@ function assertCompiles(source: string, stage: 'vert' | 'frag', label: string) {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('chunks', () => {
-  const allIds = ['util', 'noise', 'fractal', 'sdf2d', 'sdf3d', 'sdfop', 'sdffx', 'raymarch', 'lighting', 'atmosphere', 'color', 'matrix', 'vertex'].flatMap(chunkIds);
+  const allIds = ['util', 'noise', 'fractal', 'sdf2d', 'sdf3d', 'sdfop', 'sdffx', 'raymarch', 'intersect', 'lighting', 'lights', 'atmosphere', 'color', 'matrix', 'vertex'].flatMap(chunkIds);
 
   it('every chunk declares a license; third-party ones have an existing notice', () => {
     for (const id of allIds) {
@@ -364,7 +364,7 @@ describe('glsl:util', () => {
     for (const [generator, param] of [['util', 'fns'], ['matrix', 'fns'], ['noise', 'kind']]) {
       assert.equal(pack[generator].params?.[param].default, undefined, `glsl:${generator} --${param} is required`);
     }
-    for (const [generator, group] of [['sdf', ['shapes', 'ops', 'effects']], ['lighting', ['models', 'tonemap', 'sky', 'fog']]] as const) {
+    for (const [generator, group] of [['sdf', ['shapes', 'ops', 'effects']], ['lighting', ['models', 'tonemap', 'sky', 'fog', 'point']]] as const) {
       for (const param of group) {
         assert.match(pack[generator].params?.[param].description ?? '', new RegExp(`\\(pick at least one of ${group.map((p) => `--${p}`).join(', ')}\\)$`));
       }
@@ -659,7 +659,7 @@ describe('glsl:sdf', () => {
     new Map([['s.glsl', `${header(version)}\n\nout vec4 fragColor;\n\nvoid main() {\n  fragColor = vec4(0.0);\n}\n`]]);
 
   it('validates its flags, listing what can be picked', () => {
-    assert.throws(() => run('sdf', {}), /pick something – --shapes=box, circle, polygon, round-box, segment, star; --ops=extrude, .*; --effects=fill, glow, inner-shadow, shadow, stroke/);
+    assert.throws(() => run('sdf', {}), /pick something – --shapes=arch, box, circle, polygon, round-box, segment, star, vesica; --ops=extrude, .*; --effects=fill, glow, inner-shadow, shadow, stroke/);
     assert.throws(() => run('sdf', { dim: '3' }), /--shapes=box, capsule, cylinder, plane, round-box, sphere, torus; --ops=.*\(each also takes "all"\)$/);
     assert.throws(() => run('sdf', { dim: '3', effects: 'glow' }), /--effects: 2D only/);
     assert.throws(() => run('sdf', { shapes: 'sphere' }), /--shapes: unknown "sphere"/);
@@ -673,7 +673,7 @@ describe('glsl:sdf', () => {
       return [...out.matchAll(/\b(sd[A-Z]\w*)\(\(p - /g)].map((m) => m[1]);
     };
     assert.deepEqual(order({ shapes: 'star,circle,box' }), ['sdStar', 'sdCircle', 'sdBox']);
-    assert.deepEqual(order({ shapes: 'all' }), ['sdCircle', 'sdBox', 'sdRoundBox', 'sdSegment', 'sdPolygon', 'sdStar']);
+    assert.deepEqual(order({ shapes: 'all' }), ['sdCircle', 'sdBox', 'sdRoundBox', 'sdSegment', 'sdPolygon', 'sdStar', 'sdVesica', 'sdPointedArch']);
     assert.deepEqual(order({ dim: '3', shapes: 'all' }), ['sdSphere', 'sdBox', 'sdRoundBox', 'sdTorus', 'sdCapsule', 'sdCylinder']);
   });
 
@@ -776,11 +776,11 @@ describe('glsl:raymarch', () => {
   });
 
   it('--scene and --water fail where they mean nothing', () => {
-    assert.throws(() => run('raymarch', { name: 'x', scene: 'cave' }), /--scene: expected "shapes" or "terrain", got "cave"/);
+    assert.throws(() => run('raymarch', { name: 'x', scene: 'cave' }), /--scene: expected "shapes", "cube", "terrain", got "cave"/);
     assert.throws(() => run('raymarch', { name: 'x', water: true }), /--water: only with --scene=terrain/);
     assert.throws(() => run('raymarch', { into: 'x.glsl', scene: 'terrain' }), /--scene and --water: only for a new starter/);
     assert.throws(() => run('raymarch', { name: 'x', scene: 'terrain', materials: true }), /--scene=terrain: lit with lambert/);
-    assert.throws(() => run('raymarch', { name: 'x', scene: 'terrain', lighting: 'pbr' }), /--materials and --lighting are for the shapes scene/);
+    assert.throws(() => run('raymarch', { name: 'x', scene: 'terrain', lighting: 'pbr' }), /--lighting is for the shapes and cube scenes, --materials for shapes/);
   });
 
   it('--minimal leaves out shadows, AO and fog', () => {
@@ -790,6 +790,35 @@ describe('glsl:raymarch', () => {
       assert.ok(full.includes(s), `full has ${s}`);
       assert.ok(!minimal.includes(s), `minimal lacks ${s}`);
     }
+  });
+
+  it('--scene=cube: one cube on the ground and nothing unused; compiles with every model, full and minimal, in every dialect', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    for (const version of VERSIONS) {
+      for (const lighting of ['lambert', 'blinn', 'toon', 'pbr']) {
+        for (const minimal of [false, true]) {
+          const out = applyActions(new Map(), run('raymarch', { name: 'Box', scene: 'cube', lighting, minimal, version })).get('shaders/box.frag.glsl')!;
+          assertCompiles(out, 'frag', `cube starter (${version}, ${lighting}, minimal: ${minimal})`);
+        }
+      }
+    }
+    const out = applyActions(new Map(), run('raymarch', { name: 'Box', scene: 'cube', minimal: true })).get('shaders/box.frag.glsl')!;
+    assert.match(out, /float cube = sdRoundBox\(/);
+    for (const s of ['sdSphere', 'sdTorus', 'opSmoothUnion', 'softShadow', 'calcAO']) assert.ok(!out.includes(s), `no ${s}`);
+    assert.throws(() => run('raymarch', { name: 'Box', scene: 'cube', materials: true }), /--scene=cube: one object needs no material ids/);
+    assert.throws(() => run('raymarch', { scene: 'cube', into: 's.glsl' }), /--scene and --water: only for a new starter/);
+  });
+
+  it('--hits adds exact ray intersections alone, or next to --parts; they hit what they should', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    const only = adds(run('raymarch', { hits: 'sphere,plane,box' }));
+    assert.deepEqual(only.map((f) => f.add), ['shaders/lib/intersect-sphere.glsl', 'shaders/lib/intersect-plane.glsl', 'shaders/lib/intersect-box.glsl', 'shaders/lib/THIRD_PARTY_NOTICES.md']);
+    const both = adds(run('raymarch', { hits: 'sphere', parts: 'march' })).map((f) => f.add);
+    assert.ok(both.includes('shaders/lib/raymarch-march.glsl') && both.includes('shaders/lib/intersect-sphere.glsl'));
+    assert.ok(adds(run('raymarch', {})).some((f) => f.add === 'shaders/lib/raymarch-ao.glsl'), 'all parts without --hits');
+    assert.throws(() => run('raymarch', { hits: 'cone' }), /--hits: unknown "cone" – valid: box, plane, sphere/);
+    assert.throws(() => run('raymarch', { name: 'x', hits: 'sphere' }), /--hits: only with --into/);
+    const shader = `${header('300es')}\n\nout vec4 fragColor;\n\nvoid main() {\n  vec3 n;\n  vec2 s = raySphere(vec3(0.0, 0.0, 5.0), vec3(0.0, 0.0, -1.0), vec3(0.0), 1.0);\n  vec2 b = rayBox(vec3(0.0, 0.0, 5.0), vec3(0.0, 0.0, -1.0), vec3(0.0), vec3(1.0), n);\n  float p = rayPlane(vec3(0.0), vec3(0.0, -1.0, 0.0), vec3(0.0, 1.0, 0.0), 1.0);\n  fragColor = vec4(s.x, b.x, p, n.z);\n}\n`;
+    const out = applyActions(new Map([['s.glsl', shader]]), run('raymarch', { hits: 'all', into: 's.glsl' })).get('s.glsl')!;
+    assertCompiles(out, 'frag', 'ray intersections');
   });
 
   it('--parts picks helpers, which declare scene() as a prototype', () => {
@@ -804,8 +833,16 @@ describe('glsl:raymarch', () => {
 });
 
 describe('glsl:lighting', () => {
+  it('--point adds pointLight(), which a loop over lights compiles with', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    const shader = `${header('300es')}\n\nout vec4 fragColor;\nuniform vec3 lamps[4];\n\nvoid main() {\n  vec3 p = vec3(0.0), n = vec3(0.0, 1.0, 0.0), color = vec3(0.0);\n  for (int i = 0; i < 4; i++) {\n    vec3 l;\n    float a = pointLight(p, lamps[i], 8.0, l);\n    color += lambert(n, l, vec3(0.8)) * a * 10.0 * vec3(1.0, 0.6, 0.3);\n  }\n  fragColor = vec4(color, 1.0);\n}\n`;
+    const out = applyActions(new Map([['s.glsl', shader]]), run('lighting', { models: 'lambert', point: true, into: 's.glsl' })).get('s.glsl')!;
+    assert.match(out, /^float pointLight\(vec3 p, vec3 lightPos, float range, out vec3 l\)/m);
+    assert.match(out, /Brian Karis/);
+    assertCompiles(out, 'frag', 'point lights in a loop');
+  });
+
   it('validates, listing models and tonemaps', () => {
-    assert.throws(() => run('lighting', {}), /pick something – --models=blinn, lambert, pbr, toon; --tonemap=aces, reinhard, srgb \(each also takes "all"\); --sky, --fog/);
+    assert.throws(() => run('lighting', {}), /pick something – --models=blinn, lambert, pbr, toon; --tonemap=aces, reinhard, srgb \(each also takes "all"\); --sky, --fog, --point/);
     assert.throws(() => run('lighting', { tonemap: 'filmic' }), /--tonemap: unknown "filmic"/);
     assert.throws(() => run('lighting', { models: 'phong' }), /--models: unknown "phong"/);
   });

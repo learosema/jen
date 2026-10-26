@@ -7,6 +7,7 @@
  *   --tonemap=aces,reinhard,srgb      tonemapAces(c), tonemapReinhard(c): HDR → [0, 1];
  *                                     linearToSrgb(c) / srgbToLinear(c) for display encoding
  *   --sky, --fog                      skyColor(rd, sun); fogExp(), fogExp2(): fade to a color with distance
+ *   --point                           pointLight(p, lightPos, range, out l): inverse-square falloff to 0 at range
  *
  * Every model returns the light reflected towards the viewer for a white
  * light of intensity 1, so models are interchangeable. To see one in action:
@@ -21,10 +22,11 @@ const TONEMAP_NAMES: Record<string, string> = { aces: 'color/aces', reinhard: 'c
 const lightingGenerator: Generator = {
   description: 'add lighting and color output',
   params: {
-    models: { default: '', description: 'comma-separated shading models: lambert, blinn, toon, pbr – or all (pick at least one of --models, --tonemap, --sky, --fog)' },
-    tonemap: { default: '', description: 'comma-separated color output: aces, reinhard (HDR to [0, 1]), srgb (display encoding) – or all (pick at least one of --models, --tonemap, --sky, --fog)' },
-    sky: { default: false, description: 'skyColor(rd, sun): a gradient with the sun\'s glow and disc (pick at least one of --models, --tonemap, --sky, --fog)' },
-    fog: { default: false, description: 'fogExp() and fogExp2(): fade to a color (the sky\'s) with distance (pick at least one of --models, --tonemap, --sky, --fog)' },
+    models: { default: '', description: 'comma-separated shading models: lambert, blinn, toon, pbr – or all (pick at least one of --models, --tonemap, --sky, --fog, --point)' },
+    tonemap: { default: '', description: 'comma-separated color output: aces, reinhard (HDR to [0, 1]), srgb (display encoding) – or all (pick at least one of --models, --tonemap, --sky, --fog, --point)' },
+    sky: { default: false, description: 'skyColor(rd, sun): a gradient with the sun\'s glow and disc (pick at least one of --models, --tonemap, --sky, --fog, --point)' },
+    fog: { default: false, description: 'fogExp() and fogExp2(): fade to a color (the sky\'s) with distance (pick at least one of --models, --tonemap, --sky, --fog, --point)' },
+    point: { default: false, description: 'pointLight(): a light at a position, inverse-square falloff ending at a range – for torches, lamps (pick at least one of --models, --tonemap, --sky, --fog, --point)' },
     into: { path: true, default: '', description: 'existing shader or --inline page to insert the functions into, before main() (default: one file each in lib/)' },
   },
   usage: [
@@ -32,16 +34,17 @@ const lightingGenerator: Generator = {
     'light in linear space; tonemapAces() or tonemapReinhard() map HDR to [0, 1], then linearToSrgb() encodes for display',
     'pbr() includes the 1/π of the diffuse term: a sun needs about intensity 3 to look as bright as with lambert()',
     'color = fogExp2(color, skyColor(rd, sun), t, 0.02);  t the distance along the ray: far surfaces fade into the sky',
+    'for (int i = 0; i < 4; i++) { vec3 l; float a = pointLight(p, lamps[i], 8.0, l); color += lambert(n, l, albedo) * a * 10.0 * lampColor; }  sum over lights; a shadow is softShadow(p + 0.01 * n, l, 0.02, distance(p, lamps[i]), 16.0)',
   ],
-  examples: ['--models=pbr --tonemap=aces,srgb --into=shaders/scene.frag.glsl', '--sky --fog --into=index.html'],
-  actions: ({ models, tonemap, sky, fog, into }, _helpers, ctx) => {
+  examples: ['--models=pbr --tonemap=aces,srgb --into=shaders/scene.frag.glsl', '--sky --fog --into=index.html', '--models=pbr --point --into=index.html'],
+  actions: ({ models, tonemap, sky, fog, point, into }, _helpers, ctx) => {
     const modelList = parseList(String(models));
     const tonemapList = parseList(String(tonemap));
     const modelNames = chunkIds('lighting')
       .map((id) => id.slice('lighting/'.length))
       .filter((m) => m !== 'pbr-ambient');
-    if (modelList.length + tonemapList.length === 0 && !sky && !fog) {
-      fail(`glsl:lighting: pick something – --models=${modelNames.join(', ')}; --tonemap=${Object.keys(TONEMAP_NAMES).join(', ')} (each also takes "all"); --sky, --fog`);
+    if (modelList.length + tonemapList.length === 0 && !sky && !fog && !point) {
+      fail(`glsl:lighting: pick something – --models=${modelNames.join(', ')}; --tonemap=${Object.keys(TONEMAP_NAMES).join(', ')} (each also takes "all"); --sky, --fog, --point`);
     }
 
     const ids = modelList.length ? pickChunks('lighting', modelList, '--models', 'glsl:lighting') : [];
@@ -54,6 +57,7 @@ const lightingGenerator: Generator = {
     }
     if (sky) ids.push('atmosphere/sky');
     if (fog) ids.push('atmosphere/fog');
+    if (point) ids.push('lights/point');
     return chunkActions(ids, { into: String(into), dir: '', ctx });
   },
 };

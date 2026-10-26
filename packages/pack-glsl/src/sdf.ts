@@ -1,7 +1,7 @@
 /**
  * `glsl:sdf`: signed distance functions.
  *
- *   --shapes=…    2D: circle, box, round-box, segment, polygon, star
+ *   --shapes=…    2D: circle, box, round-box, segment, polygon, star, vesica, arch
  *                 3D: sphere, box, round-box, torus, capsule, cylinder, plane
  *   --ops=…       union, subtract, intersect, smooth-union/-subtract/-intersect,
  *                 round, onion, repeat, repeat-limited, extrude, revolve
@@ -25,6 +25,8 @@ const SAMPLES_2D: Record<string, string> = {
   segment: 'sdSegment(q, vec2(-0.25, -0.2), vec2(0.25, 0.2)) - 0.04',
   polygon: 'sdPolygon(q, 0.32, 6.0)',
   star: 'sdStar(q, 0.34, 0.15, 5.0)',
+  vesica: 'sdVesica(q, 0.3, 0.16)',
+  arch: 'sdPointedArch(q - vec2(0.0, -0.05), 0.18, 0.25)',
 };
 
 const SAMPLES_3D: Record<string, string> = {
@@ -78,7 +80,7 @@ const sdfGenerator: Generator = {
   description: 'add signed distance functions',
   params: {
     dim: { default: '2', choices: ['2', '3'], description: '2: shapes to draw, 3: solids to raymarch' },
-    shapes: { default: '', description: 'comma-separated or all – 2D: circle, box, round-box, segment, polygon, star; 3D: sphere, box, round-box, torus, capsule, cylinder, plane (pick at least one of --shapes, --ops, --effects)' },
+    shapes: { default: '', description: 'comma-separated or all – 2D: circle, box, round-box, segment, polygon, star, vesica, arch; 3D: sphere, box, round-box, torus, capsule, cylinder, plane (pick at least one of --shapes, --ops, --effects)' },
     ops: { default: '', description: 'comma-separated or all: union, subtract, intersect, smooth-union/-subtract/-intersect, round, onion, repeat, repeat-limited, extrude, revolve (pick at least one of --shapes, --ops, --effects)' },
     effects: { default: '', description: '2D only, comma-separated or all: fill, stroke, glow, shadow, inner-shadow (pick at least one of --shapes, --ops, --effects)' },
     into: { path: true, default: '', description: 'existing shader or --inline page to insert the functions into, before main() (default: one file each in lib/)' },

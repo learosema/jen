@@ -6,11 +6,14 @@
  *                    ambient occlusion and fog, lit with the chosen model (see
  *                    glsl:lighting); --minimal: no shadows, AO or fog;
  *                    --materials: sceneMaterial() returns a material id per surface
+ *   --name=Box --scene=cube [--minimal] [--lighting=…]
+ *                    the smallest starter: one rounded cube on the ground
  *   --name=Land --scene=terrain [--water] [--minimal]
  *                    a heightfield flyover instead: terrain() from fbm and ridged
  *                    noise, materials by slope and height, sky, sun and fog
  *   --into=<shader>  the helpers for your own scene(): raymarch, calcNormal, softShadow,
  *                    calcAO, cameraMatrix (pick with --parts=march,normal,…)
+ *   --hits=sphere,plane,box   exact ray intersections, for bounding volumes, water, planets
  *
  * The helpers call `float scene(vec3 p)`, which they declare as a prototype,
  * so your scene can live anywhere in the shader. Material scenes keep that
@@ -54,6 +57,15 @@ vec2 sceneMaterial(vec3 p) {
 
 // The distance alone, for raymarch(), calcNormal(), softShadow() and calcAO().
 float scene(vec3 p) { return sceneMaterial(p).x; }`;
+
+const CUBE_CHUNKS = ['sdf3d/plane', 'sdf3d/round-box'];
+
+const CUBE_SCENE = `// The scene: the distance from p to the nearest surface.
+float scene(vec3 p) {
+  float ground = ${GROUND};
+  float cube = sdRoundBox(p - vec3(0.0, 0.1, 0.0), vec3(0.6), 0.05);
+  return min(ground, cube);
+}`;
 
 export const LIGHTING_MODELS = ['lambert', 'blinn', 'toon', 'pbr'];
 
@@ -237,18 +249,19 @@ void main() {
   return [{ add: file, template: withHeader(version, body) }, ...chunkActions(chunks, { into: file, dir: '', ctx })];
 }
 
-export const SCENES = ['shapes', 'terrain'];
+export const SCENES = ['shapes', 'cube', 'terrain'];
 
 const raymarchGenerator: Generator = {
   description: 'raymarch signed distance fields',
   params: {
     name: { default: '', description: 'create a starter shader with this name: a small scene, orbiting camera, shadows, AO and fog' },
-    scene: { default: 'shapes', choices: SCENES, description: 'with --name: shapes, or terrain – a heightfield flyover with sky, sun and fog' },
+    scene: { default: 'shapes', choices: SCENES, description: 'with --name: shapes; cube – one cube on the ground, the smallest start; or terrain – a heightfield flyover with sky, sun and fog' },
     water: { default: false, description: 'with --scene=terrain: a water plane in the valleys, with sand at the shore' },
     minimal: { default: false, description: 'with --name: leave out soft shadows, ambient occlusion and fog' },
     materials: { default: false, description: 'with --name: a material id per surface, for different colors' },
     lighting: { default: 'lambert', choices: LIGHTING_MODELS, description: 'with --name: the shading model (see glsl:lighting)' },
-    parts: { default: 'all', description: 'with --into, comma-separated: march, normal, soft-shadow, ao, camera – or all' },
+    parts: { default: '', description: 'with --into, comma-separated: march, normal, soft-shadow, ao, camera – or all (the default without --hits)' },
+    hits: { default: '', description: 'with --into, comma-separated: sphere, plane, box – exact ray intersections, e.g. a bounding sphere, water, a planet – or all' },
     into: { path: true, default: '', description: 'existing shader or --inline page to add the raymarching helpers to, for your own scene()' },
     version: { default: '300es', choices: VERSIONS, description: 'GLSL dialect: 300es is WebGL2, 330 and 410 desktop OpenGL' },
   },
@@ -256,31 +269,37 @@ const raymarchGenerator: Generator = {
     'the helpers call your float scene(vec3 p): the distance from p to the nearest surface',
     'vec3 rd = cameraMatrix(eye, target, 0.0) * normalize(vec3(uv, 1.5));  uv centered, y from -0.5 to 0.5; a larger focal length (1.5) zooms in',
     'softShadow(ro, rd, tMin, tMax, k): start at a small tMin to leave the surface; k 8–32, larger is harder',
+    'vec2 hit = raySphere(eye, rd, vec3(0.0), 1.2);  march only from hit.x to hit.y, and skip the march where hit.y < 0.0',
   ],
   examples: [
     '--name=Scene',
     '--name=Scene --lighting=pbr --materials --dir=shaders',
+    '--name=Box --scene=cube --minimal',
     '--name=Land --scene=terrain --water',
     '--parts=march,normal --into=shaders/scene.frag.glsl',
+    '--hits=sphere,plane --into=index.html',
   ],
-  actions: ({ name, scene, water, minimal, materials, lighting, parts, into, version }, { kebab, pascal }, ctx) => {
+  actions: ({ name, scene, water, minimal, materials, lighting, parts, hits, into, version }, { kebab, pascal }, ctx) => {
     const model = String(lighting);
-    if (!SCENES.includes(String(scene))) fail(`glsl:raymarch --scene: expected "shapes" or "terrain", got "${String(scene)}"`);
+    if (!SCENES.includes(String(scene))) fail(`glsl:raymarch --scene: expected ${SCENES.map((s) => `"${s}"`).join(', ')}, got "${String(scene)}"`);
     const terrain = scene === 'terrain';
-    if ((terrain || water) && !name) fail('glsl:raymarch --scene and --water: only for a new starter (--name)');
+    const cube = scene === 'cube';
+    if ((terrain || cube || water) && !name) fail('glsl:raymarch --scene and --water: only for a new starter (--name)');
+    if (cube && materials) fail('glsl:raymarch --scene=cube: one object needs no material ids – --materials is for the shapes scene');
     if (water && !terrain) fail('glsl:raymarch --water: only with --scene=terrain');
-    if (terrain && (materials || model !== 'lambert')) fail('glsl:raymarch --scene=terrain: lit with lambert, by slope and height – --materials and --lighting are for the shapes scene');
+    if (terrain && (materials || model !== 'lambert')) fail('glsl:raymarch --scene=terrain: lit with lambert, by slope and height – --lighting is for the shapes and cube scenes, --materials for shapes');
     if (!LIGHTING_MODELS.includes(model)) {
       fail(`glsl:raymarch --lighting: expected one of ${LIGHTING_MODELS.map((m) => `"${m}"`).join(', ')}, got "${model}"`);
     }
     if (name && into) fail('glsl:raymarch: use either --name (new starter) or --into (existing shader), not both');
+    if (name && hits) fail('glsl:raymarch --hits: only with --into – add them to your shader, or to the starter after making it');
     if (name) {
       const file = `${kebab(String(name))}.frag.glsl`;
       const starter = terrain
         ? terrainStarter(file, parseVersion(version), ctx, { water: Boolean(water), minimal: Boolean(minimal) })
         : raymarchStarter(file, parseVersion(version), ctx, {
-            scene: materials ? MATERIAL_SCENE : SCENE,
-            chunks: SCENE_CHUNKS,
+            scene: cube ? CUBE_SCENE : materials ? MATERIAL_SCENE : SCENE,
+            chunks: cube ? CUBE_CHUNKS : SCENE_CHUNKS,
             minimal: Boolean(minimal),
             materials: Boolean(materials),
             lighting: model,
@@ -294,7 +313,12 @@ const raymarchGenerator: Generator = {
           'give yours a `float scene(vec3 p)` returning the distance.',
       );
     }
-    const ids = pickChunks('raymarch', parseList(String(parts)), '--parts', 'glsl:raymarch');
+    const partList = parseList(String(parts));
+    const hitList = parseList(String(hits));
+    const ids = [
+      ...(partList.length || !hitList.length ? pickChunks('raymarch', partList.length ? partList : ['all'], '--parts', 'glsl:raymarch') : []),
+      ...(hitList.length ? pickChunks('intersect', hitList, '--hits', 'glsl:raymarch') : []),
+    ];
     return chunkActions(ids, { into: String(into), dir: '', ctx });
   },
 };

@@ -70,6 +70,7 @@ run(files, 'sdf', { shapes: 'all', name: 'sdf-2d' });
 run(files, 'sdf', { dim: '3', shapes: 'all', name: 'sdf-3d' });
 for (const lighting of ['lambert', 'blinn', 'toon', 'pbr']) run(files, 'raymarch', { name: `raymarch-${lighting}`, lighting });
 run(files, 'raymarch', { name: 'raymarch-materials', lighting: 'pbr', materials: true });
+run(files, 'raymarch', { name: 'raymarch-cube', scene: 'cube' });
 run(files, 'raymarch', { name: 'raymarch-terrain', scene: 'terrain', water: true });
 run(files, 'displace', { kind: 'noise', name: 'displace-noise' });
 run(files, 'displace', { kind: 'waves', name: 'displace-waves' });

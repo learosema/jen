@@ -58,7 +58,7 @@ jen glsl:sdf --dim=3 --shapes=all --name=Shapes    # preview: every shape side b
 - **2D effects** (`--effects`): antialiased `fill` and `stroke`, `glow`, drop `shadow`, `inner-shadow` – masks in [0, 1] from a distance.
 - **Raymarching helpers** (`glsl:raymarch --into`, pick with `--parts`): `raymarch`, `calcNormal`, `softShadow`, `calcAO`, `cameraMatrix`. They call your `float scene(vec3 p)`, which they declare up front, so it can live anywhere in the shader. For materials, keep that function returning the distance and look the material up once at the hit point, as the `--materials` starter does: `vec2 sceneMaterial(vec3 p)` returns distance and id, `scene()` returns its `.x`.
 
-Each list also takes `all`. The formulas follow Inigo Quilez's articles on [distance functions](https://iquilezles.org/articles/distfunctions/), [2D distance functions](https://iquilezles.org/articles/distfunctions2d/), [smooth minimum](https://iquilezles.org/articles/smin/), [SDF normals](https://iquilezles.org/articles/normalsSDF/) and [soft shadows](https://iquilezles.org/articles/rmshadows/), credited in each function. The code itself is the pack's own (MIT-0).
+Each list also takes `all`. The formulas follow Inigo Quilez's articles on [distance functions](https://iquilezles.org/articles/distfunctions/), [2D distance functions](https://iquilezles.org/articles/distfunctions2d/), [ray intersectors](https://iquilezles.org/articles/intersectors/), [smooth minimum](https://iquilezles.org/articles/smin/), [SDF normals](https://iquilezles.org/articles/normalsSDF/) and [soft shadows](https://iquilezles.org/articles/rmshadows/), credited in each function. The code itself is the pack's own (MIT-0).
 
 ## Lighting
 

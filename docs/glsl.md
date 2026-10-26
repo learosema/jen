@@ -129,12 +129,12 @@ Every noise tiles with its `period` overload.
 {% include terminal.html id="glsl_sdf" %}
 
 <div class="auto-grid shaders wide">
-{% include shader.html src="sdf-2d.frag.glsl" caption="<code>--shapes=all --name=…</code>: circle, box, round-box, segment, polygon, star" %}
+{% include shader.html src="sdf-2d.frag.glsl" caption="<code>--shapes=all --name=…</code>: circle, box, round-box, segment, polygon, star, vesica, arch" %}
 {% include shader.html src="sdf-3d.frag.glsl" caption="<code>--dim=3 --shapes=all --name=…</code>: sphere, box, round-box, torus, capsule, cylinder" %}
 </div>
 
 {% capture rows %}
-`shapes` | 2D | `circle`, `box`, `round-box`, `segment`, `polygon`, `star`
+`shapes` | 2D | `circle`, `box`, `round-box`, `segment`, `polygon`, `star`, `vesica`, `arch`
 `shapes` | 3D | `sphere`, `box`, `round-box`, `torus`, `capsule`, `cylinder`, `plane`
 `ops` | 2D + 3D | `union`, `subtract`, `intersect`, their `smooth-` variants, `round`, `onion`, `repeat`, `repeat-limited`, `extrude`, `revolve`
 `effects` | 2D | `fill`, `stroke`, `glow`, `shadow`, `inner-shadow`
@@ -150,6 +150,7 @@ Every noise tiles with its `period` overload.
 <div class="auto-grid shaders">
 {% include shader.html src="raymarch-lambert.frag.glsl" caption="<code>--lighting=lambert</code>" %}
 {% include shader.html src="raymarch-toon.frag.glsl" caption="<code>--lighting=toon</code>" %}
+{% include shader.html src="raymarch-cube.frag.glsl" caption="<code>--scene=cube</code>" %}
 {% include shader.html src="raymarch-materials.frag.glsl" caption="<code>--lighting=pbr --materials</code>" %}
 {% include shader.html src="raymarch-terrain.frag.glsl" caption="<code>--scene=terrain --water</code>" %}
 </div>
@@ -203,7 +204,7 @@ Keep the `THIRD_PARTY_NOTICES.md` jen writes next to your shaders.
 - **[psrdnoise](https://github.com/stegu/psrdnoise)** by Stefan Gustavson and Ian McEwan, MIT: tiling simplex noise and its gradients, behind `simplexNoise` and `curlNoise`.
 - **[BakingLab](https://github.com/TheRealMJP/BakingLab)** by MJP and David Neubelt, MIT: Stephen Hill's ACES fit, `tonemapAces`.
 - **[hash-prospector](https://github.com/skeeto/hash-prospector)** by Chris Wellons, public domain: the `lowbias32` hash constants.
-- **[Inigo Quilez's articles](https://iquilezles.org/articles/)**, MIT: the [distance functions](https://iquilezles.org/articles/distfunctions/), [smooth minimum](https://iquilezles.org/articles/smin/), [normals](https://iquilezles.org/articles/normalsSDF/) and [soft shadows](https://iquilezles.org/articles/rmshadows/).
-- **Formulas** from Brian Karis's "Real Shading in Unreal Engine 4"; Duff et al.'s orthonormal basis (JCGT 2017); Mark Finch's Gerstner waves (GPU Gems).
+- **[Inigo Quilez's articles](https://iquilezles.org/articles/)**, MIT: the [distance functions](https://iquilezles.org/articles/distfunctions/), [2D distance functions](https://iquilezles.org/articles/distfunctions2d/), [ray intersectors](https://iquilezles.org/articles/intersectors/), [smooth minimum](https://iquilezles.org/articles/smin/), [normals](https://iquilezles.org/articles/normalsSDF/) and [soft shadows](https://iquilezles.org/articles/rmshadows/).
+- **Formulas** from Brian Karis's "Real Shading in Unreal Engine 4"; Duff et al.'s orthonormal basis (JCGT 2017); Mark Finch's Gerstner waves (GPU Gems); Kay and Kajiya's slab method for ray–box hits (SIGGRAPH 1986).
 
 <script src="{{ '/glsl/shader-canvas.js' | relative_url }}" defer></script>
