@@ -1,4 +1,4 @@
-// @license MIT-0
+// sphere tracing after John C. Hart (1996)
 // returns t at the surface, or -1.0 past tMax
 // yours, defined further down: the distance from p to the nearest surface
 float scene(vec3 p);

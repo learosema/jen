@@ -1,4 +1,3 @@
-// @license MIT-0
 // n points (n >= 3), outer radius r, inner radius ri (0 < ri < r); a point faces +x
 float sdStar(vec2 p, float r, float ri, float n) {
   float sector = 6.28318530718 / n;

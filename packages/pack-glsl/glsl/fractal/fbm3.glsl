@@ -1,6 +1,5 @@
 // @requires noise/value3
 // @base value
-// @license MIT-0
 // about [-1, 1]; each octave doubles the period too, like feTurbulence's stitchTiles
 
 float valueFbm(vec3 p, int octaves, float gain) {

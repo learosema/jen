@@ -1,4 +1,3 @@
-// @license MIT-0
 // slab method after Kay and Kajiya, Ray Tracing Complex Scenes (SIGGRAPH 1986)
 // t where the ray enters and leaves the box at center with half size b, or vec2(-1.0); n the normal where it enters
 vec2 rayBox(vec3 ro, vec3 rd, vec3 center, vec3 b, out vec3 n) {

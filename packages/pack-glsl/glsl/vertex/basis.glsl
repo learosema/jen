@@ -1,4 +1,3 @@
-// @license MIT-0
 // after Duff et al., "Building an Orthonormal Basis, Revisited" (JCGT 2017)
 // t and b perpendicular to the unit vector n, cross(t, b) = n; stable for every n
 void orthonormalBasis(vec3 n, out vec3 t, out vec3 b) {

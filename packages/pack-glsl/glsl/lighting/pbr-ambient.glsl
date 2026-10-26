@@ -1,4 +1,3 @@
-// @license MIT-0
 // Fresnel with roughness after Sébastien Lagarde (2011)
 // sky/ground gradient for diffuse and specular; multiply by ambient occlusion if you have it
 vec3 pbrAmbient(vec3 n, vec3 v, vec3 albedo, float metallic, float roughness, vec3 sky, vec3 ground) {

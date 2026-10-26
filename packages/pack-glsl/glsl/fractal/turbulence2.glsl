@@ -1,6 +1,6 @@
 // @requires noise/value2
 // @base value
-// @license MIT-0
+// turbulence after Ken Perlin, An Image Synthesizer (SIGGRAPH 1985)
 // fBm of |noise|, like feTurbulence type="turbulence"; [0, 1]
 
 float valueTurbulence(vec2 p, int octaves, float gain) {

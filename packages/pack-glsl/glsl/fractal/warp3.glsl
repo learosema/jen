@@ -1,6 +1,6 @@
 // @requires fractal/fbm3
 // @base value
-// @license MIT-0
+// domain warping after Inigo Quilez · https://iquilezles.org/articles/warp/
 // fBm at a position pushed by fBm; strength: how far (default 2.0); about [-1, 1]
 
 float valueWarp(vec3 p, int octaves, float strength) {

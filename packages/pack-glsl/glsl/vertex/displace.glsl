@@ -1,5 +1,4 @@
 // @requires vertex/basis
-// @license MIT-0
 // pushes p along n by your displacement(p) and recomputes n
 // yours: how far to push the surface out (in, if negative) at p
 float displacement(vec3 p);

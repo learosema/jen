@@ -1,4 +1,3 @@
-// @license MIT-0
 // n sides (n >= 3), circumradius r; one edge faces +x
 float sdPolygon(vec2 p, float r, float n) {
   float sector = 6.28318530718 / n;

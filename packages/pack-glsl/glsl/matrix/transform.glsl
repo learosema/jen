@@ -1,4 +1,3 @@
-// @license MIT-0
 // combine right to left: translate(t) * transform(rotateY(a)) * scale(s)
 mat4 translate(vec3 t) {
   return mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, t, 1.0);

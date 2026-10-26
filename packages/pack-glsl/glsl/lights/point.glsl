@@ -1,4 +1,3 @@
-// @license MIT-0
 // falloff after Brian Karis, Real Shading in Unreal Engine 4 · https://blog.selfshadow.com/publications/s2013-shading-course/
 // the light from lightPos arriving at p, 0 beyond range; sets l to the direction towards it
 float pointLight(vec3 p, vec3 lightPos, float range, out vec3 l) {

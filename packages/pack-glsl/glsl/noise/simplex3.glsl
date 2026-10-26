@@ -1,5 +1,4 @@
 // @requires noise/psrdnoise3
-// @license MIT-0
 // psrdnoise under jen's noise name; [-1, 1]; period: whole numbers up to 289
 float simplexNoise(vec3 p) {
   vec3 gradient;

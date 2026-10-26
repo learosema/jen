@@ -53,12 +53,12 @@ jen glsl:sdf --shapes=star --effects=fill,stroke,glow --into=shaders/logo.frag.g
 jen glsl:sdf --dim=3 --shapes=all --name=Shapes    # preview: every shape side by side
 ```
 
-- **Shapes** (`--shapes`, previewed in the order given): 2D `circle`, `box`, `round-box`, `segment`, `polygon`, `star`; 3D `sphere`, `box`, `round-box`, `torus`, `capsule`, `cylinder`, `plane`. Named `sdCircle`, `sdBox`, … with overloads for 2D and 3D.
+- **Shapes** (`--shapes`, previewed in the order given): 2D `circle`, `box`, `round-box`, `segment`, `polygon`, `star`, `vesica`, `arch` (a pointed arch); 3D `sphere`, `box`, `round-box`, `torus`, `capsule`, `cylinder`, `plane`. Named `sdCircle`, `sdBox`, … with overloads for 2D and 3D.
 - **Operators** (`--ops`): `union`, `subtract`, `intersect` and their `smooth-` variants, `round`, `onion`, `repeat`, `repeat-limited`, and `extrude`/`revolve` to turn 2D shapes into 3D ones.
 - **2D effects** (`--effects`): antialiased `fill` and `stroke`, `glow`, drop `shadow`, `inner-shadow` – masks in [0, 1] from a distance.
 - **Raymarching helpers** (`glsl:raymarch --into`, pick with `--parts`): `raymarch`, `calcNormal`, `softShadow`, `calcAO`, `cameraMatrix`. They call your `float scene(vec3 p)`, which they declare up front, so it can live anywhere in the shader. For materials, keep that function returning the distance and look the material up once at the hit point, as the `--materials` starter does: `vec2 sceneMaterial(vec3 p)` returns distance and id, `scene()` returns its `.x`.
 
-Each list also takes `all`. The formulas follow Inigo Quilez's articles on [distance functions](https://iquilezles.org/articles/distfunctions/), [2D distance functions](https://iquilezles.org/articles/distfunctions2d/), [ray intersectors](https://iquilezles.org/articles/intersectors/), [smooth minimum](https://iquilezles.org/articles/smin/), [SDF normals](https://iquilezles.org/articles/normalsSDF/) and [soft shadows](https://iquilezles.org/articles/rmshadows/), credited in each function. The code itself is the pack's own (MIT-0).
+Each list also takes `all`. The formulas follow Inigo Quilez's articles on [distance functions](https://iquilezles.org/articles/distfunctions/), [2D distance functions](https://iquilezles.org/articles/distfunctions2d/), [ray intersectors](https://iquilezles.org/articles/intersectors/), [smooth minimum](https://iquilezles.org/articles/smin/), [SDF normals](https://iquilezles.org/articles/normalsSDF/) and [soft shadows](https://iquilezles.org/articles/rmshadows/), credited in each function – his snippets are MIT, and jen puts their notice next to your shader.
 
 ## Lighting
 
@@ -71,6 +71,16 @@ jen glsl:lighting --models=toon --into=shaders/scene.frag.glsl
 - **Color output** (`--tonemap`): `tonemapAces()` (Stephen Hill's ACES fit), `tonemapReinhard()`, and `linearToSrgb()`/`srgbToLinear()` with the exact sRGB curve.
 
 Every model takes the normal `n`, the direction to the viewer `v` and to the light `l`, and returns the reflected light for a white light of intensity 1: multiply by the light's color and shadow, sum over lights, tonemap, encode. `jen glsl:raymarch --name=Scene --lighting=pbr` shows a model in a full scene.
+
+## Filters
+
+```sh
+jen glsl:filter --name=Retro --kinds=crt,vignette
+jen glsl:webgl --name=Retro --inline --shader=retro.frag.glsl --texture=test-pattern
+```
+
+- **Kinds** (`--kinds`): `grayscale`, `sepia`, `posterize`, `dither` (Bayer), `vignette`, `grain`, `chromatic`, `pixelate`, `sobel` (edges), `blur-box`, `blur-gaussian`, `sharpen`, `kuwahara` (painterly) and `crt` after Timothy Lottes' public-domain CRT shader.
+- **Input**: `texture0` on `<shader-canvas>` – an image, or `test-pattern`.
 
 ## Vertex displacement and matrices
 
@@ -108,7 +118,7 @@ The generators write into the current directory; `--dir=<path>` writes somewhere
 
 The pack's own code – starters and functions – is [MIT No Attribution](LICENSE) (MIT-0): do whatever you want with it, no notice required. (Not the Unlicense or CC0: German copyright law can't release code into the public domain, but it can grant every right unconditionally.)
 
-Functions by other authors are included only under the MIT license, which does require their notice: when jen inserts such a function, the author's full notice goes into a `THIRD_PARTY_NOTICES.md` next to your shader, once per license. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for all authors and sources.
+Functions by other authors are included only under the MIT license, which does require their notice, or released into the public domain: when jen inserts such a function, the author's full notice (or a line saying none is required) goes into a `THIRD_PARTY_NOTICES.md` next to your shader, once per source. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for all authors and sources.
 
 ## License
 

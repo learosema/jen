@@ -1,4 +1,3 @@
-// @license MIT-0
 // @license hash-prospector
 // lowbias32 by Chris Wellons · https://github.com/skeeto/hash-prospector
 // for integer lattice cells, e.g. floor(p); results in [0, 1)

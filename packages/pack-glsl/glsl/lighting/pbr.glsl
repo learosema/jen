@@ -1,4 +1,3 @@
-// @license MIT-0
 // after Brian Karis, "Real Shading in Unreal Engine 4" (2013)
 // metallic 0–1, roughness 0 (mirror) to 1 (matte); includes the 1/π, so a sun needs about intensity 3
 vec3 pbr(vec3 n, vec3 v, vec3 l, vec3 albedo, float metallic, float roughness) {

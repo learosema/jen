@@ -1,5 +1,4 @@
 // @requires util/hash
-// @license MIT-0
 // [-1, 1]; without a period it repeats every 65536 units
 float valueNoise(vec3 p, vec3 period) {
   vec3 i = floor(p);

@@ -1,4 +1,3 @@
-// @license MIT-0
 // world → view space, camera looking down -z; up is usually vec3(0.0, 1.0, 0.0)
 mat4 lookAt(vec3 eye, vec3 target, vec3 up) {
   vec3 z = normalize(eye - target);

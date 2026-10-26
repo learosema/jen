@@ -1,5 +1,5 @@
 // @requires noise/psrdnoise3
-// @license MIT-0
+// curl noise after Robert Bridson et al. (SIGGRAPH 2007)
 // the curl of three offset simplex noises; animate alpha for swirls; not normalized
 vec3 curlNoise(vec3 p, vec3 period, float alpha) {
   vec3 gx;

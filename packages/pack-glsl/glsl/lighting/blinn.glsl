@@ -1,4 +1,4 @@
-// @license MIT-0
+// after James F. Blinn (SIGGRAPH 1977)
 // shininess: highlight size (8 broad, 256 tight); specular: its strength (0–1)
 vec3 blinnPhong(vec3 n, vec3 v, vec3 l, vec3 albedo, float shininess, float specular) {
   float nl = max(dot(n, l), 0.0);

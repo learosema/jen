@@ -1,4 +1,3 @@
-// @license MIT-0
 // rd the view ray, sun the direction to the sun (both normalized); linear color with a glow and a disc
 vec3 skyColor(vec3 rd, vec3 sun) {
   vec3 color = mix(vec3(0.62, 0.72, 0.85), vec3(0.12, 0.27, 0.6), sqrt(clamp(rd.y, 0.0, 1.0)));

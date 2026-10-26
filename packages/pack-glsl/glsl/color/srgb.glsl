@@ -1,4 +1,3 @@
-// @license MIT-0
 // the exact sRGB curve, not pow(c, 1/2.2)
 vec3 linearToSrgb(vec3 c) {
   c = clamp(c, 0.0, 1.0);

@@ -1,4 +1,4 @@
-// @license MIT-0
+// occlusion from distances along the normal, after Alex Evans (SIGGRAPH 2006)
 // 0 fully occluded, 1 open
 // yours, defined further down: the distance from p to the nearest surface
 float scene(vec3 p);

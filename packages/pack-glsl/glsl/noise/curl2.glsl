@@ -1,5 +1,5 @@
 // @requires noise/psrdnoise2
-// @license MIT-0
+// curl noise after Robert Bridson et al. (SIGGRAPH 2007)
 // the gradient of simplex noise turned by 90°; animate alpha for swirls; not normalized
 vec2 curlNoise(vec2 p, float alpha) {
   vec2 g;

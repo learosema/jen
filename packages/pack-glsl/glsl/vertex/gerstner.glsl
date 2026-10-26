@@ -1,4 +1,3 @@
-// @license MIT-0
 // after Mark Finch, GPU Gems (2004), ch. 1
 // returns p's offset and adds the slope to tangent and binormal; keep the sum of steepness below 1
 vec3 gerstnerWave(vec3 p, vec2 dir, float wavelength, float steepness, float time, inout vec3 tangent, inout vec3 binormal) {

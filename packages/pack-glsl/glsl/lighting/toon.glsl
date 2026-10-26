@@ -1,4 +1,3 @@
-// @license MIT-0
 // bands: diffuse steps, plus a rim light; uses derivatives, so fragment shaders only
 vec3 toon(vec3 n, vec3 v, vec3 l, vec3 albedo, float bands) {
   float nl = max(dot(n, l), 0.0) * bands;

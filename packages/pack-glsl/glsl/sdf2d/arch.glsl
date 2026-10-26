@@ -1,4 +1,3 @@
-// @license MIT-0
 // @requires sdf2d/vesica
 // @requires sdf2d/box
 // a pointed (gothic) arch: half width w, sides down to y = -h, the arcs meet at y = 1.73 w

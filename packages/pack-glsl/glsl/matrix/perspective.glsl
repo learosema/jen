@@ -1,4 +1,3 @@
-// @license MIT-0
 // fovY in radians, aspect = width / height, near and far > 0
 mat4 perspective(float fovY, float aspect, float near, float far) {
   float f = 1.0 / tan(0.5 * fovY);

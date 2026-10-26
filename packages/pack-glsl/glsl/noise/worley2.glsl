@@ -1,5 +1,5 @@
 // @requires util/hash
-// @license MIT-0
+// cellular noise after Steven Worley (SIGGRAPH 1996)
 // worley(): distances to the nearest and second-nearest point; worleyNoise(): the first in about [-1, 1]
 vec2 worley(vec2 p, vec2 period) {
   vec2 i = floor(p);

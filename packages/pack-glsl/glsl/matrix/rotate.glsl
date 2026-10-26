@@ -1,4 +1,3 @@
-// @license MIT-0
 // radians, counter-clockwise looking down the axis; rotateAxis needs a normalized axis
 mat3 rotateX(float a) {
   float c = cos(a);

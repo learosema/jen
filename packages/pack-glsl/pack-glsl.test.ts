@@ -17,7 +17,7 @@ import { describe, it } from 'node:test';
 import type { Action, Find, Helpers } from '@codejen/jen';
 import pack from './src/index.ts';
 import { INLINE_LICENSE, NOISE_BASES, OWN_LICENSE, chunkIds, licenseText, loadChunk, noticesFor, resolveChunks } from './src/chunks.ts';
-import { listGlsl, packPath } from './src/common.ts';
+import { listGlsl, packPath, readPackFile } from './src/common.ts';
 import { VERSIONS, header } from './src/dialect.ts';
 import type { Version } from './src/dialect.ts';
 
@@ -40,7 +40,7 @@ const helpers: Helpers = {
  * given): path params arrive from the project root (`/…`), and the resulting paths
  * are placed – `/…` at the root, everything else in that folder. The GLSL
  * generators only ask the project whether a notices file exists (`existing`), and
- * read the file --into names (`files`, if given).
+ * read the file --into names (`files`, if given – without them, nothing can be read).
  */
 function run(generator: string, answers: Record<string, string | boolean>, existing: string[] = [], files?: Map<string, string>): Action[] {
   const g = pack[generator];
@@ -53,7 +53,7 @@ function run(generator: string, answers: Record<string, string | boolean>, exist
   const given = Object.fromEntries(Object.entries({ ...defaults, ...answers }).map(([k, v]) => [k, params[k]?.path && v ? `/${v}` : v]));
   const dir = 'dir' in params ? '.' : String(answers.dir ?? 'shaders');
   const place = (p: string | Find): string => (typeof p !== 'string' ? assert.fail('no find targets here') : p.startsWith('/') ? p.slice(1) : posix.join(dir, p));
-  const ctx = { destDir: dir, cwd: '.', exists: (p: string) => existing.includes(p), read: (p: string) => files?.get(p) ?? null } as never;
+  const ctx = { destDir: dir, cwd: '.', exists: (p: string) => existing.includes(p), read: (p: string) => (files ? (files.get(p) ?? null) : undefined) } as never;
   return g.actions(given, helpers, ctx).map((a): Action => {
     if ('add' in a) return { ...a, add: place(a.add) };
     if ('append' in a) return { ...a, append: place(a.append) };
@@ -109,10 +109,11 @@ function assertCompiles(source: string, stage: 'vert' | 'frag', label: string) {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe('chunks', () => {
-  const allIds = ['util', 'noise', 'fractal', 'sdf2d', 'sdf3d', 'sdfop', 'sdffx', 'raymarch', 'intersect', 'lighting', 'lights', 'atmosphere', 'color', 'matrix', 'vertex'].flatMap(chunkIds);
+  const allIds = ['util', 'noise', 'fractal', 'sdf2d', 'sdf3d', 'sdfop', 'sdffx', 'raymarch', 'intersect', 'filter', 'lighting', 'lights', 'atmosphere', 'color', 'matrix', 'vertex'].flatMap(chunkIds);
 
-  it('every chunk declares a license; third-party ones have an existing notice', () => {
+  it('every chunk has a license – the pack\'s own unless it declares one, which then has an existing notice', () => {
     for (const id of allIds) {
+      assert.doesNotMatch(readPackFile(`glsl/${id.replace(/@.*/, '')}.glsl`), /@license MIT-0/, `${id}: the own license is the default, no need to say it`);
       const chunk = loadChunk(id);
       assert.ok(chunk.licenses.length > 0, id);
       for (const l of noticesFor(chunk)) assert.match(licenseText(l), /Copyright|public domain/, `${id}: ${l}`);
@@ -124,7 +125,7 @@ describe('chunks', () => {
     for (const id of allIds) {
       for (const l of loadChunk(id).licenses) assert.ok(l === OWN_LICENSE || l === INLINE_LICENSE || notices.includes(l), `${id}: @license ${l}`);
     }
-    for (const n of notices) assert.match(licenseText(n), /Permission is hereby granted, free of charge|^\/\/ The Unlicense: released into the public domain/m, n);
+    for (const n of notices) assert.match(licenseText(n), /Permission is hereby granted, free of charge|^\/\/ .*public domain.*, no notice required\.$/m, n);
     for (const id of allIds.filter((i) => loadChunk(i).licenses.includes(INLINE_LICENSE))) {
       assert.match(loadChunk(id).code.split('\n').slice(0, 3).join('\n'), /MIT license/, id);
     }
@@ -133,6 +134,16 @@ describe('chunks', () => {
   it('own (MIT-0) chunks don\'t mention the pack or its license – only whose ideas they use', () => {
     for (const id of allIds.filter((i) => loadChunk(i).licenses.includes(OWN_LICENSE))) {
       assert.doesNotMatch(loadChunk(id).code, /pack-glsl|MIT-0/, id);
+    }
+  });
+
+  it('every chunk with a credit line is listed in the pack\'s THIRD_PARTY_NOTICES.md', () => {
+    const notices = readPackFile('THIRD_PARTY_NOTICES.md');
+    for (const id of allIds) {
+      const lines = loadChunk(id).code.split('\n');
+      const header = lines.slice(0, lines.findIndex((l) => !l.startsWith('//')));
+      // "· https://…" names a source, "after Someone" a method
+      if (header.some((l) => / · https?:\/\/| after [A-Z]/.test(l))) assert.ok(notices.includes(`\`${id}\``), `${id} credits someone, but THIRD_PARTY_NOTICES.md doesn't list it`);
     }
   });
 
@@ -162,7 +173,7 @@ describe('chunks', () => {
       assert.ok(text.split('\n').every((l) => l.startsWith('//')), `${id}: every line must be a // comment`);
       // the Unlicense asks for no notice: a line with the source and that it's public domain
       if (/public domain/.test(text)) {
-        assert.match(text, /^\/\/ .+ – .+, https:\/\/\S+\n\/\/ The Unlicense: released into the public domain, no notice required\.$/, id);
+        assert.match(text, /^\/\/ .+ – .+, https:\/\/\S+\n\/\/ .*[Pp]ublic domain.*, no notice required\.$/, id);
         continue;
       }
       assert.match(text, /^\/\/ Copyright\b/im, id);
@@ -412,6 +423,15 @@ describe('glsl:webgl', () => {
     assert.throws(() => run('webgl', { name: 'x', tag: 'canvas' }), /not a valid custom element name/);
   });
 
+  it('--texture sets texture0 on the element, escaped; the element knows the test-pattern keyword', () => {
+    const inline = byPath(run('webgl', { name: 'x', inline: true, texture: 'test-pattern' }));
+    assert.match(inline.get('index.html')!, /<shader-canvas texture0="test-pattern">/);
+    const served = byPath(run('webgl', { name: 'x', texture: 'a "b".png' })).get('index.html')!;
+    assert.match(served, /<shader-canvas src="shaders\/x\.frag\.glsl" texture0="a &quot;b&quot;\.png" live>/);
+    assert.doesNotMatch(byPath(run('webgl', { name: 'x' })).get('index.html')!, /texture0/);
+    assert.match(inline.get('shader-canvas.js')!, /url === 'test-pattern'/);
+  });
+
   it('the element draws a still frame for a time attribute or #t= in the URL', () => {
     const source = byPath(run('webgl', { name: 'x' })).get('shader-canvas.js')!;
     assert.match(source, /observedAttributes = \[[^\]]*'time'\]/);
@@ -647,6 +667,19 @@ void main() {
     assert.equal(starter.match(/^float scene\(vec3 p\);$/gm)?.length, 1);
   });
 
+  it('--into a missing file fails before anything is written – no notices for code that never went in', () => {
+    assert.throws(() => run('noise', { kind: 'perlin', into: 'nope.glsl' }, [], new Map()), /--into: nope\.glsl doesn't exist – check the path, or start a shader with --name/);
+  });
+
+  it('starters bring their marker: no marker insert, so no "already has" line; --force over an old one keeps scene() declared', () => {
+    const actions = run('raymarch', { name: 'Scene' }, [], new Map());
+    assert.ok(!actions.some((a) => 'insert' in a && 'line' in a && a.line.startsWith('// jen:functions')), 'no marker insert');
+    const old = applyActions(new Map(), run('raymarch', { name: 'Scene' }));
+    const again = run('raymarch', { name: 'Scene' }, [], old);
+    const out = applyActions(new Map(), again).get('shaders/scene.frag.glsl')!;
+    assert.equal(out.match(/^float scene\(vec3 p\);$/gm)?.length, 1);
+  });
+
   it('a prototype below the marker does not count: the helpers above it need their own', () => {
     const files = new Map([['s.glsl', SCENE.replace('float scene(', 'float scene(vec3 p);\n\nfloat scene(')]]);
     const out = applyActions(files, run('raymarch', { into: 's.glsl', parts: 'march' })).get('s.glsl')!;
@@ -830,6 +863,41 @@ describe('glsl:raymarch', () => {
     assert.throws(() => run('raymarch', { name: 'x', into: 'y' }), /either --name .* or --into/);
   });
 
+});
+
+describe('glsl:filter', () => {
+  const KINDS = ['blur-box', 'blur-gaussian', 'chromatic', 'crt', 'dither', 'grain', 'grayscale', 'kuwahara', 'pixelate', 'posterize', 'sepia', 'sharpen', 'sobel', 'vignette'];
+
+  it('validates --kinds, listing what can be picked', () => {
+    assert.throws(() => run('filter', {}), new RegExp(`--kinds: pick at least one – valid: ${KINDS.join(', ')}`));
+    assert.throws(() => run('filter', { kinds: 'bloom' }), /--kinds: unknown "bloom"/);
+    assert.throws(() => run('filter', { kinds: 'crt', name: 'x', into: 'y' }), /either --name .* or --into/);
+  });
+
+  it('the starter compiles with each filter, and with all, in every dialect', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    for (const version of VERSIONS) {
+      for (const kinds of [...KINDS, 'all']) {
+        const out = applyActions(new Map(), run('filter', { name: 'F', kinds, version })).get('shaders/f.frag.glsl')!;
+        assertCompiles(out, 'frag', `filter starter (${version}, ${kinds})`);
+      }
+    }
+  });
+
+  it('one texture filter makes the color, the others are lines to switch to; color filters follow in order', () => {
+    const out = applyActions(new Map(), run('filter', { name: 'F', kinds: 'vignette,sobel,crt,grayscale,pixelate' })).get('shaders/f.frag.glsl')!;
+    const main = out.slice(out.indexOf('void main()'));
+    assert.match(main, /^  uv = pixelate\(uTexture0, uv, 8\.0\);\n  vec3 color = vec3\(sobel\(uTexture0, uv\)\);\n  \/\/ or: color = crt\(/m);
+    assert.ok(main.indexOf('grayscale(color)') < main.indexOf('vignette(uv'), 'grayscale before vignette');
+    const plain = applyActions(new Map(), run('filter', { name: 'F', kinds: 'sepia' })).get('shaders/f.frag.glsl')!;
+    assert.match(plain, /vec3 color = texture\(uTexture0, uv\)\.rgb;\n  color = sepia\(color, 1\.0\);/);
+  });
+
+  it('suggests the page with the test pattern, and notes the public-domain CRT next to the shader', () => {
+    const actions = run('filter', { name: 'Retro', kinds: 'crt' });
+    assert.ok(actions.some((a) => 'note' in a && /jen glsl:webgl --name=Retro --inline --shader=shaders\/retro\.frag\.glsl --texture=test-pattern/.test(a.note)));
+    const notices = applyActions(new Map(), actions).get('shaders/THIRD_PARTY_NOTICES.md')!;
+    assert.match(notices, /^## lottes-crt\n\n```\nCRT shader – Timothy Lottes, https:\/\/github\.com\/libretro\/glsl-shaders\/blob\/master\/crt\/shaders\/crt-lottes\.glsl\nReleased by its author into the public domain/m);
+  });
 });
 
 describe('glsl:lighting', () => {

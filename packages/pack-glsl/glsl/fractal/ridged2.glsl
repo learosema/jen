@@ -1,6 +1,6 @@
 // @requires noise/value2
 // @base value
-// @license MIT-0
+// ridged multifractal after F. Kenton Musgrave (Texturing and Modeling, 1994)
 // fBm of (1 - |noise|)², sharp ridges where the noise crosses zero; [0, 1]
 
 float valueRidged(vec2 p, int octaves, float gain) {
