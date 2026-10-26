@@ -136,7 +136,7 @@ export function licenseText(id: string): string {
 
 /** Where the full notices go, next to the shaders: MIT asks for them to ship with the code, not to sit in it. */
 export const NOTICES_FILE = 'THIRD_PARTY_NOTICES.md';
-const NOTICES_HEADER = '# Third-party notices\n\nCode by others that jen put into the shaders in this folder, with the notices its MIT license asks to keep.\n';
+const NOTICES_HEADER = '# Third-party notices\n\nCode by others that jen put into the shaders in this folder, with the notices its licenses ask to keep.\n';
 
 /** Writes the notices for `licenses` into the notices file in `folder` (an action path), each once. */
 function noticeActions(licenses: string[], folder: string, ctx: Context): Action[] {
@@ -214,13 +214,31 @@ export const FIRST_FUNCTION =
 /** The opening line of a page's fragment shader: `<script type="x-shader/x-fragment">`. */
 const FRAGMENT_SCRIPT = /<script\b[^>]*\btype=["']x-shader\/x-fragment["']/;
 
+/** The current text of an `--into` target, or null if it doesn't exist (yet). */
+function readInto(into: string, ctx: Context): string | null | undefined {
+  return ctx.read?.(into.startsWith('/') ? into.slice(1) : posix.join(ctx.destDir, into));
+}
+
+/** `// yours …` and a prototype: chunks that call your function declare it, so each works on its own. */
+const PROTOTYPE_BLOCK = /^\/\/ yours\b.*\n(\w+ \w+\([^)]*\);)\n\n?/gm;
+const PROTOTYPE_LINE = /^[ \t]*(\w+ \w+\([^)]*\);)[ \t]*$/gm;
+
+/** `code` without the prototypes in `declared`; adds the ones it keeps. */
+function withoutDeclared(code: string, declared: Set<string>): string {
+  return code.replace(PROTOTYPE_BLOCK, (block, prototype: string) => {
+    if (declared.has(prototype)) return '';
+    declared.add(prototype);
+    return block;
+  });
+}
+
 /**
  * What puts the marker into `into`, unless it has one: an insert before its first
  * function – in an .html page, the first one in its fragment shader script. A
  * warning instead if there's no function to put it before.
  */
 function markerActions(into: string, ctx: Context): Action[] {
-  const text = ctx.read?.(into.startsWith('/') ? into.slice(1) : posix.join(ctx.destDir, into));
+  const text = readInto(into, ctx);
   const page = /\.html?$/i.test(into);
   if (text?.includes(INTO_MARKER)) return [];
   // not there (yet): jen reports a missing file, or a starter added in the same run brings its marker
@@ -250,9 +268,12 @@ export function chunkActions(ids: string[], { into, dir, ctx }: { into: string; 
   if (into) {
     const actions = markerActions(into, ctx);
     if (actions.some((a) => 'note' in a)) return actions;
+    // one prototype per shader, also across runs – only those above the marker come before their callers
+    const above = (readInto(into, ctx) ?? '').split(INTO_MARKER).slice(0, -1).join('');
+    const declared = new Set([...above.matchAll(PROTOTYPE_LINE)].map((m) => m[1]));
     for (const chunk of chunks) {
       // The trailing empty line keeps one blank line between chunks.
-      actions.push({ insert: into, before: INTO_MARKER, line: `${chunk.code}\n` });
+      actions.push({ insert: into, before: INTO_MARKER, line: `${withoutDeclared(chunk.code, declared)}\n` });
     }
     return [...actions, ...noticeActions(licenses, posix.dirname(into), ctx)];
   }

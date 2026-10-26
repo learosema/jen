@@ -115,16 +115,16 @@ describe('chunks', () => {
     for (const id of allIds) {
       const chunk = loadChunk(id);
       assert.ok(chunk.licenses.length > 0, id);
-      for (const l of noticesFor(chunk)) assert.match(licenseText(l), /Copyright/, `${id}: ${l}`);
+      for (const l of noticesFor(chunk)) assert.match(licenseText(l), /Copyright|public domain/, `${id}: ${l}`);
     }
   });
 
-  it('only takes MIT code from others: every license is MIT-0, inline or a notice with the MIT permission text', () => {
+  it('only takes MIT or public-domain code from others: every license is MIT-0, inline, an MIT notice or a public-domain note', () => {
     const notices = readdirSync(new URL('./glsl/licenses/', import.meta.url)).map((f) => f.replace(/\.glsl$/, ''));
     for (const id of allIds) {
       for (const l of loadChunk(id).licenses) assert.ok(l === OWN_LICENSE || l === INLINE_LICENSE || notices.includes(l), `${id}: @license ${l}`);
     }
-    for (const n of notices) assert.match(licenseText(n), /Permission is hereby granted, free of charge/, n);
+    for (const n of notices) assert.match(licenseText(n), /Permission is hereby granted, free of charge|^\/\/ The Unlicense: released into the public domain/m, n);
     for (const id of allIds.filter((i) => loadChunk(i).licenses.includes(INLINE_LICENSE))) {
       assert.match(loadChunk(id).code.split('\n').slice(0, 3).join('\n'), /MIT license/, id);
     }
@@ -154,11 +154,17 @@ describe('chunks', () => {
     }
   });
 
-  it('every third-party notice is a full MIT notice, as GLSL line comments', () => {
+  it('every third-party notice is a full MIT notice or a public-domain note, as GLSL line comments', () => {
     const ids = existsSync(packPath('glsl/licenses')) ? listGlsl('glsl/licenses') : [];
     assert.ok(ids.length > 0);
     for (const id of ids) {
       const text = licenseText(id);
+      assert.ok(text.split('\n').every((l) => l.startsWith('//')), `${id}: every line must be a // comment`);
+      // the Unlicense asks for no notice: a line with the source and that it's public domain
+      if (/public domain/.test(text)) {
+        assert.match(text, /^\/\/ .+ – .+, https:\/\/\S+\n\/\/ The Unlicense: released into the public domain, no notice required\.$/, id);
+        continue;
+      }
       assert.match(text, /^\/\/ Copyright\b/im, id);
       assert.match(text, /Permission is hereby granted, free of charge/, id);
       assert.match(text, /The above copyright notice and this permission notice shall be included/, id);
@@ -506,6 +512,13 @@ describe('glsl:noise', () => {
     assert.ok(actions.some((a) => 'append' in a && a.append === 'shaders/THIRD_PARTY_NOTICES.md' && a.text.startsWith('\n## webgl-noise\n')));
   });
 
+  it('notes public-domain code next to the shader too, without a license text', () => {
+    const files = applyActions(emptyShader(), run('util', { into: 's.frag.glsl', fns: 'hash' }));
+    assert.doesNotMatch(files.get('s.frag.glsl')!, /public domain|Unlicense/);
+    const notices = files.get('THIRD_PARTY_NOTICES.md')!;
+    assert.match(notices, /^## hash-prospector\n\n```\nlowbias32 – Chris Wellons, https:\/\/github\.com\/skeeto\/hash-prospector\nThe Unlicense: released into the public domain, no notice required\.\n```$/m);
+  });
+
   it('credits psrdnoise in one line, its full notice next to the shader', () => {
     const files = into(emptyShader(), { kind: 'simplex' });
     const out = files.get('s.frag.glsl')!;
@@ -620,6 +633,24 @@ void main() {
     assert.ok(out.indexOf('float opSmoothUnion(') < out.indexOf('float raymarch('), 'new chunks after existing ones');
     assert.ok(out.indexOf('float raymarch(') < out.indexOf('// jen:functions'));
     assertCompiles(out, 'frag', 'scene with sdf + raymarch helpers');
+  });
+
+  it('declares scene() once per shader, also across runs, and the starter once too', () => {
+    const files = applyActions(new Map([['s.glsl', SCENE]]), run('raymarch', { into: 's.glsl', parts: 'march,normal' }));
+    applyActions(files, run('raymarch', { into: 's.glsl', parts: 'soft-shadow,ao' }, [], files));
+    const out = files.get('s.glsl')!;
+    assert.equal(out.match(/^float scene\(vec3 p\);$/gm)?.length, 1);
+    assert.equal(out.match(/^\/\/ yours\b/gm)?.length, 1);
+    assert.ok(out.indexOf('float scene(vec3 p);') < out.indexOf('float raymarch('), 'declared before its first caller');
+    for (const s of ['float raymarch(', 'vec3 calcNormal(', 'float softShadow(', 'float calcAO(']) assert.ok(out.includes(s), s);
+    const starter = applyActions(new Map(), run('raymarch', { name: 'Scene' })).get('shaders/scene.frag.glsl')!;
+    assert.equal(starter.match(/^float scene\(vec3 p\);$/gm)?.length, 1);
+  });
+
+  it('a prototype below the marker does not count: the helpers above it need their own', () => {
+    const files = new Map([['s.glsl', SCENE.replace('float scene(', 'float scene(vec3 p);\n\nfloat scene(')]]);
+    const out = applyActions(files, run('raymarch', { into: 's.glsl', parts: 'march' })).get('s.glsl')!;
+    assert.ok(out.indexOf('float scene(vec3 p);') < out.indexOf('float raymarch('));
   });
 });
 
@@ -769,6 +800,7 @@ describe('glsl:raymarch', () => {
     assert.throws(() => run('raymarch', { parts: 'shade' }), /--parts: unknown "shade" – valid: ao, camera, march, normal, soft-shadow/);
     assert.throws(() => run('raymarch', { name: 'x', into: 'y' }), /either --name .* or --into/);
   });
+
 });
 
 describe('glsl:lighting', () => {
