@@ -12,7 +12,7 @@
  * 2D drawing or (--dim=3) a raymarched scene.
  */
 import type { Action, Generator } from '@codejen/jen';
-import { chunkActions, chunkIds, pickChunks } from './chunks.ts';
+import { MARKER_LINE, chunkActions, chunkIds, pickChunks } from './chunks.ts';
 import { fail, parseList } from './common.ts';
 import { VERSIONS, parseVersion, withHeader } from './dialect.ts';
 import { raymarchStarter } from './raymarch.ts';
@@ -56,6 +56,7 @@ function preview2d(shapes: string[]): string {
 
 out vec4 fragColor;
 
+${MARKER_LINE}
 // The picked shapes side by side.
 float scene(vec2 p) {
 ${row(shapes, SAMPLES_2D, 0.8, '')}
@@ -137,7 +138,7 @@ ${row(shown, samples, 1.3, '0.0')}
       return raymarchStarter(file, v, ctx, { scene, chunks: [...ids, 'sdf3d/plane'], minimal: false, distance });
     }
     const preview: Action = { add: file, template: withHeader(v, preview2d(picked)) };
-    return [preview, ...chunkActions([...ids, 'sdffx/fill', 'sdffx/stroke'], { into: file, dir: '', ctx })];
+    return [preview, ...chunkActions([...ids, 'sdffx/fill', 'sdffx/stroke'], { into: file, dir: '', ctx, fresh: true })];
   },
 };
 

@@ -14,7 +14,7 @@
  * (waves: mesh="plane" detail="128").
  */
 import type { Action, Context, Generator } from '@codejen/jen';
-import { chunkActions } from './chunks.ts';
+import { MARKER_LINE, chunkActions } from './chunks.ts';
 import { fail } from './common.ts';
 import { VERSIONS, parseVersion, withHeader } from './dialect.ts';
 import type { Version } from './dialect.ts';
@@ -59,6 +59,7 @@ function vertexShader(kind: string): string {
   if (kind === 'waves') {
     return `${ATTRIBUTES}
 
+${MARKER_LINE}
 void main() {
   // The plane lies in xy; turn it into a y-up surface (xz) and tilt it towards the camera.
   vec3 p = 2.0 * vec3(aPosition.x, 0.0, -aPosition.y);
@@ -79,6 +80,7 @@ ${OUTPUT}
   }
   return `${ATTRIBUTES}
 
+${MARKER_LINE}
 ${DISPLACEMENT[kind]}
 
 void main() {
@@ -101,6 +103,7 @@ in vec2 vUV;
 
 out vec4 fragColor;
 
+${MARKER_LINE}
 void main() {
   vec3 n = normalize(vNormal) * (gl_FrontFacing ? 1.0 : -1.0);
   vec3 eye = -(transpose(mat3(uView)) * uView[3].xyz);  // camera position from the view matrix
@@ -118,9 +121,9 @@ function preview(base: string, kind: string, version: Version, ctx: Context): Ac
   const frag = `${base}.frag.glsl`;
   return [
     { add: vert, template: withHeader(version, vertexShader(kind)) },
-    ...chunkActions(KINDS[kind], { into: vert, dir: '', ctx }),
+    ...chunkActions(KINDS[kind], { into: vert, dir: '', ctx, fresh: true }),
     { add: frag, template: withHeader(version, fragmentShader(kind)) },
-    ...chunkActions(['lighting/blinn', 'color/srgb'], { into: frag, dir: '', ctx }),
+    ...chunkActions(['lighting/blinn', 'color/srgb'], { into: frag, dir: '', ctx, fresh: true }),
   ];
 }
 

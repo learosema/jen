@@ -4,7 +4,6 @@
  * apart from a few directive comments at the top:
  *
  *   // @requires util/consts      another chunk this one calls (repeatable)
- *   // @license MIT-0             the pack's own code: no notice to carry along
  *   // @license webgl-noise       third-party code: glsl/licenses/<id>.glsl holds
  *                                 the full notice its license requires, which
  *                                 goes into THIRD_PARTY_NOTICES.md next to the shader
@@ -13,7 +12,7 @@
  *   // @base value                written against valueNoise, but works on any
  *                                 base noise (see rebase())
  *
- * Every chunk needs at least one @license.
+ * A chunk without @license is the pack's own code (MIT-0): no notice to carry along.
  * Directives are stripped on output; everything else, including the chunk's
  * own attribution line, is emitted verbatim.
  *
@@ -79,7 +78,7 @@ export function loadChunk(id: string): Chunk {
     else if (m[1] === 'license') licenses.push(m[2]);
     else base = m[2];
   }
-  if (licenses.length === 0) fail(`GLSL chunk "${id}" has no // @license directive`);
+  if (licenses.length === 0) licenses.push(OWN_LICENSE);
 
   const chunk: Chunk = { id, requires, licenses, base, code: lines.slice(i).join('\n') };
   cache.set(id, chunk);
@@ -241,7 +240,7 @@ function markerActions(into: string, ctx: Context): Action[] {
   const text = readInto(into, ctx);
   const page = /\.html?$/i.test(into);
   if (text?.includes(INTO_MARKER)) return [];
-  // not there (yet): jen reports a missing file, or a starter added in the same run brings its marker
+  // can't read it here: put the marker before the first function
   if (text == null) return [{ insert: into, before: FIRST_FUNCTION, line: MARKER_LINE }];
   const lines = text.split('\n');
   const start = page ? lines.findIndex((l) => FRAGMENT_SCRIPT.test(l)) + 1 : 0;
@@ -259,17 +258,21 @@ function markerActions(into: string, ctx: Context): Action[] {
 
 /**
  * Actions that put `ids` (plus dependencies and license notices) into a
- * shader (`into`), or into one file each under `<dir>/lib/`.
+ * shader (`into`), or into one file each under `<dir>/lib/`. `fresh`: a
+ * starter writes `into` in the same run, from a template that has the marker.
  */
-export function chunkActions(ids: string[], { into, dir, ctx }: { into: string; dir: string; ctx: Context }): Action[] {
+export function chunkActions(ids: string[], { into, dir, ctx, fresh = false }: { into: string; dir: string; ctx: Context; fresh?: boolean }): Action[] {
   const chunks = resolveChunks(ids);
   const licenses = [...new Set(chunks.flatMap(noticesFor))];
 
   if (into) {
-    const actions = markerActions(into, ctx);
+    const text = fresh ? '' : readInto(into, ctx);
+    // fail before anything is written – no notices for code that never went in
+    if (text === null) fail(`--into: ${into.replace(/^\//, '')} doesn't exist – check the path, or start a shader with --name`);
+    const actions = fresh ? [] : markerActions(into, ctx);
     if (actions.some((a) => 'note' in a)) return actions;
     // one prototype per shader, also across runs – only those above the marker come before their callers
-    const above = (readInto(into, ctx) ?? '').split(INTO_MARKER).slice(0, -1).join('');
+    const above = (text ?? '').split(INTO_MARKER).slice(0, -1).join('');
     const declared = new Set([...above.matchAll(PROTOTYPE_LINE)].map((m) => m[1]));
     for (const chunk of chunks) {
       // The trailing empty line keeps one blank line between chunks.

@@ -169,7 +169,7 @@ ${output}
 `;
   return [
     { add: file, template: withHeader(version, body) },
-    ...chunkActions([...chunks, ...parts.map((part) => `raymarch/${part}`), ...color], { into: file, dir: '', ctx }),
+    ...chunkActions([...chunks, ...parts.map((part) => `raymarch/${part}`), ...color], { into: file, dir: '', ctx, fresh: true }),
   ];
 }
 
@@ -246,7 +246,7 @@ void main() {
 }
 `;
   const chunks = [...TERRAIN_CHUNKS, ...(minimal ? [] : ['raymarch/soft-shadow', 'atmosphere/fog'])];
-  return [{ add: file, template: withHeader(version, body) }, ...chunkActions(chunks, { into: file, dir: '', ctx })];
+  return [{ add: file, template: withHeader(version, body) }, ...chunkActions(chunks, { into: file, dir: '', ctx, fresh: true })];
 }
 
 export const SCENES = ['shapes', 'cube', 'terrain'];

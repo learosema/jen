@@ -13,7 +13,7 @@
  * seams would show).
  */
 import type { Action, Generator } from '@codejen/jen';
-import { NOISE_BASES, chunkActions } from './chunks.ts';
+import { MARKER_LINE, NOISE_BASES, chunkActions } from './chunks.ts';
 import { fail } from './common.ts';
 import { VERSIONS, parseVersion, withHeader } from './dialect.ts';
 
@@ -57,6 +57,7 @@ uniform vec2 uResolution;   // viewport size in pixels
 
 out vec4 fragColor;
 
+${MARKER_LINE}
 void main() {
 ${setup.join('\n')}
   vec3 color;
@@ -103,7 +104,7 @@ const noiseGenerator: Generator = {
 
     const file = `${kebab(String(name))}.frag.glsl`;
     const preview: Action = { add: file, template: withHeader(parseVersion(version), previewShader(k, d, b, Boolean(tile))) };
-    return [preview, ...chunkActions(ids, { into: file, dir: '', ctx })];
+    return [preview, ...chunkActions(ids, { into: file, dir: '', ctx, fresh: true })];
   },
 };
 
