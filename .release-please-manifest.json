@@ -1,7 +1,7 @@
 {
   "packages/jen": "4.0.2",
   "packages/pack-cpp": "1.4.3",
-  "packages/pack-glsl": "2.6.0",
+  "packages/pack-glsl": "2.6.1",
   "packages/pack-web": "3.1.0",
   "packages/pack-js": "2.0.1",
   "packages/pack-yeoman": "2.2.2"
