@@ -326,6 +326,22 @@ describe('glsl:port', () => {
     assert.throws(() => run('port', { file: 's.glsl', to: 'webgl1' }), /glsl:port --to: expected one of/);
   });
 
+  it('--out writes a ported copy and leaves --file alone; from an --inline page it takes the fragment shader, unindented', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    const es = adds(run('frag', { name: 'x' }))[0].template;
+    const copy = run('port', { file: 's.glsl', to: '330', out: 'd/s.330.glsl' }, [], new Map([['s.glsl', es]]));
+    assert.deepEqual(copy.map((a) => ('add' in a ? a.add : '')), ['d/s.330.glsl'], 'one add, no modify');
+    assert.match(adds(copy)[0].template, /^#version 330 core\n/);
+
+    const page = applyActions(new Map(), run('webgl', { name: 'x', inline: true, dir: '.' })).get('index.html')!;
+    const ported = adds(run('port', { file: 'index.html', to: '410', out: 'shaders/x.410.frag.glsl' }, [], new Map([['index.html', page]])))[0].template;
+    assert.match(ported, /^#version 410 core\n\nuniform float uTime;/);
+    assert.match(ported, /^void main\(\) \{$/m, 'no page indentation left');
+    assertCompiles(ported, 'frag', 'page → 410');
+
+    assert.throws(() => run('port', { file: 'index.html', to: '330' }), /a page keeps its WebGL shader – add --out=<file>/);
+    assert.throws(() => run('port', { file: 'nope.glsl', to: '330', out: 'x.glsl' }, [], new Map()), /nope\.glsl doesn't exist/);
+  });
+
   it('ported vertex and fragment starters compile', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
     for (const to of VERSIONS) {
       assertCompiles(portTo(adds(run('frag', { name: 'x' }))[0].template, to), 'frag', `frag → ${to}`);
