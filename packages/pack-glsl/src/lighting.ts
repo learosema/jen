@@ -6,7 +6,7 @@
  *                                     (pbr also brings pbrAmbient(), a sky/ground ambient light)
  *   --tonemap=aces,reinhard,srgb      tonemapAces(c), tonemapReinhard(c): HDR → [0, 1];
  *                                     linearToSrgb(c) / srgbToLinear(c) for display encoding
- *   --sky, --fog                      skyColor(rd, sun); fogExp(), fogExp2(): fade to a color with distance
+ *   --sky, --fog                      skyColor(rd, sun), day to dusk to night by the sun's height; fogExp(), fogExp2()
  *   --point                           pointLight(p, lightPos, range, out l): inverse-square falloff to 0 at range
  *
  * Every model returns the light reflected towards the viewer for a white
@@ -24,7 +24,7 @@ const lightingGenerator: Generator = {
   params: {
     models: { default: '', description: 'comma-separated shading models: lambert, blinn, toon, pbr – or all (pick at least one of --models, --tonemap, --sky, --fog, --point)' },
     tonemap: { default: '', description: 'comma-separated color output: aces, reinhard (HDR to [0, 1]), srgb (display encoding) – or all (pick at least one of --models, --tonemap, --sky, --fog, --point)' },
-    sky: { default: false, description: 'skyColor(rd, sun): a gradient with the sun\'s glow and disc (pick at least one of --models, --tonemap, --sky, --fog, --point)' },
+    sky: { default: false, description: 'skyColor(rd, sun): a gradient with the sun\'s glow and disc – a low sun gives dusk, one below the horizon night (pick at least one of --models, --tonemap, --sky, --fog, --point)' },
     fog: { default: false, description: 'fogExp() and fogExp2(): fade to a color (the sky\'s) with distance (pick at least one of --models, --tonemap, --sky, --fog, --point)' },
     point: { default: false, description: 'pointLight(): a light at a position, inverse-square falloff ending at a range – for torches, lamps (pick at least one of --models, --tonemap, --sky, --fog, --point)' },
     into: { path: true, default: '', description: 'existing shader or --inline page to insert the functions into, before main() (default: one file each in lib/)' },
