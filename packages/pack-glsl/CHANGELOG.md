@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.1](https://github.com/learosema/jen/compare/pack-glsl-v2.6.0...pack-glsl-v2.6.1) (2026-10-27)
+
+
+### Bug Fixes
+
+* **pack-glsl:** pass the typecheck the release runs ([e4e8a9f](https://github.com/learosema/jen/commit/e4e8a9f360552ac3dfd90be4c9ad4279fae6626a))
+
 ## [2.6.0](https://github.com/learosema/jen/compare/pack-glsl-v2.5.0...pack-glsl-v2.6.0) (2026-10-27)
 
 
