@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.6.0](https://github.com/learosema/jen/compare/pack-glsl-v2.5.0...pack-glsl-v2.6.0) (2026-10-27)
+
+
+### Features
+
+* **pack-glsl:** a cube starter, point lights, ray hits and a pointed arch ([350a08b](https://github.com/learosema/jen/commit/350a08bcbf79e7d79f065eb6a3f96ff330452c52))
+* **pack-glsl:** environment maps – sky, panorama, cubemap ([aa0cfa1](https://github.com/learosema/jen/commit/aa0cfa1b96685c9e0bce33abc9aaf15f1a9e3274))
+* **pack-glsl:** glsl:filter, a test pattern and --texture ([709d483](https://github.com/learosema/jen/commit/709d4838374c30fcc50ffaf8baa905963af9c13d))
+* **pack-glsl:** glsl:port --out, also from an --inline page ([b770096](https://github.com/learosema/jen/commit/b770096cf202079a24129d20d212a14f5c08002f))
+* **pack-glsl:** post passes – filters over a whole scene ([b13dee8](https://github.com/learosema/jen/commit/b13dee89e834aa06106912bb1f8afd24956d11d7))
+* **pack-glsl:** the sky follows the sun – day, dusk, night ([64b6979](https://github.com/learosema/jen/commit/64b6979dea1c233e544847b4e8cb8c8c143502e8))
+* **pack-glsl:** video and camera as textures ([2b750b0](https://github.com/learosema/jen/commit/2b750b0c310365c859c7e5b2a037823ea4b3c3d4))
+
+
+### Bug Fixes
+
+* **pack-glsl:** credit every snippet and method ([57927ac](https://github.com/learosema/jen/commit/57927acc3d1004290e52101f489645e35eb6949c))
+* **pack-glsl:** declare scene() once per shader; public-domain code in the notices ([ee117f5](https://github.com/learosema/jen/commit/ee117f52ef2f6549843ff60c1207497ac7c90d02))
+* **pack-glsl:** lint – count regex spaces, say why a catch is empty ([c242c8c](https://github.com/learosema/jen/commit/c242c8cc28130f4405fb637358c66173c66028cf))
+* **pack-glsl:** starters bring their marker; --into a missing file fails ([e686ef3](https://github.com/learosema/jen/commit/e686ef3773c06f99ab20cda9deb2b91bf979a15c))
+
 ## [2.5.0](https://github.com/learosema/jen/compare/pack-glsl-v2.4.0...pack-glsl-v2.5.0) (2026-10-25)
 
 
