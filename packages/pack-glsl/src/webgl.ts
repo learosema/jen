@@ -52,6 +52,17 @@ ${element}
 `;
 }
 
+/** One notices file from several: the first one's header, then every `## source` section once. */
+function mergeNotices(files: string[]): string {
+  if (files.length < 2) return files[0] ?? '';
+  const [head] = files[0].split(/^## /m);
+  const sections = new Map<string, string>();
+  for (const file of files) {
+    for (const section of file.split(/^## /m).slice(1)) sections.set(section.split('\n')[0], `## ${section.trimEnd()}\n`);
+  }
+  return `${head.trimEnd()}\n\n${[...sections.values()].join('\n')}`;
+}
+
 const webglGenerator: Generator = {
   description: 'create a no-build WebGL2 playground',
   params: {
@@ -62,14 +73,16 @@ const webglGenerator: Generator = {
     inline: { default: false, description: 'put the shader into the page, so it opens from disk without a web server' },
     texture: { default: '', description: 'texture0 for the shader (uTexture0): an image or video (.mp4, .webm) next to the page, camera, or test-pattern' },
     shader: { path: true, default: '', description: 'an existing fragment shader for the page instead of the starter, e.g. from glsl:raymarch --name' },
+    post: { path: true, default: '', description: 'a post pass over the shader\'s image, e.g. from glsl:filter --post' },
   },
-  examples: ['--name=Clouds', '--name=Clouds --inline', '--name=Land --inline --shader=shaders/land.frag.glsl', '--name=Retro --inline --shader=retro.frag.glsl --texture=photo.jpg'],
+  examples: ['--name=Clouds', '--name=Clouds --inline', '--name=Land --inline --shader=shaders/land.frag.glsl', '--name=Retro --inline --shader=retro.frag.glsl --texture=photo.jpg', '--name=City --inline --shader=city.frag.glsl --post=retro.frag.glsl'],
   usage: [
     'with --inline the page opens from disk, and glsl:* --into=index.html adds functions to its shader',
     '<shader-canvas time="12.5"> or #t=12.5 in the URL draws one still frame, e.g. for screenshots',
+    'a post pass reads the image before it as uniform sampler2D uPrevious; inline, every <script type="x-shader/x-fragment"> after the first is one',
     'texture0="photo.jpg" or "clip.mp4" needs a web server (browsers keep WebGL from reading files on a page opened from disk); "test-pattern" and "camera" work anywhere',
   ],
-  actions: ({ name, dir, shaderDir, tag, inline, shader, texture }, { kebab, pascal }, ctx) => {
+  actions: ({ name, dir, shaderDir, tag, inline, shader, texture, post }, { kebab, pascal }, ctx) => {
     const t = String(tag);
     if (!/^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/.test(t)) {
       fail(`glsl:webgl --tag: "${t}" is not a valid custom element name (lowercase, with a hyphen, e.g. "shader-canvas")`);
@@ -87,11 +100,16 @@ const webglGenerator: Generator = {
     const frag = ownText ?? withHeader('300es', readPackFile('starters/frag.glsl'));
     // the page's shader takes `glsl:* --into=index.html` too
     const inlineFrag = frag.includes(INTO_MARKER) ? frag : frag.replace(/^void main\(/m, `${MARKER_LINE}\n\nvoid main(`);
+    const postFile = post ? String(post).replace(/^\//, '') : '';
+    const postText = postFile ? ctx.read(postFile) : null;
+    if (postFile && postText === null) fail(`glsl:webgl --post: can't read ${posix.relative(ctx.cwd, postFile)}`);
 
     // the attribute value goes into HTML: escape what could end it
-    const attrs = texture ? ` texture0="${String(texture).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')}"` : '';
+    const escape = (v: string) => v.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const attrs = (texture ? ` texture0="${escape(String(texture))}"` : '') + (postFile && !inline ? ` post="${escape(posix.relative(pageDir, postFile))}"` : '');
+    const fragmentScript = (source: string) => `      <script type="x-shader/x-fragment">\n${indent(source, '        ')}\n      </script>\n`;
     const element = inline
-      ? `    <${t}${attrs}>\n      <script type="x-shader/x-fragment">\n${indent(inlineFrag, '        ')}\n      </script>\n    </${t}>`
+      ? `    <${t}${attrs}>\n${fragmentScript(inlineFrag)}${postText !== null ? fragmentScript(postText) : ''}    </${t}>`
       : `    <!-- Fetching shaders needs a local web server, e.g. \`npx serve\` or \`python3 -m http.server\`. -->\n` +
         `    <!-- \`live\` recompiles whenever the file changes. -->\n` +
         `    <${t} src="${shaderFile}"${attrs} live></${t}>`;
@@ -101,9 +119,15 @@ const webglGenerator: Generator = {
       { add: at(script), template: componentSource(t) },
     ];
     if (!inline && !own) actions.push({ add: at(shaderFile), template: frag });
-    // the shader's notices belong next to the page that now holds it
-    const notices = own && inline ? ctx.read(posix.join(posix.dirname(own), NOTICES_FILE)) : null;
-    if (notices !== null && posix.dirname(own) !== pageDir) actions.push({ add: at(NOTICES_FILE), template: notices });
+    // the shaders' notices belong next to the page that now holds them
+    if (inline) {
+      const folders = [...new Set([own, postFile].filter(Boolean).map((f) => posix.dirname(f)))].filter((d) => d !== pageDir);
+      const notices = mergeNotices(folders.map((d) => ctx.read(posix.join(d, NOTICES_FILE))).filter((n): n is string => n !== null));
+      const existing = ctx.read(posix.join(pageDir, NOTICES_FILE));
+      if (notices && existing === null) actions.push({ add: at(NOTICES_FILE), template: notices });
+      // one there already: add the sources it lacks, each as its own section
+      else if (notices) for (const section of notices.split(/^## /m).slice(1)) actions.push({ append: at(NOTICES_FILE), text: `\n## ${section.trimEnd()}` });
+    }
     return actions;
   },
 };

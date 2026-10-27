@@ -178,6 +178,7 @@ Every noise tiles with its `period` overload.
 {% include shader.html src="filter-kuwahara.frag.glsl" texture="test-pattern" caption="<code>--kinds=kuwahara</code>" %}
 {% include shader.html src="filter-pixelate.frag.glsl" texture="test-pattern" caption="<code>--kinds=pixelate,dither</code>" %}
 {% include shader.html src="filter-sobel.frag.glsl" texture="camera" caption="<code>--kinds=sobel</code> on <code>texture0='camera'</code>" %}
+{% include shader.html src="raymarch-terrain.frag.glsl" post="filter-post-crt.frag.glsl" caption="<code>--kinds=crt,vignette --post</code> over the terrain" %}
 </div>
 
 {% include usage.html generator="glsl:filter" %}

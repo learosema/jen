@@ -73,6 +73,7 @@ run(files, 'raymarch', { name: 'raymarch-materials', lighting: 'pbr', materials:
 run(files, 'raymarch', { name: 'raymarch-cube', scene: 'cube' });
 run(files, 'raymarch', { name: 'raymarch-terrain', scene: 'terrain', water: true });
 for (const kinds of ['crt,vignette', 'sobel', 'kuwahara', 'pixelate,dither']) run(files, 'filter', { name: `filter-${kinds.split(',')[0]}`, kinds });
+run(files, 'filter', { name: 'filter-post-crt', kinds: 'crt,vignette', post: true });
 run(files, 'displace', { kind: 'noise', name: 'displace-noise' });
 run(files, 'displace', { kind: 'waves', name: 'displace-waves' });
 

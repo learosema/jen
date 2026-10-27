@@ -172,19 +172,23 @@ button[hidden] { display: none; }
   // ─── The element ────────────────────────────────────────────────────────────
 
   class ShaderCanvas extends HTMLElement {
-    static observedAttributes = ['src', 'vert', 'mesh', 'detail', 'texture0', 'texture1', 'texture2', 'texture3', 'live', 'time'];
+    static observedAttributes = ['src', 'vert', 'post', 'mesh', 'detail', 'texture0', 'texture1', 'texture2', 'texture3', 'live', 'time'];
 
     #canvas;
     #overlay;
     #gl = null;
     #program = null;
     #uniforms = new Map();
+    #posts = [];  // post passes: { program, uniforms }, each reading the previous image as uPrevious
+    #targets = [];  // { framebuffer, texture, width, height }: where every pass but the last draws
+    #quad = null;  // post passes always cover the canvas, whatever mesh the scene uses
+    #floatTargets = false;
     #mesh = null;
     #textures = [];
     #media = [];  // per unit: { url, video, stream } – outlives the GL context
     #cameraButton;
     #seekTargets = new WeakMap();  // video → the still time it was last sent to
-    #sources = { frag: '', vert: '' };
+    #sources = { frag: '', vert: '', post: [] };
     #frame = 0;
     #time = 0;
     #lastTick = 0;
@@ -259,7 +263,7 @@ button[hidden] { display: none; }
     attributeChangedCallback(name, oldValue, newValue) {
       if (!this.isConnected || oldValue === newValue) return;
       if (name === 'live') this.#setupPolling();
-      if (name === 'src' || name === 'vert') this.#reload();
+      if (name === 'src' || name === 'vert' || name === 'post') this.#reload();
       // Without a context yet, #initGL() picks up the current mesh and textures.
       if (!this.#gl || this.#gl.isContextLost()) return;
       if (name.startsWith('texture')) this.#loadTexture(Number(name.slice(-1)));
@@ -298,6 +302,8 @@ button[hidden] { display: none; }
       this.#gl = gl;
       this.#canvasUsed = true;
       this.#loseContext = gl.getExtension('WEBGL_lose_context');
+      // float targets keep HDR between passes, where the browser can render to them
+      this.#floatTargets = !!gl.getExtension('EXT_color_buffer_float');
       this.#buildMesh();
       for (let i = 0; i < 4; i++) this.#loadTexture(i);
       return true;
@@ -463,6 +469,13 @@ button[hidden] { display: none; }
       return script ? script.textContent : null;
     }
 
+    /** The post passes: post="a.glsl b.glsl", or every fragment script after the first. */
+    #postSources() {
+      const urls = (this.getAttribute('post') ?? '').split(/\s+/).filter(Boolean);
+      if (urls.length) return Promise.all(urls.map((url) => this.#fetchSource(url)));
+      return [...this.querySelectorAll('script[type="x-shader/x-fragment"]')].slice(1).map((script) => script.textContent);
+    }
+
     async #fetchSource(url) {
       const response = await fetch(new URL(url, document.baseURI), { cache: 'no-cache' });
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}: ${url}`);
@@ -474,11 +487,12 @@ button[hidden] { display: none; }
       const token = ++this.#loadToken;
       const src = this.getAttribute('src');
       const vert = this.getAttribute('vert');
-      let frag, vertex;
+      let frag, vertex, post;
       try {
-        [frag, vertex] = await Promise.all([
+        [frag, vertex, post] = await Promise.all([
           src ? this.#fetchSource(src) : this.#inline('fragment'),
           vert ? this.#fetchSource(vert) : this.#inline('vertex'),
+          this.#postSources(),
         ]);
       } catch (error) {
         if (token === this.#loadToken) this.#showError(`Could not load shader – ${error.message}`);
@@ -487,8 +501,9 @@ button[hidden] { display: none; }
       if (token !== this.#loadToken) return;
       frag ??= FALLBACK_FRAG;
       vertex ??= QUAD_VERT;
-      if (!force && frag === this.#sources.frag && vertex === this.#sources.vert) return;
-      this.#sources = { frag, vert: vertex };
+      const same = frag === this.#sources.frag && vertex === this.#sources.vert && post.join('\0') === this.#sources.post.join('\0');
+      if (!force && same) return;
+      this.#sources = { frag, vert: vertex, post };
       this.#compile();
       this.#setupPolling();
     }
@@ -496,7 +511,7 @@ button[hidden] { display: none; }
     #setupPolling() {
       clearInterval(this.#pollTimer);
       this.#pollTimer = 0;
-      const remote = this.hasAttribute('src') || this.hasAttribute('vert');
+      const remote = this.hasAttribute('src') || this.hasAttribute('vert') || this.hasAttribute('post');
       if (this.hasAttribute('live') && remote && this.isConnected) {
         this.#pollTimer = setInterval(() => {
           if (this.#visible && !document.hidden) this.#reload(false);
@@ -518,21 +533,17 @@ button[hidden] { display: none; }
       return { error: { label, log, source, offset } };
     }
 
-    #compile() {
+    /** A linked program and its uniform locations, or { errors } (compile errors) / { linkError }. */
+    #link(vertSource, fragSource, label) {
       const gl = this.#gl;
-      // No context yet, or dropped: compiling now would only report bogus
-      // errors. #freshContext() compiles once there is one.
-      if (!gl || gl.isContextLost() || !this.#sources.frag) return;
-      const vs = this.#compileStage(gl.VERTEX_SHADER, 'vertex shader', this.#sources.vert);
-      const fs = this.#compileStage(gl.FRAGMENT_SHADER, 'fragment shader', this.#sources.frag);
+      const vs = this.#compileStage(gl.VERTEX_SHADER, 'vertex shader', vertSource);
+      const fs = this.#compileStage(gl.FRAGMENT_SHADER, label, fragSource);
       const errors = [vs.error, fs.error].filter(Boolean);
       if (errors.length) {
         if (vs.shader) gl.deleteShader(vs.shader);
         if (fs.shader) gl.deleteShader(fs.shader);
-        this.#reportCompileErrors(errors);
-        return;
+        return { errors };
       }
-
       const program = gl.createProgram();
       gl.attachShader(program, vs.shader);
       gl.attachShader(program, fs.shader);
@@ -540,21 +551,42 @@ button[hidden] { display: none; }
       gl.deleteShader(vs.shader);
       gl.deleteShader(fs.shader);
       if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        const log = gl.getProgramInfoLog(program) || 'unknown link error';
+        const linkError = gl.getProgramInfoLog(program) || 'unknown link error';
         gl.deleteProgram(program);
-        this.#showError(`Link error:\n${log}`);
-        this.dispatchEvent(new CustomEvent('shader-error', { detail: { log } }));
+        return { linkError };
+      }
+      const uniforms = new Map();
+      const count = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+      for (let i = 0; i < count; i++) {
+        const name = gl.getActiveUniform(program, i).name;
+        uniforms.set(name, gl.getUniformLocation(program, name));
+      }
+      return { program, uniforms };
+    }
+
+    #compile() {
+      const gl = this.#gl;
+      // No context yet, or dropped: compiling now would only report bogus
+      // errors. #freshContext() compiles once there is one.
+      if (!gl || gl.isContextLost() || !this.#sources.frag) return;
+      const passes = [
+        this.#link(this.#sources.vert, this.#sources.frag, 'fragment shader'),
+        ...this.#sources.post.map((source, i) => this.#link(QUAD_VERT, source, `post pass ${i + 1}`)),
+      ];
+      const errors = passes.flatMap((pass) => pass.errors ?? []);
+      const linkError = passes.find((pass) => pass.linkError)?.linkError;
+      if (errors.length || linkError) {
+        for (const pass of passes) if (pass.program) gl.deleteProgram(pass.program);
+        if (errors.length) this.#reportCompileErrors(errors);
+        else {
+          this.#showError(`Link error:\n${linkError}`);
+        }
         return;
       }
 
       if (this.#program) gl.deleteProgram(this.#program);
-      this.#program = program;
-      this.#uniforms.clear();
-      const count = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
-      for (let i = 0; i < count; i++) {
-        const name = gl.getActiveUniform(program, i).name;
-        this.#uniforms.set(name, gl.getUniformLocation(program, name));
-      }
+      for (const pass of this.#posts) gl.deleteProgram(pass.program);
+      [{ program: this.#program, uniforms: this.#uniforms }, ...this.#posts] = passes;
       this.#hideError();
       this.dispatchEvent(new CustomEvent('shader-compiled'));
       this.#draw();
@@ -649,16 +681,6 @@ button[hidden] { display: none; }
       const gl = this.#gl;
       if (!gl || !this.#program || gl.isContextLost()) return;
       const { width, height } = this.#canvas;
-      gl.viewport(0, 0, width, height);
-      gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      gl.useProgram(this.#program);
-
-      const u = this.#uniforms;
-      const set = (name, fn) => u.has(name) && fn(u.get(name));
-      set('uTime', (l) => gl.uniform1f(l, this.#time));
-      set('uResolution', (l) => gl.uniform2f(l, width, height));
-      set('uMouse', (l) => gl.uniform2f(l, this.#mouse[0], this.#mouse[1]));
       for (let i = 0; i < 4; i++) {
         const video = this.#media[i]?.video;
         if (video && video.readyState >= 2 && this.#textures[i]) {
@@ -672,15 +694,42 @@ button[hidden] { display: none; }
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         }
+      }
+      // the scene, then each post pass on the image before it; only the last one draws to the canvas
+      const passes = [{ program: this.#program, uniforms: this.#uniforms, mesh: this.#mesh }, ...this.#posts.map((pass) => ({ ...pass, mesh: this.#quadMesh() }))];
+      this.#ensureTargets(passes.length - 1, width, height);
+      passes.forEach((pass, i) => {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, i < passes.length - 1 ? this.#targets[i].framebuffer : null);
+        this.#drawPass(pass, width, height, i > 0 ? this.#targets[i - 1].texture : null);
+      });
+    }
+
+    #drawPass({ program, uniforms, mesh }, width, height, previous) {
+      const gl = this.#gl;
+      gl.viewport(0, 0, width, height);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.useProgram(program);
+
+      const set = (name, fn) => uniforms.has(name) && fn(uniforms.get(name));
+      set('uTime', (l) => gl.uniform1f(l, this.#time));
+      set('uResolution', (l) => gl.uniform2f(l, width, height));
+      set('uMouse', (l) => gl.uniform2f(l, this.#mouse[0], this.#mouse[1]));
+      for (let i = 0; i < 4; i++) {
         set(`uTexture${i}`, (l) => {
           gl.activeTexture(gl.TEXTURE0 + i);
           gl.bindTexture(gl.TEXTURE_2D, this.#textures[i]);
           gl.uniform1i(l, i);
         });
       }
+      // unit 4: the previous pass's image
+      set('uPrevious', (l) => {
+        gl.activeTexture(gl.TEXTURE0 + 4);
+        gl.bindTexture(gl.TEXTURE_2D, previous);
+        gl.uniform1i(l, 4);
+      });
 
-      const is3d = this.#mesh.kind !== 'quad';
-      if (is3d) {
+      if (mesh.kind !== 'quad') {
         gl.enable(gl.DEPTH_TEST);
         set('uModel', (l) => gl.uniformMatrix4fv(l, false, rotationYX(this.#rotation[0], this.#rotation[1])));
         set('uView', (l) => gl.uniformMatrix4fv(l, false, translationZ(-3)));
@@ -689,9 +738,62 @@ button[hidden] { display: none; }
         gl.disable(gl.DEPTH_TEST);
       }
 
-      gl.bindVertexArray(this.#mesh.vao);
-      gl.drawElements(gl.TRIANGLES, this.#mesh.count, gl.UNSIGNED_INT, 0);
+      gl.bindVertexArray(mesh.vao);
+      gl.drawElements(gl.TRIANGLES, mesh.count, gl.UNSIGNED_INT, 0);
       gl.bindVertexArray(null);
+    }
+
+    /** The full-canvas quad for post passes – the scene's own mesh when that is the quad. */
+    #quadMesh() {
+      if (this.#mesh.kind === 'quad') return this.#mesh;
+      if (this.#quad) return this.#quad;
+      const gl = this.#gl;
+      const data = quadMesh();
+      const vao = gl.createVertexArray();
+      gl.bindVertexArray(vao);
+      const buffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data.attribs[0].data), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, data.attribs[0].size, gl.FLOAT, false, 0, 0);
+      const indexBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(data.indices), gl.STATIC_DRAW);
+      gl.bindVertexArray(null);
+      this.#quad = { kind: 'quad', vao, buffers: [buffer, indexBuffer], count: data.indices.length };
+      return this.#quad;
+    }
+
+    /** `count` canvas-sized textures to draw into, kept until the size or count changes. */
+    #ensureTargets(count, width, height) {
+      const gl = this.#gl;
+      if (this.#targets.length === count && this.#targets.every((t) => t.width === width && t.height === height)) return;
+      for (const t of this.#targets) {
+        gl.deleteFramebuffer(t.framebuffer);
+        gl.deleteTexture(t.texture);
+        gl.deleteRenderbuffer(t.depth);
+      }
+      this.#targets = Array.from({ length: count }, () => {
+        const texture = gl.createTexture();
+        gl.activeTexture(gl.TEXTURE0 + 4);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        if (this.#floatTargets) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, width, height, 0, gl.RGBA, gl.HALF_FLOAT, null);
+        else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        const framebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+        // the scene may use depth (a mesh), so its target gets a depth buffer too
+        const depth = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, depth);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, width, height);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depth);
+        return { framebuffer, texture, depth, width, height };
+      });
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
 
     // ─── Input & context loss ───────────────────────────────────────────────
@@ -740,6 +842,9 @@ button[hidden] { display: none; }
       this.#gl = null;
       this.#program = null;
       this.#mesh = null;
+      this.#quad = null;
+      this.#posts = [];
+      this.#targets = [];
       this.#textures = [];
     }
 
@@ -757,6 +862,9 @@ button[hidden] { display: none; }
       this.#gl = null;
       this.#program = null;
       this.#mesh = null;
+      this.#quad = null;
+      this.#posts = [];
+      this.#targets = [];
       this.#textures = [];
       if (this.#initGL()) this.#compile();
     }
@@ -778,6 +886,9 @@ button[hidden] { display: none; }
     #onContextRestored = (event) => {
       if (event.target !== this.#canvas) return;
       this.#mesh = null;
+      this.#quad = null;
+      this.#posts = [];
+      this.#targets = [];
       this.#textures = [];
       this.#buildMesh();
       for (let i = 0; i < 4; i++) this.#loadTexture(i);

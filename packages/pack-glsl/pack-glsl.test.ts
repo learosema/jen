@@ -454,6 +454,29 @@ describe('glsl:webgl', () => {
     for (const file of ['clip.mp4', 'clip.webm', 'a/b.MOV?v=2']) assert.match(file, new RegExp(/const VIDEO = (\/.*\/i);/.exec(element)![1].slice(1, -2), 'i'));
   });
 
+  it('--post adds a pass: a second fragment script inline, a post attribute otherwise; notices of both, each once', () => {
+    const scene = adds(run('raymarch', { name: 'Scene' }))[0].template;
+    const retro = adds(run('filter', { name: 'Retro', kinds: 'crt', post: true }))[0].template;
+    const files = new Map([['shaders/scene.frag.glsl', scene], ['fx/retro.frag.glsl', retro],
+      ['shaders/THIRD_PARTY_NOTICES.md', '# Third-party notices\n\nintro\n\n## iquilezles\n\nA\n'],
+      ['fx/THIRD_PARTY_NOTICES.md', '# Third-party notices\n\nintro\n\n## lottes-crt\n\nB\n\n## iquilezles\n\nA\n']]);
+    const inline = run('webgl', { name: 'x', inline: true, shader: 'shaders/scene.frag.glsl', post: 'fx/retro.frag.glsl' }, [], files);
+    const page = byPath(inline);
+    const html = page.get('index.html')!;
+    assert.equal(html.match(/<script type="x-shader\/x-fragment">/g)?.length, 2);
+    assert.ok(html.indexOf('float scene(') < html.indexOf('uniform sampler2D uPrevious;'), 'the scene first, then the post pass');
+    const notices = page.get('THIRD_PARTY_NOTICES.md')!;
+    assert.deepEqual(notices.match(/^## .*$/gm), ['## iquilezles', '## lottes-crt']);
+    const appended = run('webgl', { name: 'x', inline: true, shader: 'shaders/scene.frag.glsl', post: 'fx/retro.frag.glsl' }, [], new Map([...files, ['THIRD_PARTY_NOTICES.md', '# Third-party notices\n\n## iquilezles\n\nA\n']]));
+    assert.deepEqual(appended.filter((a) => 'append' in a).map((a) => ('append' in a ? a.text.split('\n')[1] : '')), ['## iquilezles', '## lottes-crt'], 'appends; jen skips what is there');
+    const served = byPath(run('webgl', { name: 'x', post: 'fx/retro.frag.glsl' }, [], files)).get('index.html')!;
+    assert.match(served, /<shader-canvas src="shaders\/x\.frag\.glsl" post="fx\/retro\.frag\.glsl" live>/);
+    assert.throws(() => run('webgl', { name: 'x', post: 'nope.glsl' }, [], files), /--post: can't read nope\.glsl/);
+    const element = page.get('shader-canvas.js')!;
+    assert.match(element, /observedAttributes = \[[^\]]*'post'/);
+    assert.match(element, /set\('uPrevious'/);
+  });
+
   it('the element draws a still frame for a time attribute or #t= in the URL', () => {
     const source = byPath(run('webgl', { name: 'x' })).get('shader-canvas.js')!;
     assert.match(source, /observedAttributes = \[[^\]]*'time'\]/);
@@ -912,6 +935,19 @@ describe('glsl:filter', () => {
     assert.ok(main.indexOf('grayscale(color)') < main.indexOf('vignette(uv'), 'grayscale before vignette');
     const plain = applyActions(new Map(), run('filter', { name: 'F', kinds: 'sepia' })).get('shaders/f.frag.glsl')!;
     assert.match(plain, /vec3 color = texture\(uTexture0, uv\)\.rgb;\n  color = sepia\(color, 1\.0\);/);
+  });
+
+  it('--post: a post pass over the image before it, full canvas, compiling with every filter', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    for (const kinds of ['crt,vignette,grain', 'all']) {
+      const out = applyActions(new Map(), run('filter', { name: 'Retro', kinds, post: true })).get('shaders/retro.frag.glsl')!;
+      assert.match(out, /^uniform sampler2D uPrevious;/m);
+      assert.doesNotMatch(out, /uTexture0|textureSize\(uTexture0/);
+      assert.match(out, /vec2 uv = gl_FragCoord\.xy \/ uResolution;/);
+      assertCompiles(out, 'frag', `post pass (${kinds})`);
+    }
+    const note = run('filter', { name: 'Retro', kinds: 'crt', post: true }).find((a) => 'note' in a);
+    assert.ok(note && 'note' in note && /jen glsl:webgl --name=… --inline --shader=<scene\.frag\.glsl> --post=shaders\/retro\.frag\.glsl/.test(note.note));
+    assert.throws(() => run('filter', { kinds: 'crt', post: true }), /--post: only for a new starter/);
   });
 
   it('suggests the page with the test pattern, and notes the public-domain CRT next to the shader', () => {

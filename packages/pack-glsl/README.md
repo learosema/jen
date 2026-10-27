@@ -81,6 +81,7 @@ jen glsl:webgl --name=Retro --inline --shader=retro.frag.glsl --texture=test-pat
 
 - **Kinds** (`--kinds`): `grayscale`, `sepia`, `posterize`, `dither` (Bayer), `vignette`, `grain`, `chromatic`, `pixelate`, `sobel` (edges), `blur-box`, `blur-gaussian`, `sharpen`, `kuwahara` (painterly) and `crt` after Timothy Lottes' public-domain CRT shader.
 - **Input**: `texture0` on `<shader-canvas>` – an image or a video (both need a web server), `camera`, or `test-pattern`.
+- **Post passes** (`--post`): filter a whole scene – the starter reads `uPrevious`, and `jen glsl:webgl --shader=scene.frag.glsl --post=retro.frag.glsl` chains them.
 
 ## Vertex displacement and matrices
 
