@@ -910,7 +910,8 @@ describe('glsl:raymarch', () => {
     assert.match(cube, /vec3 sky = envCube\(uCubemap0, rd, 0\.0\);/);
     assert.match(cube, /pbrEnv\(n, v, albedo, metallic, roughness, envCube\(uCubemap0, n, 1\.0\), envCube\(uCubemap0, reflect\(rd, n\), roughness\)\)/);
     assert.doesNotMatch(cube, /pbrAmbient\(/);
-    for (const bad of [{ name: 'E', env: 'sky' }, { env: 'sky', into: 's.glsl' }, { name: 'E', scene: 'terrain', env: 'sky', lighting: 'pbr' }]) {
+    const invalid: Record<string, string>[] = [{ name: 'E', env: 'sky' }, { env: 'sky', into: 's.glsl' }, { name: 'E', scene: 'terrain', env: 'sky', lighting: 'pbr' }];
+    for (const bad of invalid) {
       assert.throws(() => run('raymarch', bad), /--env: for a new starter \(--name\) with --lighting=pbr/);
     }
   });
