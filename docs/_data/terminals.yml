@@ -554,6 +554,23 @@ glsl_util:
   - "  ~ shaders/clouds.frag.glsl:174  + // Maps v from [inMin, inMax] to [outMin, outMax], without clamping. (+4 more)"
   - "✓ 1 written"
 
+agents_dry_run:
+  - "$ jen glsl:raymarch --name=Chrome --lighting=pbr --env=sky --dry-run"
+  - "glsl:raymarch (pack @codejen/pack-glsl) – raymarch signed distance fields"
+  - ""
+  - "  + chrome.frag.glsl"
+  - "  ~ chrome.frag.glsl:11  + // sdPlane · Inigo Quilez · https://iquilezles.org/articles/distfunctions/ (+3 more)"
+  - "  …"
+  - "  ~ chrome.frag.glsl:43  + // sphere tracing after John C. Hart (1996) (+16 more)"
+  - "  ~ chrome.frag.glsl:60  + // calcNormal · Inigo Quilez · https://iquilezles.org/articles/normalsSDF/ (+9 more)"
+  - "  …"
+  - "  ~ chrome.frag.glsl:165  + // Fresnel with roughness after Sébastien Lagarde (2011) (+8 more)"
+  - "  ~ chrome.frag.glsl:174  + // tonemapAces · Stephen Hill's ACES fit via BakingLab by MJP and David Neubelt · https://github.com/TheRealMJP/BakingLab (+30 more)"
+  - "  + THIRD_PARTY_NOTICES.md"
+  - "  ~ THIRD_PARTY_NOTICES.md  + ## iquilezles (appended)"
+  - "  ~ THIRD_PARTY_NOTICES.md  + ## bakinglab (appended)"
+  - "  info: a page for it that opens from disk: jen glsl:webgl --name=Chrome --inline --shader=chrome.frag.glsl"
+
 # ─── @codejen/pack-web (docs/web.md) ───
 
 web_install_global:

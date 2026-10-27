@@ -97,6 +97,8 @@ A missing `@codejen` pack is fetched for one run; anything else needs `--from`. 
 
 ## For scripts {#scripts}
 
+For AI agents: [jen as an agent tool](agents.html).
+
 ### Exit codes {#exit}
 
 `0` when jen ran (`warning:` too, unless `--strict`), `1` on an error – then nothing is written.
