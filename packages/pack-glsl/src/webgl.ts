@@ -60,13 +60,14 @@ const webglGenerator: Generator = {
     shaderDir: { default: 'shaders', description: 'folder for the shader inside it' },
     tag: { default: 'shader-canvas', description: 'custom element name, if shader-canvas clashes with something on the page' },
     inline: { default: false, description: 'put the shader into the page, so it opens from disk without a web server' },
-    texture: { default: '', description: 'texture0 for the shader (uTexture0): an image next to the page, or test-pattern' },
+    texture: { default: '', description: 'texture0 for the shader (uTexture0): an image or video (.mp4, .webm) next to the page, camera, or test-pattern' },
     shader: { path: true, default: '', description: 'an existing fragment shader for the page instead of the starter, e.g. from glsl:raymarch --name' },
   },
   examples: ['--name=Clouds', '--name=Clouds --inline', '--name=Land --inline --shader=shaders/land.frag.glsl', '--name=Retro --inline --shader=retro.frag.glsl --texture=photo.jpg'],
   usage: [
     'with --inline the page opens from disk, and glsl:* --into=index.html adds functions to its shader',
     '<shader-canvas time="12.5"> or #t=12.5 in the URL draws one still frame, e.g. for screenshots',
+    'texture0="photo.jpg" or "clip.mp4" needs a web server (browsers keep WebGL from reading files on a page opened from disk); "test-pattern" and "camera" work anywhere',
   ],
   actions: ({ name, dir, shaderDir, tag, inline, shader, texture }, { kebab, pascal }, ctx) => {
     const t = String(tag);

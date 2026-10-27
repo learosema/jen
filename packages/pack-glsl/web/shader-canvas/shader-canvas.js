@@ -33,7 +33,16 @@ pre {
 }
 pre[hidden] { display: none; }
 mark { color: inherit; background: rgb(255 80 80 / 0.35); }
+button {
+  position: absolute; inset-block-end: 1em; inset-inline-start: 50%; translate: -50% 0;
+  padding: 0.5em 1.2em; border: thin solid rgb(255 255 255 / 0.6); border-radius: 100vmax;
+  font: 0.875rem/1.2 system-ui, sans-serif; color: #fff; background: rgb(0 0 0 / 0.6); cursor: pointer;
+}
+button[hidden] { display: none; }
 `;
+
+  /** texture0 values that are videos rather than images. */
+  const VIDEO = /\.(?:mp4|webm|ogv|mov|m4v)(?:[?#].*)?$/i;
 
   const ES_HEADER = ['#version 300 es', 'precision highp float;', 'precision highp int;'];
 
@@ -172,6 +181,9 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
     #uniforms = new Map();
     #mesh = null;
     #textures = [];
+    #media = [];  // per unit: { url, video, stream } – outlives the GL context
+    #cameraButton;
+    #seekTargets = new WeakMap();  // video → the still time it was last sent to
     #sources = { frag: '', vert: '' };
     #frame = 0;
     #time = 0;
@@ -192,9 +204,11 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
     constructor() {
       super();
       const root = this.attachShadow({ mode: 'open' });
-      root.innerHTML = `<style>${STYLE}</style><canvas part="canvas"></canvas><pre part="error" role="alert" hidden></pre>`;
+      root.innerHTML = `<style>${STYLE}</style><canvas part="canvas"></canvas><pre part="error" role="alert" hidden></pre><button part="camera" type="button" hidden>Use camera</button>`;
       this.#canvas = root.querySelector('canvas');
       this.#overlay = root.querySelector('pre');
+      this.#cameraButton = root.querySelector('button');
+      this.#cameraButton.addEventListener('click', () => this.#startCamera());
     }
 
     connectedCallback() {
@@ -234,6 +248,12 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
       for (const o of this.#observers) o.disconnect();
       this.#observers = [];
       removeEventListener('hashchange', this.#onHashChange);
+      // the camera goes off with the element; videos just pause
+      for (const media of this.#media) {
+        media?.stream?.getTracks().forEach((track) => track.stop());
+        media?.video.pause();
+      }
+      this.#media = [];
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
@@ -321,6 +341,11 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
 
       const url = this.getAttribute(`texture${unit}`);
+      if (url === 'camera' || VIDEO.test(url ?? '')) {
+        this.#useMedia(unit, url);
+        return;
+      }
+      this.#forgetMedia(unit);
       if (!url) return;
       if (url === 'test-pattern') {
         this.#upload(unit, texture, testPattern());
@@ -329,8 +354,91 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
       const image = new Image();
       image.crossOrigin = 'anonymous';
       image.onload = () => this.#upload(unit, texture, image);
-      image.onerror = () => this.#showError(`Could not load texture${unit}: ${url}`);
+      image.onerror = () => this.#textureError(unit, url);
       image.src = new URL(url, document.baseURI).href;
+    }
+
+    /** texture<unit> from a video file or the camera; #draw() uploads its frames. */
+    #useMedia(unit, url) {
+      if (this.#media[unit]?.url === url) return;  // kept across a lost context
+      this.#forgetMedia(unit);
+      const video = document.createElement('video');
+      video.muted = true;
+      video.loop = true;
+      video.playsInline = true;
+      video.crossOrigin = 'anonymous';
+      video.preload = 'auto';
+      // metadata lets a still frame seek; the first frame and seeks redraw a still or paused element
+      for (const type of ['loadedmetadata', 'loadeddata', 'seeked']) video.addEventListener(type, () => this.#schedule());
+      this.#media[unit] = { url, video, stream: null };
+      if (url === 'camera') {
+        // a click first: browsers want one, and no page should ask for the camera just by opening
+        this.#cameraButton.hidden = false;
+        return;
+      }
+      video.addEventListener('error', () => this.#textureError(unit, url));
+      video.src = new URL(url, document.baseURI).href;
+      this.#syncVideo(video);
+    }
+
+    #textureError(unit, url) {
+      // a page opened from disk: browsers give each file its own origin, and WebGL may not read across origins
+      const why = location.protocol === 'file:'
+        ? ' – browsers don\'t let WebGL read images or videos on a page opened from disk: serve the folder (e.g. npx serve), or use texture0="test-pattern" or "camera"'
+        : '';
+      this.#showError(`Could not load texture${unit}: ${url}${why}`);
+    }
+
+    async #startCamera() {
+      this.#cameraButton.hidden = true;
+      if (!navigator.mediaDevices?.getUserMedia) {
+        this.#showError('Camera: not available here – it needs https:// or localhost.');
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        const users = this.#media.filter((media) => media?.url === 'camera');
+        if (users.length === 0) return stream.getTracks().forEach((track) => track.stop());
+        for (const media of users) {
+          media.stream = stream;
+          media.video.srcObject = stream;
+          this.#syncVideo(media.video);
+        }
+      } catch (error) {
+        const why = error.name === 'NotAllowedError' ? 'permission denied' : error.name === 'NotFoundError' ? 'no camera found' : error.message;
+        this.#showError(`Camera: ${why}`);
+        this.#cameraButton.hidden = false;
+      }
+    }
+
+    #forgetMedia(unit) {
+      const media = this.#media[unit];
+      if (!media) return;
+      this.#media[unit] = undefined;
+      const shared = this.#media.some((other) => other?.stream && other.stream === media.stream);
+      if (media.stream && !shared) media.stream.getTracks().forEach((track) => track.stop());
+      media.video.pause();
+      media.video.srcObject = null;
+      media.video.removeAttribute('src');
+      this.#cameraButton.hidden = !this.#media.some((other) => other?.url === 'camera' && !other.stream);
+    }
+
+    /** Plays while the element animates; a still frame seeks to its time instead. */
+    #syncVideo(video) {
+      const still = this.#stillTime();
+      if (still !== null) {
+        if (!video.paused) video.pause();
+        const at = Number.isFinite(video.duration) && video.duration > 0 ? still % video.duration : still;
+        // once per target: a seek past the end lands elsewhere, and its 'seeked' would seek again
+        if (!video.srcObject && video.readyState >= 1 && this.#seekTargets.get(video) !== at) {
+          this.#seekTargets.set(video, at);
+          video.currentTime = at;
+        }
+      } else if (this.#playing && this.#visible) {
+        if (video.paused) video.play().catch(() => {});
+      } else if (!video.paused) {
+        video.pause();
+      }
     }
 
     #upload(unit, texture, source) {
@@ -513,6 +621,7 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
     #onHashChange = () => this.#schedule();
 
     #schedule() {
+      for (const media of this.#media) if (media) this.#syncVideo(media.video);
       if (this.#frame || !this.#gl || !this.#program) return;
       const still = this.#stillTime();
       if (still !== null) {
@@ -551,6 +660,18 @@ mark { color: inherit; background: rgb(255 80 80 / 0.35); }
       set('uResolution', (l) => gl.uniform2f(l, width, height));
       set('uMouse', (l) => gl.uniform2f(l, this.#mouse[0], this.#mouse[1]));
       for (let i = 0; i < 4; i++) {
+        const video = this.#media[i]?.video;
+        if (video && video.readyState >= 2 && this.#textures[i]) {
+          gl.activeTexture(gl.TEXTURE0 + i);
+          gl.bindTexture(gl.TEXTURE_2D, this.#textures[i]);
+          gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+          gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+          // a new frame every draw: no mipmaps, and no wrapping into the other edge
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        }
         set(`uTexture${i}`, (l) => {
           gl.activeTexture(gl.TEXTURE0 + i);
           gl.bindTexture(gl.TEXTURE_2D, this.#textures[i]);

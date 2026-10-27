@@ -49,7 +49,7 @@ function starter(kinds: string[]): string {
   ];
   return `uniform float uTime;          // seconds since start
 uniform vec2 uResolution;     // viewport size in pixels
-uniform sampler2D uTexture0;  // texture0="photo.jpg" on the element, or "test-pattern"
+uniform sampler2D uTexture0;  // texture0="photo.jpg", "clip.mp4", "camera" or "test-pattern" on the element
 
 out vec4 fragColor;
 
@@ -80,7 +80,7 @@ const filterGenerator: Generator = {
   usage: [
     'filters that read the texture take (sampler2D tex, vec2 uv, …) and find the texel size themselves; the others take a color',
     'one pass runs one texture filter; chain several with a second pass',
-    '<shader-canvas texture0="photo.jpg"> feeds uTexture0; texture0="test-pattern" draws bars, a ramp and a grid to try filters on',
+    '<shader-canvas texture0="photo.jpg"> feeds uTexture0 – also a video ("clip.mp4"), "camera" (after a click on its button), or "test-pattern": bars, a ramp and a grid to try filters on',
   ],
   examples: ['--name=Retro --kinds=crt', '--name=Paint --kinds=kuwahara,vignette', '--kinds=sobel,grayscale --into=index.html'],
   actions: ({ kinds, name, into, version }, { kebab, pascal }, ctx) => {

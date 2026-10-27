@@ -446,6 +446,12 @@ describe('glsl:webgl', () => {
     assert.match(served, /<shader-canvas src="shaders\/x\.frag\.glsl" texture0="a &quot;b&quot;\.png" live>/);
     assert.doesNotMatch(byPath(run('webgl', { name: 'x' })).get('index.html')!, /texture0/);
     assert.match(inline.get('shader-canvas.js')!, /url === 'test-pattern'/);
+    const element = inline.get('shader-canvas.js')!;
+    assert.match(element, /url === 'camera' \|\| VIDEO\.test/, 'videos and the camera as textures');
+    assert.match(element, /getUserMedia\(/);
+    assert.match(element, /<button part="camera" type="button" hidden>Use camera<\/button>/, 'the camera waits for a click');
+    assert.match(element, /track\.stop\(\)/, 'and goes off again');
+    for (const file of ['clip.mp4', 'clip.webm', 'a/b.MOV?v=2']) assert.match(file, new RegExp(/const VIDEO = (\/.*\/i);/.exec(element)![1].slice(1, -2), 'i'));
   });
 
   it('the element draws a still frame for a time attribute or #t= in the URL', () => {

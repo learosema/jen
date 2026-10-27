@@ -59,7 +59,7 @@ Into the current folder, or `--dir`.
 
 ## Starters {#starters}
 
-WebGL2 by default, `--version=410` for desktop. Uniforms: `uTime`, `uResolution`, `uMouse`, and `uTexture0`–`uTexture3` from `texture0="photo.jpg"` (or `"test-pattern"`).
+WebGL2 by default, `--version=410` for desktop. Uniforms: `uTime`, `uResolution`, `uMouse`, and `uTexture0`–`uTexture3` from `texture0="photo.jpg"`, `"clip.mp4"` (both need a web server), `"camera"` or `"test-pattern"`.
 
 ### `glsl:webgl` {#glsl-webgl}
 
@@ -177,6 +177,7 @@ Every noise tiles with its `period` overload.
 {% include shader.html src="filter-sobel.frag.glsl" texture="test-pattern" caption="<code>--kinds=sobel</code>" %}
 {% include shader.html src="filter-kuwahara.frag.glsl" texture="test-pattern" caption="<code>--kinds=kuwahara</code>" %}
 {% include shader.html src="filter-pixelate.frag.glsl" texture="test-pattern" caption="<code>--kinds=pixelate,dither</code>" %}
+{% include shader.html src="filter-sobel.frag.glsl" texture="camera" caption="<code>--kinds=sobel</code> on <code>texture0='camera'</code>" %}
 </div>
 
 {% include usage.html generator="glsl:filter" %}
