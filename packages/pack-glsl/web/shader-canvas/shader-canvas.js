@@ -506,7 +506,7 @@ button[hidden] { display: none; }
           video.currentTime = at;
         }
       } else if (this.#playing && this.#visible) {
-        if (video.paused) video.play().catch(() => {});
+        if (video.paused) video.play().catch(() => { /* autoplay refused until a click: the current frame stays */ });
       } else if (!video.paused) {
         video.pause();
       }

@@ -960,10 +960,10 @@ describe('glsl:filter', () => {
   it('one texture filter makes the color, the others are lines to switch to; color filters follow in order', () => {
     const out = applyActions(new Map(), run('filter', { name: 'F', kinds: 'vignette,sobel,crt,grayscale,pixelate' })).get('shaders/f.frag.glsl')!;
     const main = out.slice(out.indexOf('void main()'));
-    assert.match(main, /^  uv = pixelate\(uTexture0, uv, 8\.0\);\n  vec3 color = vec3\(sobel\(uTexture0, uv\)\);\n  \/\/ or: color = crt\(/m);
+    assert.match(main, /^ {2}uv = pixelate\(uTexture0, uv, 8\.0\);\n {2}vec3 color = vec3\(sobel\(uTexture0, uv\)\);\n {2}\/\/ or: color = crt\(/m);
     assert.ok(main.indexOf('grayscale(color)') < main.indexOf('vignette(uv'), 'grayscale before vignette');
     const plain = applyActions(new Map(), run('filter', { name: 'F', kinds: 'sepia' })).get('shaders/f.frag.glsl')!;
-    assert.match(plain, /vec3 color = texture\(uTexture0, uv\)\.rgb;\n  color = sepia\(color, 1\.0\);/);
+    assert.match(plain, /vec3 color = texture\(uTexture0, uv\)\.rgb;\n {2}color = sepia\(color, 1\.0\);/);
   });
 
   it('--post: a post pass over the image before it, full canvas, compiling with every filter', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
