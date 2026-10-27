@@ -6,6 +6,8 @@
  *                    ambient occlusion and fog, lit with the chosen model (see
  *                    glsl:lighting); --minimal: no shadows, AO or fog;
  *                    --materials: sceneMaterial() returns a material id per surface
+ *   --name=Scene --lighting=pbr --env=sky|equirect|cube
+ *                    background and reflections from an environment (see glsl:lighting --env)
  *   --name=Box --scene=cube [--minimal] [--lighting=…]
  *                    the smallest starter: one rounded cube on the ground
  *   --name=Land --scene=terrain [--water] [--minimal]
@@ -23,6 +25,7 @@
 import { posix } from 'node:path';
 import type { Action, Context, Generator } from '@codejen/jen';
 import { MARKER_LINE, chunkActions, pickChunks } from './chunks.ts';
+import { ENVS } from './lighting.ts';
 import { fail, parseList } from './common.ts';
 import { VERSIONS, parseVersion, withHeader } from './dialect.ts';
 import type { Version } from './dialect.ts';
@@ -92,6 +95,19 @@ function surface(materials: boolean, pbr: boolean): string {
     float roughness = ground ? 0.8 : 0.3;` : ''}`;
 }
 
+/** An environment lookup in direction `dir` (a GLSL expression) with `roughness`. */
+const ENV_LOOKUP: Record<string, (dir: string, roughness: string) => string> = {
+  sky: (dir, r) => `envSky(${dir}, light, ${r})`,
+  equirect: (dir, r) => `envEquirect(uTexture0, ${dir}, ${r})`,
+  cube: (dir, r) => `envCube(uCubemap0, ${dir}, ${r})`,
+};
+
+const ENV_UNIFORM: Record<string, string> = {
+  sky: '',
+  equirect: 'uniform sampler2D uTexture0;    // a panorama: texture0="sky.jpg" on the element\n',
+  cube: 'uniform samplerCube uCubemap0;   // cubemap0="sky/{face}.jpg" (px nx py ny pz nz) or "test-pattern"\n',
+};
+
 /** Sun and sky light for each model; `shadow` and `ao` are 1.0 in the minimal starter. */
 const LIGHT: Record<string, string> = {
   lambert: `color = lambert(n, light, albedo) * shadow * vec3(1.0, 0.95, 0.85)
@@ -103,15 +119,20 @@ const LIGHT: Record<string, string> = {
           + pbrAmbient(n, v, albedo, metallic, roughness, vec3(0.35, 0.45, 0.6), vec3(0.15, 0.12, 0.1)) * ao;`,
 };
 
-function shade(minimal: boolean, materials: boolean, lighting: string, fogDistance: string): string {
+function shade(minimal: boolean, materials: boolean, lighting: string, fogDistance: string, env: string): string {
+  const light = env
+    ? LIGHT.pbr.replace(
+        /pbrAmbient\([^;]*\) \* ao;/,
+        `pbrEnv(n, v, albedo, metallic, roughness, ${ENV_LOOKUP[env]('n', '1.0')}, ${ENV_LOOKUP[env]('reflect(rd, n)', 'roughness')}) * ao;`,
+      )
+    : LIGHT[lighting];
   const lines = [
     'vec3 n = calcNormal(p);',
     'vec3 v = -rd;',
-    'vec3 light = normalize(vec3(0.6, 0.8, 0.4));',
     minimal ? 'float shadow = 1.0;' : 'float shadow = softShadow(p, light, 0.02, 10.0, 16.0);',
     minimal ? 'float ao = 1.0;' : 'float ao = calcAO(p, n);',
     surface(materials, lighting === 'pbr'),
-    LIGHT[lighting],
+    light,
   ];
   if (!minimal) lines.push(`color = mix(color, sky, 1.0 - exp(-pow(t / ${fogDistance}, 3.0)));  // distance fog`);
   return lines.map((l) => `    ${l}`).join('\n');
@@ -128,13 +149,17 @@ export interface StarterOptions {
   lighting?: string;
   /** Camera orbit radius. */
   distance?: number;
+  /** One of ENVS: background and reflections from an environment (pbr only). */
+  env?: string;
 }
 
 /** A raymarching starter. Shared with `glsl:sdf --dim=3 --name`, which fills the scene with the picked shapes. */
 export function raymarchStarter(file: string, version: Version, ctx: Context, options: StarterOptions): Action[] {
-  const { scene, chunks, minimal, materials = false, lighting = 'lambert', distance = 4 } = options;
+  const { scene, chunks, minimal, materials = false, lighting = 'lambert', distance = 4, env = '' } = options;
   const parts = minimal ? ['march', 'normal', 'camera'] : ['march', 'normal', 'soft-shadow', 'ao', 'camera'];
-  const color = lighting === 'pbr' ? ['lighting/pbr', 'lighting/pbr-ambient', 'color/aces', 'color/srgb'] : [`lighting/${lighting}`, 'color/srgb'];
+  const color = lighting === 'pbr'
+    ? ['lighting/pbr', env ? `env/${env}` : 'lighting/pbr-ambient', ...(env ? ['env/combine'] : []), 'color/aces', 'color/srgb']
+    : [`lighting/${lighting}`, 'color/srgb'];
   const output = lighting === 'pbr'
     ? '  // Exposure, then HDR → [0, 1] → sRGB for display.\n  fragColor = vec4(linearToSrgb(tonemapAces(color * 1.6)), 1.0);'
     : '  fragColor = vec4(linearToSrgb(color), 1.0);  // linear → sRGB for display';
@@ -142,7 +167,7 @@ export function raymarchStarter(file: string, version: Version, ctx: Context, op
   const body = `uniform float uTime;        // seconds since start
 uniform vec2 uResolution;   // viewport size in pixels
 uniform vec2 uMouse;        // pointer position in pixels, origin bottom-left
-
+${env ? ENV_UNIFORM[env] : ''}
 out vec4 fragColor;
 
 ${MARKER_LINE}
@@ -156,12 +181,13 @@ void main() {
   vec3 eye = vec3(${distance.toFixed(1)} * sin(angle), ${(distance * 0.375).toFixed(2)}, ${distance.toFixed(1)} * cos(angle));
   vec3 rd = cameraMatrix(eye, vec3(0.0), 0.0) * normalize(vec3(uv, 1.5));
 
-  vec3 sky = mix(vec3(0.8, 0.88, 1.0), vec3(0.35, 0.55, 0.9), clamp(2.0 * rd.y, 0.0, 1.0));
+  vec3 light = normalize(vec3(0.6, 0.8, 0.4));
+  vec3 sky = ${env ? ENV_LOOKUP[env]('rd', '0.0') : 'mix(vec3(0.8, 0.88, 1.0), vec3(0.35, 0.55, 0.9), clamp(2.0 * rd.y, 0.0, 1.0))'};
   vec3 color = sky;
   float t = raymarch(eye, rd, 30.0);
   if (t > 0.0) {
     vec3 p = eye + t * rd;
-${shade(minimal, materials, lighting, (3 * distance).toFixed(1))}
+${shade(minimal, materials, lighting, (3 * distance).toFixed(1), env)}
   }
 
 ${output}
@@ -260,6 +286,7 @@ const raymarchGenerator: Generator = {
     minimal: { default: false, description: 'with --name: leave out soft shadows, ambient occlusion and fog' },
     materials: { default: false, description: 'with --name: a material id per surface, for different colors' },
     lighting: { default: 'lambert', choices: LIGHTING_MODELS, description: 'with --name: the shading model (see glsl:lighting)' },
+    env: { default: '', choices: ENVS, description: 'with --name --lighting=pbr: background and reflections from sky, equirect (texture0) or cube (cubemap0)' },
     parts: { default: '', description: 'with --into, comma-separated: march, normal, soft-shadow, ao, camera – or all (the default without --hits)' },
     hits: { default: '', description: 'with --into, comma-separated: sphere, plane, box – exact ray intersections, e.g. a bounding sphere, water, a planet – or all' },
     into: { path: true, default: '', description: 'existing shader or --inline page to add the raymarching helpers to, for your own scene()' },
@@ -275,16 +302,19 @@ const raymarchGenerator: Generator = {
     '--name=Scene',
     '--name=Scene --lighting=pbr --materials --dir=shaders',
     '--name=Box --scene=cube --minimal',
+    '--name=Chrome --lighting=pbr --materials --env=cube',
     '--name=Land --scene=terrain --water',
     '--parts=march,normal --into=shaders/scene.frag.glsl',
     '--hits=sphere,plane --into=index.html',
   ],
-  actions: ({ name, scene, water, minimal, materials, lighting, parts, hits, into, version }, { kebab, pascal }, ctx) => {
+  actions: ({ name, scene, water, minimal, materials, lighting, env, parts, hits, into, version }, { kebab, pascal }, ctx) => {
     const model = String(lighting);
     if (!SCENES.includes(String(scene))) fail(`glsl:raymarch --scene: expected ${SCENES.map((s) => `"${s}"`).join(', ')}, got "${String(scene)}"`);
     const terrain = scene === 'terrain';
     const cube = scene === 'cube';
     if ((terrain || cube || water) && !name) fail('glsl:raymarch --scene and --water: only for a new starter (--name)');
+    if (env && !ENVS.includes(String(env))) fail(`glsl:raymarch --env: expected ${ENVS.map((e) => `"${e}"`).join(', ')}, got "${String(env)}"`);
+    if (env && (!name || model !== 'pbr' || terrain)) fail('glsl:raymarch --env: for a new starter (--name) with --lighting=pbr – or add it to your shader with glsl:lighting --env');
     if (cube && materials) fail('glsl:raymarch --scene=cube: one object needs no material ids – --materials is for the shapes scene');
     if (water && !terrain) fail('glsl:raymarch --water: only with --scene=terrain');
     if (terrain && (materials || model !== 'lambert')) fail('glsl:raymarch --scene=terrain: lit with lambert, by slope and height – --lighting is for the shapes and cube scenes, --materials for shapes');
@@ -303,6 +333,7 @@ const raymarchGenerator: Generator = {
             minimal: Boolean(minimal),
             materials: Boolean(materials),
             lighting: model,
+            env: String(env),
           });
       const shown = posix.relative(ctx.cwd ?? '.', posix.join(ctx.destDir, file));
       return [...starter, { note: `a page for it that opens from disk: jen glsl:webgl --name=${pascal(String(name))} --inline --shader=${shown}` }];

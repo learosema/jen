@@ -72,6 +72,7 @@ const webglGenerator: Generator = {
     tag: { default: 'shader-canvas', description: 'custom element name, if shader-canvas clashes with something on the page' },
     inline: { default: false, description: 'put the shader into the page, so it opens from disk without a web server' },
     texture: { default: '', description: 'texture0 for the shader (uTexture0): an image or video (.mp4, .webm) next to the page, camera, or test-pattern' },
+    cubemap: { default: '', description: 'cubemap0 for the shader (uCubemap0): sky/{face}.jpg ({face} is px nx py ny pz nz), or test-pattern' },
     shader: { path: true, default: '', description: 'an existing fragment shader for the page instead of the starter, e.g. from glsl:raymarch --name' },
     post: { path: true, default: '', description: 'a post pass over the shader\'s image, e.g. from glsl:filter --post' },
   },
@@ -82,7 +83,7 @@ const webglGenerator: Generator = {
     'a post pass reads the image before it as uniform sampler2D uPrevious; inline, every <script type="x-shader/x-fragment"> after the first is one',
     'texture0="photo.jpg" or "clip.mp4" needs a web server (browsers keep WebGL from reading files on a page opened from disk); "test-pattern" and "camera" work anywhere',
   ],
-  actions: ({ name, dir, shaderDir, tag, inline, shader, texture, post }, { kebab, pascal }, ctx) => {
+  actions: ({ name, dir, shaderDir, tag, inline, shader, texture, cubemap, post }, { kebab, pascal }, ctx) => {
     const t = String(tag);
     if (!/^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/.test(t)) {
       fail(`glsl:webgl --tag: "${t}" is not a valid custom element name (lowercase, with a hyphen, e.g. "shader-canvas")`);
@@ -106,7 +107,7 @@ const webglGenerator: Generator = {
 
     // the attribute value goes into HTML: escape what could end it
     const escape = (v: string) => v.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-    const attrs = (texture ? ` texture0="${escape(String(texture))}"` : '') + (postFile && !inline ? ` post="${escape(posix.relative(pageDir, postFile))}"` : '');
+    const attrs = (texture ? ` texture0="${escape(String(texture))}"` : '') + (cubemap ? ` cubemap0="${escape(String(cubemap))}"` : '') + (postFile && !inline ? ` post="${escape(posix.relative(pageDir, postFile))}"` : '');
     const fragmentScript = (source: string) => `      <script type="x-shader/x-fragment">\n${indent(source, '        ')}\n      </script>\n`;
     const element = inline
       ? `    <${t}${attrs}>\n${fragmentScript(inlineFrag)}${postText !== null ? fragmentScript(postText) : ''}    </${t}>`

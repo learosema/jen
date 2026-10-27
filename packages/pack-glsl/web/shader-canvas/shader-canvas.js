@@ -124,6 +124,34 @@ button[hidden] { display: none; }
     return canvas;
   }
 
+  /** cubemap0="test-pattern": six labelled faces, to check a cubemap's orientation and seams. */
+  function cubeTestPattern() {
+    const faces = [['+X', '#c0392b'], ['−X', '#6e2018'], ['+Y', '#27ae60'], ['−Y', '#145a32'], ['+Z', '#2e6fd8'], ['−Z', '#163a73']];
+    return faces.map(([label, color]) => {
+      const size = 256;
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = size;
+      const g = canvas.getContext('2d');
+      g.fillStyle = color;
+      g.fillRect(0, 0, size, size);
+      g.strokeStyle = 'rgb(255 255 255 / 0.4)';
+      for (let p = 32; p < size; p += 32) {
+        g.beginPath();
+        g.moveTo(p + 0.5, 0);
+        g.lineTo(p + 0.5, size);
+        g.moveTo(0, p + 0.5);
+        g.lineTo(size, p + 0.5);
+        g.stroke();
+      }
+      g.fillStyle = '#fff';
+      g.font = 'bold 96px system-ui, sans-serif';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText(label, size / 2, size / 2);
+      return canvas;
+    });
+  }
+
   function quadMesh() {
     return { attribs: [{ size: 2, data: [-1, -1, 1, -1, -1, 1, 1, 1] }], indices: [0, 1, 2, 2, 1, 3] };
   }
@@ -172,7 +200,7 @@ button[hidden] { display: none; }
   // ─── The element ────────────────────────────────────────────────────────────
 
   class ShaderCanvas extends HTMLElement {
-    static observedAttributes = ['src', 'vert', 'post', 'mesh', 'detail', 'texture0', 'texture1', 'texture2', 'texture3', 'live', 'time'];
+    static observedAttributes = ['src', 'vert', 'post', 'mesh', 'detail', 'texture0', 'texture1', 'texture2', 'texture3', 'cubemap0', 'live', 'time'];
 
     #canvas;
     #overlay;
@@ -187,6 +215,7 @@ button[hidden] { display: none; }
     #textures = [];
     #media = [];  // per unit: { url, video, stream } – outlives the GL context
     #cameraButton;
+    #cubemap = null;
     #seekTargets = new WeakMap();  // video → the still time it was last sent to
     #sources = { frag: '', vert: '', post: [] };
     #frame = 0;
@@ -267,6 +296,7 @@ button[hidden] { display: none; }
       // Without a context yet, #initGL() picks up the current mesh and textures.
       if (!this.#gl || this.#gl.isContextLost()) return;
       if (name.startsWith('texture')) this.#loadTexture(Number(name.slice(-1)));
+      else if (name === 'cubemap0') this.#loadCubemap();
       else if (name === 'mesh' || name === 'detail') this.#buildMesh();
       this.#schedule();
     }
@@ -306,6 +336,7 @@ button[hidden] { display: none; }
       this.#floatTargets = !!gl.getExtension('EXT_color_buffer_float');
       this.#buildMesh();
       for (let i = 0; i < 4; i++) this.#loadTexture(i);
+      this.#loadCubemap();
       return true;
     }
 
@@ -387,12 +418,46 @@ button[hidden] { display: none; }
       this.#syncVideo(video);
     }
 
+    /** cubemap0: "sky/{face}.jpg" ({face} is px nx py ny pz nz), six URLs in that order, or "test-pattern". */
+    #loadCubemap() {
+      const gl = this.#gl;
+      if (this.#cubemap) gl.deleteTexture(this.#cubemap);
+      const texture = gl.createTexture();
+      this.#cubemap = texture;
+      gl.activeTexture(gl.TEXTURE0 + 5);
+      gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+      for (let i = 0; i < 6; i++) {
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
+      }
+      const value = (this.getAttribute('cubemap0') ?? '').trim();
+      if (!value) return;
+      const upload = (faces) => {
+        if (this.#cubemap !== texture || !this.#gl) return;
+        gl.activeTexture(gl.TEXTURE0 + 5);
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+        faces.forEach((face, i) => gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, face));
+        gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+        gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        this.#schedule();
+      };
+      if (value === 'test-pattern') return upload(cubeTestPattern());
+      const urls = value.includes('{face}') ? ['px', 'nx', 'py', 'ny', 'pz', 'nz'].map((f) => value.replaceAll('{face}', f)) : value.split(/\s+/);
+      if (urls.length !== 6) return this.#showError(`cubemap0: expected six images (px nx py ny pz nz) or a pattern with {face}, got ${urls.length}`);
+      Promise.all(urls.map((url) => new Promise((ok, fail) => {
+        const image = new Image();
+        image.crossOrigin = 'anonymous';
+        image.onload = () => ok(image);
+        image.onerror = () => fail(url);
+        image.src = new URL(url, document.baseURI).href;
+      }))).then(upload, (url) => this.#textureError('cubemap0', url));
+    }
+
     #textureError(unit, url) {
       // a page opened from disk: browsers give each file its own origin, and WebGL may not read across origins
       const why = location.protocol === 'file:'
         ? ' – browsers don\'t let WebGL read images or videos on a page opened from disk: serve the folder (e.g. npx serve), or use texture0="test-pattern" or "camera"'
         : '';
-      this.#showError(`Could not load texture${unit}: ${url}${why}`);
+      this.#showError(`Could not load ${typeof unit === 'number' ? `texture${unit}` : unit}: ${url}${why}`);
     }
 
     async #startCamera() {
@@ -722,6 +787,12 @@ button[hidden] { display: none; }
           gl.uniform1i(l, i);
         });
       }
+      // unit 5: cubemap0
+      set('uCubemap0', (l) => {
+        gl.activeTexture(gl.TEXTURE0 + 5);
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, this.#cubemap);
+        gl.uniform1i(l, 5);
+      });
       // unit 4: the previous pass's image
       set('uPrevious', (l) => {
         gl.activeTexture(gl.TEXTURE0 + 4);
@@ -845,6 +916,7 @@ button[hidden] { display: none; }
       this.#quad = null;
       this.#posts = [];
       this.#targets = [];
+      this.#cubemap = null;
       this.#textures = [];
     }
 
@@ -865,6 +937,7 @@ button[hidden] { display: none; }
       this.#quad = null;
       this.#posts = [];
       this.#targets = [];
+      this.#cubemap = null;
       this.#textures = [];
       if (this.#initGL()) this.#compile();
     }
@@ -889,9 +962,11 @@ button[hidden] { display: none; }
       this.#quad = null;
       this.#posts = [];
       this.#targets = [];
+      this.#cubemap = null;
       this.#textures = [];
       this.#buildMesh();
       for (let i = 0; i < 4; i++) this.#loadTexture(i);
+      this.#loadCubemap();
       if (this.#sources.frag) this.#compile();  // before the first load, #reload() compiles
     };
   }

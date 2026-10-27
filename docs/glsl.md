@@ -59,7 +59,7 @@ Into the current folder, or `--dir`.
 
 ## Starters {#starters}
 
-WebGL2 by default, `--version=410` for desktop. Uniforms: `uTime`, `uResolution`, `uMouse`, and `uTexture0`–`uTexture3` from `texture0="photo.jpg"`, `"clip.mp4"` (both need a web server), `"camera"` or `"test-pattern"`.
+WebGL2 by default, `--version=410` for desktop. Uniforms: `uTime`, `uResolution`, `uMouse`, and `uTexture0`–`uTexture3` from `texture0="photo.jpg"`, `"clip.mp4"` (both need a web server), `"camera"` or `"test-pattern"`; `uCubemap0` from `cubemap0="sky/{face}.jpg"`.
 
 ### `glsl:webgl` {#glsl-webgl}
 
@@ -154,6 +154,8 @@ Every noise tiles with its `period` overload.
 {% include shader.html src="raymarch-cube.frag.glsl" caption="<code>--scene=cube</code>" %}
 {% include shader.html src="raymarch-materials.frag.glsl" caption="<code>--lighting=pbr --materials</code>" %}
 {% include shader.html src="raymarch-terrain.frag.glsl" caption="<code>--scene=terrain --water</code>" %}
+{% include shader.html src="raymarch-env-sky.frag.glsl" caption="<code>--lighting=pbr --materials --env=sky</code>" %}
+{% include shader.html src="raymarch-env-cube.frag.glsl" cubemap="test-pattern" caption="<code>--env=cube</code> with <code>cubemap0='test-pattern'</code>" %}
 </div>
 
 {% include usage.html generator="glsl:raymarch" %}

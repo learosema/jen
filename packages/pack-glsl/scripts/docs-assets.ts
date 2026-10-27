@@ -71,6 +71,8 @@ run(files, 'sdf', { dim: '3', shapes: 'all', name: 'sdf-3d' });
 for (const lighting of ['lambert', 'blinn', 'toon', 'pbr']) run(files, 'raymarch', { name: `raymarch-${lighting}`, lighting });
 run(files, 'raymarch', { name: 'raymarch-materials', lighting: 'pbr', materials: true });
 run(files, 'raymarch', { name: 'raymarch-cube', scene: 'cube' });
+run(files, 'raymarch', { name: 'raymarch-env-sky', lighting: 'pbr', materials: true, env: 'sky' });
+run(files, 'raymarch', { name: 'raymarch-env-cube', lighting: 'pbr', materials: true, env: 'cube' });
 run(files, 'raymarch', { name: 'raymarch-terrain', scene: 'terrain', water: true });
 for (const kinds of ['crt,vignette', 'sobel', 'kuwahara', 'pixelate,dither']) run(files, 'filter', { name: `filter-${kinds.split(',')[0]}`, kinds });
 run(files, 'filter', { name: 'filter-post-crt', kinds: 'crt,vignette', post: true });

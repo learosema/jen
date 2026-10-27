@@ -68,6 +68,7 @@ jen glsl:lighting --models=toon --into=shaders/scene.frag.glsl
 ```
 
 - **Models** (`--models`): `lambert(n, l, albedo)`, `blinnPhong(n, v, l, albedo, shininess, specular)`, `toon(n, v, l, albedo, bands)` with a rim light, and `pbr(n, v, l, albedo, metallic, roughness)` – Cook-Torrance with GGX, Smith-Schlick and Schlick Fresnel, plus `pbrAmbient()`, a sky/ground ambient light that needs no environment map.
+- **Environments** (`--env=sky|equirect|cube`): `envSky`, `envEquirect` (a panorama in `texture0`) or `envCube` (`cubemap0`), each `(…, dir, roughness)`, and `pbrEnv()` to light and reflect with them; `glsl:raymarch --lighting=pbr --env=…` writes a starter with it.
 - **Color output** (`--tonemap`): `tonemapAces()` (Stephen Hill's ACES fit), `tonemapReinhard()`, and `linearToSrgb()`/`srgbToLinear()` with the exact sRGB curve.
 
 Every model takes the normal `n`, the direction to the viewer `v` and to the light `l`, and returns the reflected light for a white light of intensity 1: multiply by the light's color and shadow, sum over lights, tonemap, encode. `jen glsl:raymarch --name=Scene --lighting=pbr` shows a model in a full scene.

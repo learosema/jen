@@ -391,7 +391,7 @@ describe('glsl:util', () => {
     for (const [generator, param] of [['util', 'fns'], ['matrix', 'fns'], ['noise', 'kind']]) {
       assert.equal(pack[generator].params?.[param].default, undefined, `glsl:${generator} --${param} is required`);
     }
-    for (const [generator, group] of [['sdf', ['shapes', 'ops', 'effects']], ['lighting', ['models', 'tonemap', 'sky', 'fog', 'point']]] as const) {
+    for (const [generator, group] of [['sdf', ['shapes', 'ops', 'effects']], ['lighting', ['models', 'tonemap', 'sky', 'fog', 'point', 'env']]] as const) {
       for (const param of group) {
         assert.match(pack[generator].params?.[param].description ?? '', new RegExp(`\\(pick at least one of ${group.map((p) => `--${p}`).join(', ')}\\)$`));
       }
@@ -475,6 +475,16 @@ describe('glsl:webgl', () => {
     const element = page.get('shader-canvas.js')!;
     assert.match(element, /observedAttributes = \[[^\]]*'post'/);
     assert.match(element, /set\('uPrevious'/);
+  });
+
+  it('--cubemap sets cubemap0; the element loads six faces (or a pattern with {face}, or test-pattern) as uCubemap0', () => {
+    const page = byPath(run('webgl', { name: 'x', inline: true, cubemap: 'sky/{face}.jpg' }));
+    assert.match(page.get('index.html')!, /<shader-canvas cubemap0="sky\/\{face\}\.jpg">/);
+    const element = page.get('shader-canvas.js')!;
+    assert.match(element, /observedAttributes = \[[^\]]*'cubemap0'/);
+    assert.match(element, /\['px', 'nx', 'py', 'ny', 'pz', 'nz'\]/);
+    assert.match(element, /set\('uCubemap0'/);
+    assert.match(element, /value === 'test-pattern'\) return upload\(cubeTestPattern\(\)\)/);
   });
 
   it('the element draws a still frame for a time attribute or #t= in the URL', () => {
@@ -886,6 +896,25 @@ describe('glsl:raymarch', () => {
     assert.throws(() => run('raymarch', { scene: 'cube', into: 's.glsl' }), /--scene and --water: only for a new starter/);
   });
 
+  it('--env: background and reflections from sky, a panorama or a cubemap; compiles in every dialect', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
+    for (const version of VERSIONS) {
+      for (const env of ['sky', 'equirect', 'cube']) {
+        for (const materials of [false, true]) {
+          const out = applyActions(new Map(), run('raymarch', { name: 'E', lighting: 'pbr', env, materials, version })).get('shaders/e.frag.glsl')!;
+          assertCompiles(out, 'frag', `env starter (${version}, ${env}, materials: ${materials})`);
+        }
+      }
+    }
+    const cube = applyActions(new Map(), run('raymarch', { name: 'E', lighting: 'pbr', env: 'cube' })).get('shaders/e.frag.glsl')!;
+    assert.match(cube, /^uniform samplerCube uCubemap0;/m);
+    assert.match(cube, /vec3 sky = envCube\(uCubemap0, rd, 0\.0\);/);
+    assert.match(cube, /pbrEnv\(n, v, albedo, metallic, roughness, envCube\(uCubemap0, n, 1\.0\), envCube\(uCubemap0, reflect\(rd, n\), roughness\)\)/);
+    assert.doesNotMatch(cube, /pbrAmbient\(/);
+    for (const bad of [{ name: 'E', env: 'sky' }, { env: 'sky', into: 's.glsl' }, { name: 'E', scene: 'terrain', env: 'sky', lighting: 'pbr' }]) {
+      assert.throws(() => run('raymarch', bad), /--env: for a new starter \(--name\) with --lighting=pbr/);
+    }
+  });
+
   it('--hits adds exact ray intersections alone, or next to --parts; they hit what they should', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
     const only = adds(run('raymarch', { hits: 'sphere,plane,box' }));
     assert.deepEqual(only.map((f) => f.add), ['shaders/lib/intersect-sphere.glsl', 'shaders/lib/intersect-plane.glsl', 'shaders/lib/intersect-box.glsl', 'shaders/lib/THIRD_PARTY_NOTICES.md']);
@@ -959,6 +988,16 @@ describe('glsl:filter', () => {
 });
 
 describe('glsl:lighting', () => {
+  it('--env adds the environment and pbrEnv(), with sRGB decoding for images', () => {
+    for (const [env, fn] of [['sky', 'envSky'], ['equirect', 'envEquirect'], ['cube', 'envCube']] as const) {
+      const files = adds(run('lighting', { env })).map((a) => a.add);
+      assert.ok(files.includes(`shaders/lib/env-${env}.glsl`) && files.includes('shaders/lib/env-combine.glsl'), env);
+      assert.match(loadChunk(`env/${env}`).code, new RegExp(`vec3 ${fn}\\(`));
+    }
+    assert.ok(loadChunk('env/cube').requires.includes('color/srgb'));
+    assert.throws(() => run('lighting', { env: 'hdr' }), /glsl:lighting --env: expected "sky", "equirect", "cube", got "hdr"/);
+  });
+
   it('--point adds pointLight(), which a loop over lights compiles with', { skip: !hasGlslang && 'glslangValidator not found' }, () => {
     const shader = `${header('300es')}\n\nout vec4 fragColor;\nuniform vec3 lamps[4];\n\nvoid main() {\n  vec3 p = vec3(0.0), n = vec3(0.0, 1.0, 0.0), color = vec3(0.0);\n  for (int i = 0; i < 4; i++) {\n    vec3 l;\n    float a = pointLight(p, lamps[i], 8.0, l);\n    color += lambert(n, l, vec3(0.8)) * a * 10.0 * vec3(1.0, 0.6, 0.3);\n  }\n  fragColor = vec4(color, 1.0);\n}\n`;
     const out = applyActions(new Map([['s.glsl', shader]]), run('lighting', { models: 'lambert', point: true, into: 's.glsl' })).get('s.glsl')!;
@@ -968,7 +1007,7 @@ describe('glsl:lighting', () => {
   });
 
   it('validates, listing models and tonemaps', () => {
-    assert.throws(() => run('lighting', {}), /pick something – --models=blinn, lambert, pbr, toon; --tonemap=aces, reinhard, srgb \(each also takes "all"\); --sky, --fog, --point/);
+    assert.throws(() => run('lighting', {}), /pick something – --models=blinn, lambert, pbr, toon; --tonemap=aces, reinhard, srgb \(each also takes "all"\); --sky, --fog, --point, --env=sky\|equirect\|cube/);
     assert.throws(() => run('lighting', { tonemap: 'filmic' }), /--tonemap: unknown "filmic"/);
     assert.throws(() => run('lighting', { models: 'phong' }), /--models: unknown "phong"/);
   });
